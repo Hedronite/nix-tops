@@ -1,0 +1,21 @@
+# Nix build output
+result
+result-*
+.direnv
+
+# Gate report is written on every run; the ledgers and baseline in .nix-tops/ are tracked
+/.nix-tops/report.json
+/.nix-tops/stats/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Rust analyzer (once crates/ lands)
+/target/
+
+# Editors and OS
+.DS_Store
+*.swp
+/tmp
