@@ -1,0 +1,19 @@
+unpacking 'github:Hedronite/hedronetes-h3s/50eb72998d89559eebce58f84d09d9c38392fe1e' into the Git cache...
+evaluating flake...
+checking flake output 'packages'...
+error:
+       … while checking flake output 'packages'
+         at «github:Hedronite/hedronetes-h3s/50eb72998d89559eebce58f84d09d9c38392fe1e»/flake.nix:155:7:
+          154|     in {
+          155|       packages.${system} = { inherit h3s bun youki containerd cni-plugins runtime-tools flannel flannel-cni; default = h3s; };
+             |       ^
+          156|       packages."x86_64-linux" = unsupportedSystem "x86_64-linux";
+
+       … while calling the 'throw' builtin
+         at «github:Hedronite/hedronetes-h3s/50eb72998d89559eebce58f84d09d9c38392fe1e»/flake.nix:153:9:
+          152|       unsupportedSystem = unsupported:
+          153|         throw "hedronetes-h3s flake does not support ${unsupported}; bundled runtime artifacts are aarch64-linux only";
+             |         ^
+          154|     in {
+
+       error: hedronetes-h3s flake does not support x86_64-linux; bundled runtime artifacts are aarch64-linux only

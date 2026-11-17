@@ -1,0 +1,8 @@
+Hedronite/luminosi-ts c86e840819 exit=1
+Hedronite/rust-tops 77056c9908 exit=1
+Hedronite/python-gate 2cb1775fa0 exit=0
+VirtualMachinist/Omahedron 35dda32b0e exit=0
+Hedronite/lapis-lattice 42aa3b8dcd exit=1
+Hedronite/hedronetes-h3s 50eb72998d exit=1
+Hedronite/facet 398fa4c9e7 exit=0
+Hedronite/bezel a2c974016e exit=1

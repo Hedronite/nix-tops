@@ -1,0 +1,30 @@
+unpacking 'github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177' into the Git cache...
+evaluating flake...
+checking flake output 'overlays'...
+checking overlay 'overlays.default'...
+checking flake output 'packages'...
+checking derivation packages.aarch64-darwin.default...
+derivation evaluated to /nix/store/z03rf9rv9g9m72vk6lb093nja20lyh4l-cargo-tops-0.4.0.drv
+checking derivation packages.aarch64-darwin.cargo-tops...
+derivation evaluated to /nix/store/z03rf9rv9g9m72vk6lb093nja20lyh4l-cargo-tops-0.4.0.drv
+checking derivation packages.aarch64-darwin.rust-tops-laws...
+derivation evaluated to /nix/store/y4vwk4drhsjv6v20x255diikw11w1fiz-rust-tops-laws-0.4.0.drv
+evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05
+error:
+       … while checking flake output 'packages'
+         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177»/flake.nix:40:7:
+           39|
+           40|       packages = forAllSystems (
+             |       ^
+           41|         system:
+
+       … in the right operand of the update (//) operator
+         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177»/flake.nix:49:12:
+           48|         }
+           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+             |            ^
+           50|           inherit (pkgs) rust-tops-bend;
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: aborting to reveal stack trace of warning, as abort-on-warn is set
