@@ -496,6 +496,11 @@ mistake in the source sketch the law comes from (§1–§10), where there is one
 | N-15 | Every `lib.<name>` and `builtins.<name>` reference resolves in the locked inputs. The analyzer collects each selection path and checks it with `lib.hasAttrByPath` against the pinned `lib` and `builtins` | R | an + ev | §4 | ✓ |
 | N-16 | No `builtins.trace`, `lib.traceVal` or other `lib.debug` tracing committed outside tests | A | an | | |
 | N-17 | Evaluation emits **no unmatched warnings** from any of three sources: `builtins.warn` (renamed NixOS options, `lib.warn`, deprecated aliases; `abort-on-warn = true` makes each an error, checked), `config.warnings` read as data (Home Manager and nix-darwin print it with `builtins.trace`, so `abort-on-warn` does not see it, checked), and `nix` command diagnostics classified by `laws/diagnostics.toml`. A warning is accepted only by a dated `[[warnings.allow]]` entry | R | ev | §5 | ✓ |
+
+**Modules and options**
+
+| ID | Law | Sev | Reader | Sketch | v0.1 |
+|---|---|---|---|---|---|
 | N-18 | Every configuration evaluates to its build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`). The module system refuses options that do not exist, such as `virtualHosts.<name>.enableSSL` (checked), and missing package attributes | R | ev | §5 | ✓ |
 | N-19 | Every declared option has `type` and `description`. `types.anything`, `types.attrs` and `types.unspecified` need an ack | A | ev (`options` tree) | | |
 | N-20 | A module that is imported but not enabled changes nothing: the `toplevel.drvPath` of a minimal host with the module imported and `enable = false` equals the one without it | R | ev | | ✓ |
