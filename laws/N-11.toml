@@ -1,0 +1,11 @@
+id = "N-11"
+title = "No rec attrset passed to a finalAttrs builder"
+law = "No `rec` attrset passed to `mkDerivation` or a builder that accepts `finalAttrs:` in the pinned nixpkgs **[verify which builders]**; use `finalAttrs`. `rec` elsewhere is an Ack"
+severity = "Refuse"
+artifacts = ["derivation"]
+reader = "an"
+reader_detail = "an: syntax"
+judged = true
+sketch = "§3"
+rationale = "`rec` breaks `overrideAttrs`: an override does not reach attributes computed from other attributes."
+fix = "Write `finalAttrs: { … }` and refer to `finalAttrs.<name>`."

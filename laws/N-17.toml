@@ -1,0 +1,10 @@
+id = "N-17"
+title = "Evaluation emits no warnings"
+law = "Evaluation emits **no unmatched warnings** from any of three sources: `builtins.warn` (renamed NixOS options, `lib.warn`, deprecated aliases; `abort-on-warn = true` makes each an error, checked), `config.warnings` read as data (Home Manager prints it with `builtins.trace`, so `abort-on-warn` does not see it, checked; nix-darwin does the same in source at `ff0e21a`, **[verify]**), and `nix` command diagnostics classified by `laws/diagnostics.toml`. A warning is accepted only by a dated `[[warnings.allow]]` entry"
+severity = "Refuse"
+artifacts = ["output"]
+reader = "ev"
+judged = true
+sketch = "§5"
+rationale = "A warning is a deprecation that becomes an error later; `abort-on-warn` misses some sources (a standalone Home Manager option rename exits 0 under it)."
+fix = "Fix the renamed option or deprecated alias, or ack the warning with an expiry."

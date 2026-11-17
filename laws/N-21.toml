@@ -1,0 +1,11 @@
+id = "N-21"
+title = "mkForce and low-priority mkOverride carry an ack"
+law = "`lib.mkForce`, and `lib.mkOverride` with a priority below 100, carry an ack naming the definition they override"
+severity = "Ack"
+artifacts = ["module", "configuration"]
+reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev: options tree [verify], an: syntax"
+judged = false
+rationale = "A forced value silently wins over other modules' definitions."
+fix = "Ack the override with the definition it replaces, or use a normal priority."

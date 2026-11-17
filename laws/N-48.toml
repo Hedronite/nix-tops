@@ -1,0 +1,10 @@
+id = "N-48"
+title = "nixConfig carries an ack"
+law = "`nixConfig` in `flake.nix` (substituters, keys) carries an ack; the gate never accepts flake config (`--no-accept-flake-config`)"
+severity = "Ack"
+artifacts = ["flake"]
+reader = "an"
+reader_detail = "an: syntax"
+judged = false
+rationale = "Flake config can add a substituter and its signing key to the user's Nix settings."
+fix = "Move the setting to the user's Nix configuration, or ack it."

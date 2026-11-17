@@ -1,0 +1,11 @@
+id = "N-28"
+title = "override and overrideAttrs not mixed up"
+law = "`.override` takes package-function arguments; `.overrideAttrs` takes derivation attributes. `.override` with `src`, `version`, `patches`, a `*Phase`, `buildInputs` or `nativeBuildInputs` is refused: it errors, or is silently ignored when the function takes `...`"
+severity = "Refuse"
+artifacts = ["source"]
+reader = "an"
+reader_detail = "an: syntax"
+judged = true
+sketch = "§8"
+rationale = "`.override` with a derivation attribute may do nothing and report success."
+fix = "Use `.overrideAttrs`."

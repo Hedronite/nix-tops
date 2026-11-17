@@ -1,0 +1,11 @@
+id = "N-24"
+title = "Insecure packages carry an expiring ack"
+law = "Each `permittedInsecurePackages` entry carries an ack with an expiry date"
+severity = "Ack"
+artifacts = ["nixpkgs-config"]
+reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev: options tree [verify], an: syntax"
+judged = false
+rationale = "An insecure package should be a dated decision, not a permanent one."
+fix = "Add an ack with an expiry date, or drop the package."

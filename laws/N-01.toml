@@ -1,0 +1,12 @@
+id = "N-01"
+title = "No search-path lookups in flake-evaluated code"
+law = "No search-path lookups (`<nixpkgs>`, `NIX_PATH`) in flake-evaluated code. Pure eval refuses them (checked); `nixtops-lint` also catches them in files the flake does not evaluate. A `flake-compat` shim is the one exemption"
+severity = "Refuse"
+artifacts = ["source"]
+reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev, an: syntax"
+judged = true
+sketch = "§2"
+rationale = "A search-path lookup reads the host's `NIX_PATH`, so the result differs per machine."
+fix = "Take the input from the flake (`inputs.nixpkgs`) instead of `<nixpkgs>`."

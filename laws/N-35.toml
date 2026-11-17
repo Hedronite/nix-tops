@@ -1,0 +1,11 @@
+id = "N-35"
+title = "No plaintext user passwords"
+law = "No plaintext `password` or `initialPassword` for users; use `hashedPasswordFile`. A `hashedPassword` literal is an Ack: the hash is world-readable in the store"
+severity = "Refuse"
+artifacts = ["configuration"]
+reader = "ev"
+reader_detail = "ev: options tree"
+judged = true
+sketch = "§10"
+rationale = "A plaintext password in a configuration is stored in the world-readable store."
+fix = "Use `hashedPasswordFile` with a runtime path."

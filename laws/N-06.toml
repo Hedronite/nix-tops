@@ -1,0 +1,10 @@
+id = "N-06"
+title = "One nixpkgs per lock"
+law = "One nixpkgs per lock: other inputs `follows` the main nixpkgs. Exempt: the `nix-tops` input (N-43), and inputs with an ack (for example a second nixpkgs for a platform the main pin dropped)"
+severity = "Ack"
+artifacts = ["lock"]
+reader = "an"
+reader_detail = "an: lock"
+judged = false
+rationale = "Two nixpkgs in one lock double the evaluation and the closure and let package versions drift apart."
+fix = "Add `inputs.<name>.inputs.nixpkgs.follows = \"nixpkgs\"`, or ack the exception."
