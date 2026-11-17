@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Checks for the Nix-TOPS spec repo. Python 3 standard library only.
 
-    python3 scripts/spec_check.py links|catalog|schema|all [--root DIR]
+    python3 scripts/spec_check.py links|catalog|schema|ids|all [--root DIR]
 
 links    intra-repo Markdown links and heading anchors resolve
-catalog  law rows, judged marks and the counts quoted in the text agree
-schema   the section 9 TOML example validates against schema/nix-tops.schema.json
-         (needs check-jsonschema, pinned below)
+catalog  law rows, judged marks and the counts quoted in the text (NIX_TOPS.md and README.md) agree
+schema   every schema/**/*.json is a valid 2020-12 schema; the section 9 TOML example, every
+         profile and every examples/**/nix-tops.toml validate against schema/nix-tops.schema.json
+         (needs check-jsonschema, pinned below, on Python 3.10 or later)
+ids      no internal decision label (N1, X2, Q5, R4, P7, G3, M4.6 ...) in the prose; law IDs are fine
 
 Exit status is 0 when every selected check passes, 1 otherwise.
 """
@@ -202,6 +204,18 @@ def check_catalog(root):
             if int(b.group(2)) != total:
                 errors.append(f"{at}: M3 row says {b.group(2)} laws, table has {total} rows")
 
+    # README: the roadmap row quotes the same counts
+    readme = root / "README.md"
+    if readme.is_file():
+        found = [(i, l) for i, l in enumerate(readme.read_text(encoding="utf-8").splitlines(), 1)
+                 if re.search(r"(\d+)\s+of\s+(\d+)\s+judged", l)]
+        if not found:
+            errors.append("README.md: no 'N of M judged' count in the roadmap table")
+        for i, l in found:
+            m = re.search(r"(\d+)\s+of\s+(\d+)\s+judged", l)
+            if (int(m.group(1)), int(m.group(2))) != (judged, total):
+                errors.append(f"README.md:{i}: says {m.group(1)} of {m.group(2)} judged, table has {judged} of {total}")
+
     # laws/: one file per row and no extra
     laws = root / "laws"
     if laws.is_dir():
@@ -240,6 +254,14 @@ def check_jsonschema_cmd():
     return [sys.executable, "-m", "check_jsonschema"] if probe.returncode == 0 else None
 
 
+def validate(cmd, schema, instance):
+    """Validate one instance file. --base-uri makes relative $refs resolve from the schema's own file."""
+    return subprocess.run(
+        cmd + ["--base-uri", Path(schema).resolve().as_uri(), "--schemafile", str(schema), str(instance)],
+        capture_output=True, text=True,
+    )
+
+
 def check_schema(root):
     cmd = check_jsonschema_cmd()
     if cmd is None:
@@ -265,21 +287,59 @@ def check_schema(root):
         return [f"{SPEC}: the section 9 example is not valid TOML: {exc}"]
 
     errors = []
-    meta = subprocess.run(cmd + ["--check-metaschema", str(schema)], capture_output=True, text=True)
-    if meta.returncode != 0:
-        errors.append(f"{SCHEMA}: not a valid 2020-12 schema:\n{(meta.stdout + meta.stderr).strip()}")
+    for sch in sorted((root / "schema").rglob("*.json")):
+        meta = subprocess.run(cmd + ["--check-metaschema", str(sch)], capture_output=True, text=True)
+        if meta.returncode != 0:
+            errors.append(f"{sch.relative_to(root)}: not a valid 2020-12 schema:\n{(meta.stdout + meta.stderr).strip()}")
     with tempfile.TemporaryDirectory() as tmp:
         inst = Path(tmp) / "section9.toml"
         inst.write_text(text, encoding="utf-8")
-        run = subprocess.run(cmd + ["--schemafile", str(schema), str(inst)], capture_output=True, text=True)
+        run = validate(cmd, schema, inst)
     if run.returncode != 0:
         errors.append(f"the section 9 example does not validate:\n{(run.stdout + run.stderr).strip()}")
+    # profiles and example configs validate against the same schema
+    targets = sorted((root / "profiles").glob("*.toml")) + sorted((root / "examples").rglob("nix-tops.toml"))
+    for f in targets:
+        run = validate(cmd, schema, f)
+        if run.returncode != 0:
+            errors.append(f"{f.relative_to(root)} does not validate:\n{(run.stdout + run.stderr).strip()}")
+    for f in sorted((root / "profiles").glob("*.toml")):
+        try:
+            import tomllib
+            facet = tomllib.loads(f.read_text(encoding="utf-8")).get("facet")
+        except ModuleNotFoundError:
+            continue
+        except ValueError:
+            continue
+        if facet != f.stem:
+            errors.append(f"{f.relative_to(root)}: facet is {facet!r}, the file name says {f.stem!r}")
+    return errors
+
+
+# --------------------------------------------------------------------- ids
+
+LABEL_FILES = ["NIX_TOPS.md", "README.md", "AGENTS.md", "CHANGELOG.md", "config/AGENTS.template.md", "laws/README.md"]
+# Decision, question, risk and slice labels from the planning documents. Inline code is left out. Law IDs (N-01) have a hyphen and a
+# two-digit number, so N1..N3 does not match them.
+LABEL = re.compile(r"(?<![\w-])(N[1-9]|X[1-9]|Q[0-9]{1,2}|R[0-9]{1,2}|P[0-9]{1,2}|G[0-9][a-d]?|M[0-9]\.[0-9])(?![\w-])")
+
+
+def check_ids(root):
+    errors = []
+    files = [root / f for f in LABEL_FILES] + sorted((root / "changelog.d").glob("*.md")) + sorted((root / "profiles").glob("*.toml")) + sorted((root / "laws").glob("*.toml"))
+    for path in files:
+        if not path.is_file():
+            continue
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            m = LABEL.search(INLINE_CODE.sub("", line))
+            if m:
+                errors.append(f"{path.relative_to(root)}:{n}: internal label {m.group(1)!r}; say it in words")
     return errors
 
 
 # -------------------------------------------------------------------- main
 
-CHECKS = {"links": check_links, "catalog": check_catalog, "schema": check_schema}
+CHECKS = {"links": check_links, "catalog": check_catalog, "schema": check_schema, "ids": check_ids}
 
 
 def main(argv=None):

@@ -1,15 +1,15 @@
 # Nix-TOPS: Nix Testing and Optimization Protocol Suite
 
-**Spec status:** Draft 0.1.0 · **Date:** 2026-11-14 · **Owner:** Hedronite
+**Spec status:** Draft 0.2.0 · **Date:** 2026-11-17 · **Owner:** Hedronite
 **Modeled on:** [Rust-TOPS](https://github.com/Hedronite/rust-tops), [Go-TOPS](https://github.com/Hedronite/go-tops) 0.3.0 and [Web-TOPS](https://github.com/Hedronite/web-tops) 0.2.0
 **Source of the laws:** *Common Mistakes AI Coding Agents Make in Nix* (Hedronite sketch). Appendix B lists where this spec corrects it.
 
 > **How to read this.** Nix-TOPS reuses the shape of the other TOPS protocols: a written spec, a
-> JSON Schema, per-class profiles, an orchestrator, a CI floor, and a laws layer. It starts from
+> JSON Schema, per-facet profiles, an orchestrator, a CI floor, and a laws layer. It starts from
 > the Go-TOPS 0.3.0 fixes: `not-run` fails, ratchet for adopters, laws check that their tool
 > config is live, no formal layer. Nix is not a general-purpose language with line coverage, so
 > three gates change shape (§6): coverage becomes **output coverage**, CRAP is replaced by
-> **closure and eval-cost budgets**, and there is **no mutation layer** in 0.1. Values labeled
+> **closure and eval-cost budgets**, and there is **no mutation layer** in 0.x. Values labeled
 > **proposed** are defaults to tune on real flakes. **[verify]** marks a tool behavior not yet
 > confirmed at pin time. Versions in §2 were read from nixpkgs 26.11 (`nixpkgs-weekly`,
 > 2026-11-01) on 2026-11-14. Statements marked **(checked)** were run on that pin with Nix 2.35.2.
@@ -77,13 +77,13 @@ source, which does not depend on the system, so they are built once.
 
 | Item | Value |
 |---|---|
-| Protocol version | **0.1.0** (draft) |
+| Protocol version | **0.2.0** (draft) |
 | Package version | 0.0.0 (unreleased) |
 | Evaluator (the judge) | The CppNix pinned in the kit's `flake.lock` (2.35.2 when this spec was checked). The host supplies the daemon and the store, not the judge (§10) |
 | Determinate Nix | A named CI leg (§11), checked with 3.22.3 (Nix 2.35.2). Determinate-only settings are off in the gate: `--option lazy-trees false --option eval-cores 1` (the Determinate binary defaults to `lazy-trees false` and `eval-cores 1`; the managed `/etc/nix/nix.conf` from the Determinate installer turns both on, checked on 3.22.3) |
 | Nix floor (host daemon) | CppNix **2.24**, or Determinate Nix 3.x. `builtins.warn` and `abort-on-warn` landed in 2.23. `doctor` gates only on this floor (§12) |
-| Lix | Lix 2.95.0 has `builtins.warn` and `abort-on-warn` **[verify]**. Not supported until M7.2 |
-| Supported systems | `aarch64-darwin`, `x86_64-linux`, `aarch64-linux`. `x86_64-darwin` is unsupported: nixpkgs 26.11 dropped it (N1) |
+| Lix | Lix 2.95.0 has `builtins.warn` and `abort-on-warn` **[verify]**. Not supported until the implementation matrix in M7 (§19) |
+| Supported systems | `aarch64-darwin`, `x86_64-linux`, `aarch64-linux`. `x86_64-darwin` is unsupported: nixpkgs 26.11 dropped it, and Nix-TOPS drops it with it |
 | Baseline key | (implementation, version, system, `flake.lock` hash) |
 | nixpkgs (kit's own) | 26.11 (`nixos-unstable` line); the kit's tools come from this pin, not the adopter's (§10) |
 | Format | `nixfmt` 1.5.0 through `nixfmt-tree` (treefmt). `nixfmt-rfc-style` is now an alias that warns (checked) |
@@ -111,8 +111,8 @@ Gates run in this order. A failing gate stops the run unless `--keep-going` is s
 | 2 | **Lint** | sandbox: `checks.<system>.nixtops-lint` runs `treefmt --ci` (nixfmt), `statix check`, `deadnix --fail`, `nixtops-lint`, `gitleaks` | All clean, or within ratchet |
 | 3 | **Eval** | runner, three warning sources. (a) `nix flake check --no-build --all-systems --no-update-lock-file --option abort-on-warn true --option allow-import-from-derivation false`, then each configuration's build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`) under the same options; `abort-on-warn` makes every `builtins.warn` fatal. (b) `config.warnings` of every NixOS, Home Manager and nix-darwin configuration, read as data. (c) the `nix` command's own diagnostics, captured and classified by `laws/diagnostics.toml`. Then record eval-cost counters (§6.4) | No error; no warning from any source that `[[warnings.allow]]` does not match; no IFD |
 | 4 | **Build and test** | `nix flake check` (builds every `checks` derivation: nix-unit, module eval tests, VM tests) and `nix build` of every `packages`, `devShells` and configuration build root for the host system. Linux runs with `sandbox = true` | Everything builds; every test passes |
-| 5 | **Output coverage** | runner: maps each exported output to the checks that exercise it (§6.1) | Class floor or ratchet met |
-| 6 | **Class layers** | closure-size budgets, eval-cost budgets; at tier 2, rebuild determinism, `vulnix`, cross-system builds | Per class (§7) |
+| 5 | **Output coverage** | runner: maps each exported output to the checks that exercise it (§6.1) | Facet floor or ratchet met |
+| 6 | **Facet layers** | closure-size budgets, eval-cost budgets; at tier 2, rebuild determinism, `vulnix`, cross-system builds | Per facet (§7) |
 | ★ | **Laws** | maps findings from gates 1–6 to law IDs, then runs the eval and diff readers (§8) | No `Refuse`; `not-evaluated` never counts as a pass |
 
 ★ The laws layer is tier 0 but executes last. It does not run statix or deadnix again: it reads
@@ -142,7 +142,7 @@ unlike an error, has three sources, and `abort-on-warn` covers one of them:
    following flake outputs are unchecked: fooBar.`; for an app without `meta` CppNix prints a warning
    and Determinate prints none (`docs/evidence/2026-11-17-warning-sources/logs/*/app-no-meta.check.gate`). The runner captures the command's output and
    classifies each line with a versioned table, `laws/diagnostics.toml` (one entry per diagnostic per
-   implementation, each with a fixture string; written in G7). A line the table does not know fails the
+   implementation, each with a fixture string). A line the table does not know fails the
    gate as an unclassified diagnostic.
 
 **The ledger.** `nix-tops.toml` may hold `[[warnings.allow]]` entries:
@@ -167,7 +167,7 @@ matches an unexpired ledger entry (both implementations print the lines and exit
 checked on CppNix 2.35.2 and Determinate Nix 3.22.3, `docs/evidence/2026-11-17-warning-sources/` "The collect
 re-run"). The report lists every warning with its source and the matching entry, so a host with five
 renamed options costs one run. The ledger is for upstream warnings with a dated reason, not a standing
-escape: dropping `x86_64-darwin` (N1) removes the `rust-tops` case that motivated it (§20).
+escape: dropping `x86_64-darwin` (§2) removes the `rust-tops` case that motivated it (§20).
 
 ### 3.2 Tiers
 
@@ -249,20 +249,33 @@ text the same way.
 
 ### 3.4 Stated rules
 
-1. **Oracle first.** Write the oracle from the contract before the code. A test that asserts what
-   a module currently produces freezes its bugs.
-2. **Pure or nothing.** The gate never passes `--impure`. A change that needs `--impure` to
-   evaluate is not done.
-3. **Do not weaken a law**, a linter setting, an eval option or a budget so a check passes. Fix
-   the code, or change the law through the protocol-change process (§13).
-4. **Schema precedence.** When prose and schema disagree, fix the schema first, then the prose.
-5. **No silent empties.** A flake with no checks, an eval that enumerated no outputs, or a report
-   with no layers fails the gate.
-6. **No dry gates in CI.** `--dry-run` is refused when `CI=true`.
-7. **Never fabricate a hash.** Use `lib.fakeHash`, build, and copy the `got:` value. A placeholder
-   is never committed (N-25).
-8. **One gate.** `nixtops gate` is the verification command. Running `nix flake check` alone is
-   not done.
+The rules agents and reviewers work by. **[review]** marks a rule no check judges, so the reviewer
+must. This list is the one source: §13, the rules block of `config/AGENTS.template.md` and the rules
+block of `AGENTS.md` are copies that `scripts/rules_gen.py` writes, and the `spec` job fails when a
+copy differs (§13).
+
+1. **Oracle first.** Write the oracle from the contract before the code. A test that asserts what a
+   module currently produces freezes its bugs. **[review, N-39]**
+2. **Pure or nothing.** The gate never passes `--impure`. A change that needs `--impure` to evaluate
+   is not done. **[gate 3]**
+3. **Do not weaken a law**, a linter setting, an eval option or a budget so a check passes. Fix the
+   code, or change the law through a `protocol-change` PR (§13). **[`law-diff`, §11]**
+4. **Never fabricate a hash.** Use `lib.fakeHash`, build, and copy the `got:` value. A placeholder is
+   never committed. **[N-25]**
+5. **Every ack names its law and a reason** (`# nixtops-ack N-NN: reason`). Never edit
+   `.nix-tops/baseline.json` by hand, and never wrap old findings in acks to zero a count. **[§3.3, §6.8]**
+6. **No silent empties.** A flake with no checks, an eval that enumerated no outputs, or a report with
+   no layers fails the gate. `not-evaluated` and an unmapped layer are never a pass. **[§3.3]**
+7. **No dry gates in CI.** `--dry-run` is refused when `CI=true`. **[§12]**
+8. **One gate.** `nixtops gate` is the verification command and the definition of done. Running
+   `nix flake check` alone is not done. **[§11]**
+9. **Do not edit generated files** (`hardware-configuration.nix`, `flake.lock` by hand, any file a
+   generator writes). Regenerate them, or fix the generator. **[review]**
+10. **Agent-authored code meets the same gate as human code.** Prefer deleting code to adding
+    configuration, and add a dependency only if it deletes code or buys measured safety or
+    performance. **[review]**
+11. **Schema precedence.** When prose and schema disagree, fix the schema first, then the prose.
+    **[review]**
 
 ---
 
@@ -303,7 +316,7 @@ The adopter's `flake.nix` (also `examples/quickstart/flake.nix`, which `verify.s
 ```
 
 ```bash
-nix run .#nixtops -- init --class dev-flake
+nix run .#nixtops -- init --facet dev-flake
 nix run .#nixtops -- check
 nix run .#nixtops -- gate
 ```
@@ -318,11 +331,11 @@ CppNix 2.35.2 and Determinate Nix 3.22.3, and the adopter's own check survives t
 `init` writes:
 
 - `nix-tops.toml` (§9);
-- the class CI workflow (§11);
+- the CI workflow (§11);
 - the Nix-TOPS section of `AGENTS.md`. If `AGENTS.md` exists, `init` replaces only the text
   between `<!-- nix-tops:begin -->` and `<!-- nix-tops:end -->`.
 
-`init` writes `enabled = false` for layers the class does not map. It never writes a baseline;
+`init` writes `enabled = false` for layers no facet maps. It never writes a baseline;
 only `nixtops baseline` does (§6.8). It refuses to overwrite without `--force`. It never edits
 `flake.nix`; it prints the lines to add.
 
@@ -331,10 +344,6 @@ only `nixtops baseline` does (§6.8). It refuses to overwrite without `--force`.
 ## 5. Facets and profiles
 
 ### 5.1 Facet catalog
-
-**Facet replaces class.** Earlier sections and some files still say "class" (`class`, `--class`,
-"per class"): read it as "facet", with the rules of this section; each section is renamed by the
-step that owns it (0.2.0).
 
 A flake is judged as the facets its outputs make it. A facet is derived from the artifact it names;
 `nix-tops.toml` may narrow the set (§5.4) and never add a facet the outputs do not show.
@@ -370,7 +379,7 @@ no floor and is reported as such. There is one floor per facet and row.
 | Rebuild determinism | no | tier 2 | no | no | tier 2 (`toplevel`) | no |
 | `vulnix` | no | tier 2 | no | no | tier 2 | tier 2 |
 
-All numbers are **proposed**, to be calibrated in M4.6. Under `ratchet` (§6.8) floors and budgets
+All numbers are **proposed**, to be calibrated on real flakes in M4 (§19). Under `ratchet` (§6.8) floors and budgets
 apply to new outputs, and existing outputs must not get worse. `vulnix` has one tier per facet: this
 table is its definition, and a profile's `[layers]` block (§5.3) repeats it.
 
@@ -379,7 +388,7 @@ table is its definition, and a profile's `[layers]` block (§5.3) repeats it.
 ```toml
 # profiles/package-set.toml
 facet = "package-set"
-protocol = "0.1.0"
+protocol = "0.2.0"
 
 [eval]
 all_systems = true
@@ -394,14 +403,15 @@ tested_floor = 80
 mode = "ratchet"
 
 [budgets.eval_cost]
-mode = "ratchet"
+mode = "advisory"
 
 [layers]
 rebuild = { tier = 2 }
 vulnix = { tier = 2 }
 ```
 
-There is no `[laws]` list: a law applies by artifact, not by profile, and the set of laws a facet
+A profile has the shape of `nix-tops.toml` (§9) with `facet` in place of `facets`, and one file per
+facet in `profiles/`. Eval cost is `advisory` in every profile for 0.x (§6.4). There is no `[laws]` list: a law applies by artifact, not by profile, and the set of laws a facet
 requires (§3.3) is derived from the artifacts present.
 
 ### 5.4 Narrowing
@@ -471,13 +481,13 @@ output with its level and evidence kind, so an untested output is visible, not a
 
 | Tool | Measures | Status here |
 |---|---|---|
-| `nixcov` | Line and expression coverage by syntax-tree instrumentation, LCOV output | Cited, not depended on (one-person project) |
+| `nixcov` | Line and expression coverage by syntax-tree instrumentation, LCOV output | Cited, not depended on |
 | nix-unit `lib.coverage.addCoverage` | Interface coverage of a tested `lib` | Cited **[doc]** |
 | `NIX_COUNT_CALLS=1` | Per-function call counts with file, line and column, in `functions[]` of the stats JSON | Call coverage for `lib`: advisory. Run on `nix eval` only (1,622 entries on CppNix 2.35.2, 1,628 on Determinate Nix 3.22.3; `docs/evidence/2026-11-16-gate3-trial/counters/*/se.json`); under nix-unit **[verify]** |
 
 Option coverage (the share of a module's declared options that some check defines at non-default
 priority) and call coverage ship advisory in 0.x, listed in the report and in no floor. §16 open 3
-stays open for M4.5.
+stays open for M4 (§19).
 
 Output coverage is reachability, not behavior. A test that only runs `--version` covers the
 package. That is a floor, not a proof; review still decides whether the test is meaningful.
@@ -781,21 +791,25 @@ without a YAML parser in the evaluator. It is not a flake output: `nix flake che
 unknown outputs, and the gate refuses warnings.
 
 ```toml
-protocol = "0.1.0"
-version = "0.1.0"
-flake = "github:Hedronite/example"
-class = "dev-flake"
+protocol = "0.2.0"
+facets = ["dev-flake"]               # a subset of the facets the outputs show (§5.4)
 enforce = "ratchet"                  # hard | ratchet | advisory (§6.8)
 baseline = ".nix-tops/baseline.json"
+nixpkgs_input = "nixpkgs"            # the flake input that is your main nixpkgs
 
 [toolchain]
 nix_floor = "2.24"
-systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]   # the systems the flake exports
 
 [eval]
 all_systems = true
 abort_on_warn = true
 allow_ifd = false
+
+[[warnings.allow]]
+match = "has been renamed"           # a substring of the warning text
+reason = "upstream rename; fixed in the next lock update"
+until = "2026-12-31"                 # UTC date; an expired entry fails (§3.1)
 
 [lint]
 statix = { config = "statix.toml" }
@@ -828,6 +842,20 @@ ack_ledger = ".nix-tops/acks.toml"
 [report]
 path = ".nix-tops/report.json"
 ```
+
+- `facets` narrows the facets the outputs show (§5.4). It never adds one.
+- `nixpkgs_input` names the flake input that is the adopter's main nixpkgs, because input names vary.
+  N-06 and N-43 read it. The default is `nixpkgs`.
+- `[toolchain].systems` is the list of systems the flake's outputs export, no more and no fewer.
+  `nixtops check` fails when they differ (§12). `x86_64-darwin` is not a valid value (§2).
+- `abort_on_warn` and `allow_ifd` are fixed at `true` and `false`; they appear in the file so a reader
+  sees them. `allow_ifd` is the default for the whole flake. Import-from-derivation is allowed one
+  output at a time, by an N-07 ack: the acked output is re-evaluated with it on, and the report says so.
+- Each `[[warnings.allow]]` entry is an ack with an expiry (§3.1). `match`, `reason` and `until` are all
+  required.
+- There is no `version` or `flake` key: the package version is the kit's (`nixtops version`), and the
+  flake is the repository the file sits in.
+- A profile file (§5.3) has the same shape, with `facet` in place of `facets`.
 
 ---
 
@@ -865,7 +893,7 @@ CI rules: `fetch-depth: 0` (diff laws need the merge base); actions pinned by co
 `permissions:`; `--dry-run` refused; empty reports fail. Every `nix` command passes
 `--no-accept-flake-config`, so a flake cannot change the gate's settings. Workflows never use
 `pull_request_target`. No command resolves an unlocked reference. The kit publishes a binary cache
-for its tools (owner: open, Q5); an adopter may add its own, and any token comes from the CI secret
+for its tools (owner: not yet decided); an adopter may add its own, and any token comes from the CI secret
 store, never from the repo (N-33). The gate is one job running one command. The workflow does not
 repeat the tools as separate steps, because steps that bypass `nixtops` judge nothing.
 
@@ -875,8 +903,8 @@ repeat the tools as separate steps, because steps that bypass `nixtops` judge no
 
 | Command | Behavior |
 |---|---|
-| `init --class <c>` | Writes `nix-tops.toml`, the class workflow and the `AGENTS.md` section (§4). Prints the `flake.nix` lines; never edits `flake.nix`. Refuses to overwrite without `--force` |
-| `check` | Validates `nix-tops.toml` against the JSON Schema, plus semantic checks: protocol id, the class has a profile, declared systems are valid, the host daemon meets the floor, `advisory` has a dated exemption, the `nix-tops` input does not follow nixpkgs, and under `ratchet` the baseline exists and is clean |
+| `init [--facet <f>]...` | Writes `nix-tops.toml` with `facets = [...]` (the facets the outputs show, narrowed by each `--facet`), the CI workflow and the `AGENTS.md` section (§4). Prints the `flake.nix` lines; never edits `flake.nix`. Refuses to overwrite without `--force` |
+| `check` | Validates `nix-tops.toml` against the JSON Schema, plus semantic checks: protocol id, each listed facet is one the outputs show (§5.4) and has a profile (or is reported as having none), `[toolchain].systems` equals the systems the outputs export, the host daemon meets the floor, `advisory` has a dated exemption, the `nix-tops` input does not follow nixpkgs, and under `ratchet` the baseline exists and is clean |
 | `gate` | Runs enabled layers at or below `--max-tier` (default 1). `--base`, `--keep-going`, `--json`, `--only <layer>`, `--system <s>`, `--dry-run` (refused in CI) |
 | `baseline` | Writes `.nix-tops/baseline.json` after a passing run; the only writer |
 | `laws [list \| run \| explain N-NN]` | Catalog with readers; laws alone; one law explained |
@@ -896,36 +924,49 @@ The template is [`config/AGENTS.template.md`](config/AGENTS.template.md). It tur
 sketch's §12 drop-in rules into the Go-TOPS template shape: each rule names the check that
 enforces it, or `[review]`.
 
+The rules are the numbered list in §3.4. The list below, the rules block of the template and the
+rules block of `AGENTS.md` in this repo are copies of it, written by `scripts/rules_gen.py` between
+`rules:begin` and `rules:end` marker comments. Edit §3.4, then run `python3 scripts/rules_gen.py write`;
+the `spec` job runs `check` and fails when a copy differs. A change to laws, schemas, profiles, floors,
+budgets, eval options or normative text is a protocol change: a `protocol-change` PR with a changelog
+entry and a version bump.
+
 Non-negotiable:
 
-1. Write the oracle from the contract before the code.
-2. Never pass `--impure` to make something evaluate.
-3. Never weaken a law, lint setting, eval option or budget to make a change pass. Change it through
-   a `protocol-change` PR.
-4. Never fabricate a hash. Never commit `lib.fakeHash`.
-5. Every `# nixtops-ack` names its law and a reason.
-6. Agent-authored code meets the same gate as human code.
-7. Do not edit generated files (`hardware-configuration.nix`, `flake.lock` by hand); regenerate them.
-8. Prefer deleting code to adding configuration.
-9. `nixtops gate` is the definition of done.
+<!-- rules:begin -->
+<!-- generated from NIX_TOPS.md section 3.4 by scripts/rules_gen.py; edit the source, not this copy -->
+
+1. **Oracle first.** Write the oracle from the contract before the code. A test that asserts what a module currently produces freezes its bugs. **[review, N-39]**
+2. **Pure or nothing.** The gate never passes `--impure`. A change that needs `--impure` to evaluate is not done. **[gate 3]**
+3. **Do not weaken a law**, a linter setting, an eval option or a budget so a check passes. Fix the code, or change the law through a `protocol-change` PR (§13). **[`law-diff`, §11]**
+4. **Never fabricate a hash.** Use `lib.fakeHash`, build, and copy the `got:` value. A placeholder is never committed. **[N-25]**
+5. **Every ack names its law and a reason** (`# nixtops-ack N-NN: reason`). Never edit `.nix-tops/baseline.json` by hand, and never wrap old findings in acks to zero a count. **[§3.3, §6.8]**
+6. **No silent empties.** A flake with no checks, an eval that enumerated no outputs, or a report with no layers fails the gate. `not-evaluated` and an unmapped layer are never a pass. **[§3.3]**
+7. **No dry gates in CI.** `--dry-run` is refused when `CI=true`. **[§12]**
+8. **One gate.** `nixtops gate` is the verification command and the definition of done. Running `nix flake check` alone is not done. **[§11]**
+9. **Do not edit generated files** (`hardware-configuration.nix`, `flake.lock` by hand, any file a generator writes). Regenerate them, or fix the generator. **[review]**
+10. **Agent-authored code meets the same gate as human code.** Prefer deleting code to adding configuration, and add a dependency only if it deletes code or buys measured safety or performance. **[review]**
+11. **Schema precedence.** When prose and schema disagree, fix the schema first, then the prose. **[review]**
+<!-- rules:end -->
 
 ---
 
 ## 14. Deltas
 
-| Area | Go-TOPS 0.3.0 | Web-TOPS 0.2.0 | Nix-TOPS 0.1.0 |
+| Area | Go-TOPS 0.3.0 | Web-TOPS 0.2.0 | Nix-TOPS 0.2.0 |
 |---|---|---|---|
 | Scope | Go | TypeScript, HTML, CSS, Tailwind, Astro | Nix language, flakes, packages, modules, configurations |
-| Strongest check | `go vet` + analyzers | type-aware lint | Pure evaluation with `abort-on-warn` and IFD off |
+| Strongest check | `go vet` + analyzers | type-aware lint | Pure evaluation of every output on every system, IFD off, warnings from three sources fatal (§3.1) |
 | Coverage | Statement coverage | Line coverage | **Output coverage** (§6.1); Nix has no line coverage |
 | CRAP | One cap per class | One cap per class | **None**; closure and eval-cost budgets instead (§6.2–§6.4) |
-| Mutation | Pluggable engine | StrykerJS | **None in 0.1**; module mutation proposed for tier 2 (§6.5) |
+| Mutation | Pluggable engine | StrykerJS | **None in 0.x**; derivation triage is the plan for the M6 spike (§6.5) |
 | Performance gate | `AllocsPerRun`, ns/op at tier 2 | Bytes per page at tier 1 | Closure bytes at tier 1; eval counters at tier 1 |
 | Reader kinds | `an`, `tl`, `at`, `tbd` | same | adds **`ev`**: the evaluator judges |
 | Execution | One process | One process | Two planes: sandbox checks and an outside runner (§1.4) |
 | Config | `go-tops.yaml` | `web-tops.yaml` | `nix-tops.toml`, read natively by Nix |
 | Tool lock | `go-tops.lock` | `web-tops.lock` | The kit's `flake.lock`, pinned by the adopter's lock (§10) |
 | Unmapped layer | `not-run` fails | `not-run` fails | `not-run` fails |
+| Verdicts beyond the family core | none | `Vacuous` for an empty mutation diff | `deferred` and `vacuous` (§3.3); a required law that is `not-evaluated` fails |
 | Enforcement | `hard` / `ratchet` / `advisory` | same | same |
 | Formal layer | removed | none | none |
 
@@ -939,12 +980,12 @@ lookups, untracked files, invented `lib` names, fake and stale hashes, network i
 loss, secrets in the store); output coverage; closure and eval-cost budgets; a machine-readable
 report; an agent contract.
 
-**You do not get (v0.1):**
+**You do not get (0.x):**
 
-- Line or branch coverage of Nix code. There is no such tool.
+- Line or branch coverage of Nix code as a floor. Coverage tools exist and measure other things (§6.1).
 - Mutation testing.
 - Proof that a build is network-free on macOS, where the sandbox is relaxed by default.
-- Profiles for `flake-lib`, `darwin-host`, `fleet-root` and `image` at launch.
+- Profiles for `darwin-host`, `fleet-root` and `image`, and proven profiles for `nixos-host` and `home-config`, which are specified and wait for an adopter (§5.1).
 - Lix support.
 - Judgement of whether a test is meaningful. Output coverage shows that a check touches an
   output, not that it checks the right thing.
@@ -956,7 +997,7 @@ report; an agent contract.
 **Resolved for 0.1.0:**
 
 1. **Name:** Nix-TOPS / `nixtops` / `Hedronite/nix-tops`.
-2. **Coverage:** output coverage (§6.1), at three levels, `tested` floored per class.
+2. **Coverage:** output coverage (§6.1), at three levels, `tested` floored per facet.
 3. **CRAP:** none. Budgets instead.
 4. **Mutation:** none in 0.1.
 5. **Eval options:** the gate always sets `abort-on-warn = true` and `allow-import-from-derivation = false`,
@@ -968,14 +1009,14 @@ report; an agent contract.
 8. **Formatter:** `nixfmt` through `nixfmt-tree`; `nixfmt-rfc-style` is not used.
 9. **Enforcement:** `ratchet` for adopters, `hard` for the kit.
 10. **Formal layer:** none.
-11. **Analyzer and runner language (0.2.0, N2):** one Rust binary from M1, `nixtops`, with
+11. **Analyzer and runner language (0.2.0):** one Rust binary from M1, `nixtops`, with
     `nixtops-lint` as its analyzer on `rnix`, gated by Rust-TOPS; the kit's flake by Nix-TOPS.
 12. **`nix flake check --build-all` (0.2.0):** absent on CppNix 2.35.2 (`error: unrecognised flag
     '--build-all'`), accepted on Determinate Nix 3.22.3 (both run 2026-11-17). Gate 4 does not use
     it: it builds outputs one by one.
-13. **Facets (0.2.0, R4, X2):** facets derived from the outputs replace the single class; config may
+13. **Facets (0.2.0):** facets derived from the outputs replace the single class; config may
     narrow them and never add one; a facet sets floors only; `flake-lib` launches; `nixos-host` and
-    `home-config` are specified, unproven. Floors are proposed and calibrated in M4.6. After launch the
+    `home-config` are specified, unproven. Floors are proposed and calibrated in M4 (§19). After launch the
     order is `fleet-root`, `darwin-host`, `image`.
 14. **Eval-cost determinism (0.2.0):** `NIX_SHOW_STATS` counters are deterministic from run to run
     for the same implementation, version, system and lock. They differ between implementations
@@ -989,7 +1030,7 @@ report; an agent contract.
 2. *Resolved: item 14.*
 3. **Module coverage reader.** Confirm that option declaration positions in a VM test's node
    configurations are reachable from the check derivation's passthru **[verify]** (§6.1). Option coverage and call
-   coverage ship advisory in 0.x; M4.5 answers this with a working reader or closes it as infeasible, with
+   coverage ship advisory in 0.x; M4 answers this with a working reader or closes it as infeasible, with
    evidence.
 4. *Resolved: item 12.*
 5. **Home Manager pin.** `home-config` evaluates against the adopter's Home Manager input; decide
@@ -998,90 +1039,72 @@ report; an agent contract.
 
 ---
 
-## 17. Repository layout (proposed)
+## 17. Repository layout
 
-The kit is a flake. It gates itself with its own protocol, and its Rust analyzer with Rust-TOPS.
+As built at 0.2.0. The repo is a spec repo: no runner and no kit flake yet.
 
 ```
 nix-tops/
-├── flake.nix · flake.lock          # nixtops, nixtops-lint, lib.mkChecks, lib.formatter
-├── nix/
-│   ├── checks.nix                  # sandbox plane: lint, nix-unit, closure reader
-│   ├── runner.nix                  # outside plane: nixtops gate
-│   └── profiles.nix                # profiles/*.toml → check sets
-├── crates/nixtops-lint/            # rnix analyzer: N-01, N-02, N-03, N-10, N-11, N-15, N-25, …
-├── laws/                           # N-NN.toml
-├── profiles/                       # one TOML per launch class
-├── schema/                         # nix-tops.schema.json, gate-report.schema.json
-├── config/                         # AGENTS.template.md, workflow, statix.toml, treefmt config
-├── fixtures/laws/                  # one deliberate violation per law, with expect markers
-├── examples/                       # one flake per launch class
-├── NIX_TOPS.md
+├── NIX_TOPS.md                     # the protocol
+├── laws/                           # N-NN.toml (49), diagnostics.toml, README.md
+├── profiles/                       # one TOML per facet (six)
+├── schema/                         # nix-tops, gate-report and law schemas; core/ (shared definitions)
+├── config/                         # AGENTS.template.md
+├── scripts/                        # spec_check.py, rules_gen.py, tests/
+├── examples/quickstart/            # the adopter flake of §4 and a stub kit
+├── docs/evidence/                  # the gate-3 trial and the warning-source fixtures
+├── changelog.d/                    # fragments for the next release (README only after a release)
+├── .github/workflows/spec.yml      # the one job, `spec`
 ├── AGENTS.md · CLAUDE.md · CHANGELOG.md · README.md
-├── nix-tops.toml                   # Nix-TOPS gates itself, hard
 └── LICENSE · LICENSE-MIT · LICENSE-APACHE
+```
+
+The `spec` job runs the unit tests for the scripts, then `spec_check.py all` (intra-repo links, the
+law count and judged count against §8.2, §19 and the README, `laws/`, every schema and profile, and
+internal decision labels) and `rules_gen.py check` (the copies of §3.4).
+
+Planned from M1, when the kit becomes a flake. It gates itself with its own protocol, and its Rust
+analyzer with Rust-TOPS:
+
+```
+├── flake.nix · flake.lock          # nixtops, nixtops-lint, lib.mkChecks, lib.formatter
+├── nix/                            # checks.nix (sandbox plane), runner.nix, profiles.nix
+├── crates/nixtops-lint/            # rnix analyzer: N-01, N-02, N-03, N-10, N-11, N-15, N-25, …
+├── fixtures/laws/                  # one deliberate violation per law, with expect markers
+└── nix-tops.toml                   # Nix-TOPS gates itself, hard
 ```
 
 Self-hosting: the kit runs `hard` and passes its own tier-1 gate before any release.
 
 ---
 
-## 18. JSON Schema sketch
+## 18. JSON Schema
 
-`nixtops check` converts `nix-tops.toml` to JSON and validates it.
+`nixtops check` converts `nix-tops.toml` to JSON and validates it against
+`schema/nix-tops.schema.json`. The files, at protocol 0.2.0:
 
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hedronite.com/schemas/nix-tops/0.1.0/nix-tops.schema.json",
-  "title": "Nix-TOPS configuration",
-  "type": "object",
-  "required": ["protocol", "version", "flake", "class"],
-  "additionalProperties": false,
-  "properties": {
-    "protocol": { "const": "0.1.0" },
-    "version":  { "type": "string", "minLength": 1 },
-    "flake":    { "type": "string", "minLength": 1 },
-    "class": {
-      "enum": ["dev-flake", "package-set", "nixos-module", "nixos-host", "home-config",
-               "flake-lib", "darwin-host", "fleet-root", "image"]
-    },
-    "enforce":  { "enum": ["hard", "ratchet", "advisory"], "default": "ratchet" },
-    "baseline": { "type": "string", "minLength": 1 },
-    "toolchain": {
-      "type": "object",
-      "properties": {
-        "nix_floor": { "type": "string", "pattern": "^2\\.[0-9]+$" },
-        "systems": {
-          "type": "array", "minItems": 1, "uniqueItems": true,
-          "items": { "enum": ["x86_64-linux", "aarch64-linux", "aarch64-darwin", "x86_64-darwin"] }
-        }
-      }
-    },
-    "eval": {
-      "type": "object",
-      "properties": {
-        "all_systems":   { "type": "boolean" },
-        "abort_on_warn": { "const": true },
-        "allow_ifd":     { "const": false }
-      }
-    },
-    "coverage": {
-      "type": "object",
-      "properties": {
-        "built_floor":  { "type": "number", "minimum": 0, "maximum": 100 },
-        "tested_floor": { "type": "number", "minimum": 0, "maximum": 100 }
-      }
-    }
-  }
-}
-```
+| File | Covers |
+|---|---|
+| `schema/nix-tops.schema.json` | Every key in §9, with `additionalProperties: false` at every level. A profile file (§5.3) validates against it too: `facet` in place of `facets` |
+| `schema/gate-report.schema.json` | The report (§6.7) and every verdict (§3.3), with the counts of each |
+| `schema/law.schema.json` | Law metadata (§8.3) |
+| `schema/core/core.schema.json` | Family-core definitions both config and report `$ref`: verdicts, modes, dates, baseline identity, acks. A `tops-core` sync replaces the directory |
 
-`abort_on_warn` and `allow_ifd` are constants: they exist in the file so a reader sees them, and a
-config that tries to change them is invalid. `abort_on_warn` is the first of three warning sources
-(§3.1); it does not make every warning fatal. The `[[warnings.allow]]` table (`match`, `reason`,
-`until`) is part of the 0.2.0 schema and lands in the schema files with G8; this sketch is abbreviated
-and does not list it. (Abbreviated; the full schema covers every key in §9.)
+What the schema fixes:
+
+- `facets` takes the facet names of §5.1; `toolchain.systems` takes `x86_64-linux`, `aarch64-linux`
+  and `aarch64-darwin` (§2), and `toolchain` is required in a config, because the systems must equal
+  the flake's exports (§9).
+- `abort_on_warn` and `allow_ifd` are constants, `true` and `false`: they exist in the file so a
+  reader sees them, and a config that tries to change them is invalid. `abort_on_warn` is the first
+  of three warning sources (§3.1); it does not make every warning fatal. Import-from-derivation is
+  allowed per output by an N-07 ack, not by this key.
+- `[[warnings.allow]]` entries need `match`, `reason` and a UTC `until` date.
+- `version` and `flake` are not keys (§9).
+
+`spec_check.py schema` checks every schema against the 2020-12 metaschema, validates the §9 example
+and every profile against `nix-tops.schema.json`, and needs `check-jsonschema` 0.38.0 (§2) on
+Python 3.10 or later. Schema precedence (§3.4): when the prose and a schema disagree, fix the schema.
 
 ---
 
@@ -1089,31 +1112,46 @@ and does not list it. (Abbreviated; the full schema covers every key in §9.)
 
 | Milestone | Contents | Exit criterion |
 |---|---|---|
-| **M0** | This spec, schemas, five profiles, `AGENTS.template.md` | Reviewed; budgets marked for calibration |
-| **M1** | Runner: `init`, `check`, `gate` for gates 1 and 3 (source, eval) and the report | The kit's own flake gates green; a flake with a renamed option fails |
-| **M2** | Sandbox plane: `lib.mkChecks` with nixfmt, statix, deadnix, gitleaks; gate 4; baseline and ratchet | A deliberate deadnix finding fails under `hard` and passes as baseline under `ratchet` |
-| **M3** | Laws v0.1: `nixtops-lint` and readers, 29 judged; `fixtures/laws` | Report shows "29 of 49 judged" |
-| **M4** | Output coverage; closure and eval-cost budgets; VM-test layer | A `nixos-module` example fails when its VM test is removed |
-| **M5** | Tier 2: rebuild determinism, fixed-output re-fetch, `vulnix`, build matrix; module-mutation spike | Nightly green on the examples |
-| **M6** | Protocol 1.0 | Calibrated floors and budgets on three Hedronite flakes; frozen law IDs |
+| **M0** | Spec 0.2.0, the draft made true: schemas, six facet profiles (four launch, two specified and unproven), the laws as files, the agent template, one rule list with checked copies, and the `spec` job that checks them | Merged on `main` with the `spec` check required; §20 matches the trial |
+| **M1** | Honest runner: the kit flake with a pinned nixpkgs and CppNix, the `nixtops` binary (`version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `report.json`), CI on x86_64 Linux, aarch64-darwin and Determinate Nix | The kit's own flake gates green on gates 1 and 3; the 2026-11 trial reproduces from the kit's command |
+| **M2** | Sandbox plane (`lib.mkChecks` with nixfmt, statix, deadnix, gitleaks), gate 4, baseline and modes with expiring acks, kit distribution, first adopter | A deliberate deadnix finding fails under `hard` and passes as baseline under `ratchet`; the `rust-tops` flake passes gates 1 to 4 at tier 1 |
+| **M3** | Laws v0.1: `nixtops-lint` and readers, 29 judged; `fixtures/laws`; a probe of how many planted mistakes the laws catch | Report shows "29 of 49 judged"; the catch rate is recorded |
+| **M4** | Output coverage with evidence kinds; closure and eval-cost budgets; the VM-test layer; option and call coverage (advisory); one floor per facet calibrated from measurement | A `nixos-module` example fails when its VM test is removed; floors calibrated on three flakes |
+| **M5** | Adopters and the family toolchain: the dropped-systems fixes in five repos, laws, coverage and budgets on the first adopter, a Home Manager module adopter, a `nixos-module` adopter with a VM test, optional toolchain shells | Three adopters green at tier 1 |
+| **M6** | Tier 2 and the exact-answer features: rebuild determinism, full fixed-output re-fetch and the build matrix (arm, macOS), vulnerability scan with the ack ledger, `nixtops diff`, the derivation-triage mutation spike | Nightly green on the examples |
+| **M7** | Protocol 1.0: law IDs frozen, calibrated floors, the implementation matrix (CppNix reference, Determinate leg, Lix leg or "unsupported"), `nixtops verify <report>` re-deriving a verdict byte for byte | Frozen law IDs; floors calibrated on three flakes |
 
 ---
 
 ## 20. First adopter: the Rust-TOPS flake
 
-The Rust-TOPS repo has a `flake.nix` with packages, an overlay, apps, a dev shell and checks. It
-is a `dev-flake`, it is small, and it is already Hedronite's. Read on 2026-11-14, its flake would
-meet Nix-TOPS like this:
+The Rust-TOPS repo has a `flake.nix` with packages, an overlay, apps, a dev shell and checks. Its
+outputs make it at least a `dev-flake` (§5.1), it is small, and it is already Hedronite's.
+
+**What the gate does to it today.** The gate-3 command of §3.1 run against `rust-tops` at `77056c9`
+fails on both implementations, CppNix 2.35.2 and Determinate Nix 3.22.3
+(`docs/evidence/2026-11-16-gate3-trial/`, run 2026-11-16 and again 2026-11-17, same result). The cause is one
+input: `nixpkgs-26.05-darwin`, kept for `x86_64-darwin`, prints `evaluation warning: Nixpkgs 26.05
+will be the last release to support x86_64-darwin`, and `abort-on-warn` makes it fatal. Determinate
+Nix checks every output: 5 fail, all `x86_64-darwin`, and 29 pass.
+
+**The change it waits on.** Dropping `x86_64-darwin` (§2): remove the system from the flake's
+`systems` and delete the `nixpkgs-26.05-darwin` input. The same warning or throw fails three other
+flakes in the trial that declare the system, so the drop is one change per repo, outside this spec.
+After it, the gate-3 command has nothing to refuse, and the ack for the second nixpkgs input (N-06)
+is not needed.
+
+The flake read on 2026-11-14 would otherwise meet Nix-TOPS like this:
 
 | Finding | Law | Note |
 |---|---|---|
-| A second nixpkgs input (`nixpkgs-26.05-darwin`) for `x86_64-darwin`, which nixpkgs 26.11 dropped | N-06, Ack | A legitimate exemption. It is exactly what the ack is for |
+| A second nixpkgs input (`nixpkgs-26.05-darwin`) for `x86_64-darwin`, which nixpkgs 26.11 dropped | N-06, Ack | Gone once the system is dropped |
 | `export RUST_TOPS_ROOT=${./.}` in two checks copies the whole tree into the store | N-31, Ack | Every edit, including to the README, rebuilds both checks. `lib.fileset.toSource` over the files the script reads fixes it |
 | "No GitHub job runs `nix flake check`" | gates 3–4 | The flake's checks are not part of CI today. The Nix-TOPS `gate` job would add them |
 | `pkgsFor` imports nixpkgs once per system with the overlay | N-09, pass | The pattern the law asks for |
 
 The flake already uses `lib.getExe` for its app and splits Darwin-only and Linux-only outputs
-carefully. Adopting at `ratchet` costs one ack and one `fileset` change.
+carefully. Adopting at `ratchet` costs the dropped system and one `fileset` change.
 
 ---
 
@@ -1126,9 +1164,9 @@ tier 1 (merge gate)
   3 eval      → every output · every system · abort-on-warn · no IFD · build roots
   4 build     → nix flake check · packages · devShells · build roots · VM tests
   5 coverage  → every output: evaluated · built · tested
-  6 class     → closure bytes · eval counters
+  6 facets    → closure bytes · eval counters (eval cost advisory in 0.x)
 tier 0 (executes last)
-  ★ laws      → N-NN readers · Refuse fails · not-evaluated ≠ pass
+  ★ laws      → N-NN readers · Refuse fails · a required law not-evaluated fails
 tier 2 (nightly)  cross-system builds · --rebuild determinism · FOD re-fetch · vulnix
 tier 3 (release)  signed cache · closure SBOM · tag = version
 ```

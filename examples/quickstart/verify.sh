@@ -38,7 +38,7 @@ assert m and m.group(1)==f, "section 4 flake block differs from examples/quickst
 print("section 4 flake block equals flake.nix")
 PY
 
-# the stub performs the documented TOML read: its check is named by the config's class ...
+# the stub performs the documented TOML read: its check is named by the config's first facet ...
 printf 'config read: '
 "${nix[@]}" eval --raw --no-write-lock-file "${ov[@]}" "path:$here#checks.x86_64-linux.nixtops-config.name" 2>/dev/null; echo
 # ... and a missing nix-tops.toml fails evaluation, as it would for the real kit

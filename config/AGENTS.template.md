@@ -3,8 +3,8 @@
 
 This section is the contract between this repository and any AI coding agents (or human reviewers) working on its Nix code. `nixtops init` replaces only the text between the `nix-tops` markers.
 
-**Class:** `{CLASS}`
-**Protocol:** Nix-TOPS 0.1.0
+**Facets:** `{FACETS}`
+**Protocol:** Nix-TOPS 0.2.0
 **Flake:** `{FLAKE}`
 **Systems:** `{SYSTEMS}`
 **Enforce:** `{ENFORCE}`
@@ -19,7 +19,7 @@ nix run .#nixtops -- outputs        # every output and its coverage level
 nix fmt                             # format (nixfmt via nixfmt-tree)
 ```
 
-## Floors (this class)
+## Floors (these facets)
 
 - Every output evaluates on every declared system, with warnings fatal and import-from-derivation off
 - Output coverage: `{BUILT_FLOOR}%` built, `{TESTED_FLOOR}%` tested
@@ -29,22 +29,28 @@ nix fmt                             # format (nixfmt via nixfmt-tree)
 
 ## Policies (non-negotiable)
 
-1. Write the oracle from the contract before the code.
-2. Never pass `--impure` to make something evaluate.
-3. Never weaken a law, lint setting, eval option or budget to make a change pass.
-4. Never fabricate a hash, and never commit `lib.fakeHash`.
-5. Every `# nixtops-ack N-NN: reason` names its law and a reason.
-6. Agent-authored code meets the same gate as human code.
-7. Do not edit generated files (`hardware-configuration.nix`; `flake.lock` by hand). Regenerate them.
-8. Prefer deleting code to adding configuration.
-9. Never edit `.nix-tops/baseline.json` by hand, and never wrap old findings in acks to zero a count.
+<!-- rules:begin -->
+<!-- generated from NIX_TOPS.md section 3.4 by scripts/rules_gen.py; edit the source, not this copy -->
+
+1. **Oracle first.** Write the oracle from the contract before the code. A test that asserts what a module currently produces freezes its bugs. **[review, N-39]**
+2. **Pure or nothing.** The gate never passes `--impure`. A change that needs `--impure` to evaluate is not done. **[gate 3]**
+3. **Do not weaken a law**, a linter setting, an eval option or a budget so a check passes. Fix the code, or change the law through a `protocol-change` PR (§13). **[`law-diff`, §11]**
+4. **Never fabricate a hash.** Use `lib.fakeHash`, build, and copy the `got:` value. A placeholder is never committed. **[N-25]**
+5. **Every ack names its law and a reason** (`# nixtops-ack N-NN: reason`). Never edit `.nix-tops/baseline.json` by hand, and never wrap old findings in acks to zero a count. **[§3.3, §6.8]**
+6. **No silent empties.** A flake with no checks, an eval that enumerated no outputs, or a report with no layers fails the gate. `not-evaluated` and an unmapped layer are never a pass. **[§3.3]**
+7. **No dry gates in CI.** `--dry-run` is refused when `CI=true`. **[§12]**
+8. **One gate.** `nixtops gate` is the verification command and the definition of done. Running `nix flake check` alone is not done. **[§11]**
+9. **Do not edit generated files** (`hardware-configuration.nix`, `flake.lock` by hand, any file a generator writes). Regenerate them, or fix the generator. **[review]**
+10. **Agent-authored code meets the same gate as human code.** Prefer deleting code to adding configuration, and add a dependency only if it deletes code or buys measured safety or performance. **[review]**
+11. **Schema precedence.** When prose and schema disagree, fix the schema first, then the prose. **[review]**
+<!-- rules:end -->
 
 ## Standards, with the check behind each
 
 **[review]** means no tool catches it; the reviewer must.
 
 ### Purity and flakes
-- **Stage new files before you evaluate.** Flakes copy only files git tracks. Run `git add` on every new `.nix` file before `nix build`, `nix eval` or `nix flake check`. **[N-04]**
+- **Stage new files before you evaluate.** Flakes copy only files git tracks. Run `git add` on every new `.nix` file before `nix build`, `nix eval` or `nix flake check`, and commit it before CI: a staged file passes locally and fails there. **[N-04]**
 - **No `import <nixpkgs> {}`, no `NIX_PATH`.** Take `pkgs` from the flake input: `nixpkgs.legacyPackages.${system}`, or one `import nixpkgs { inherit system; }` per system. Modules use their `pkgs` argument. **[N-01, N-09]**
 - **No `builtins.getEnv`, `currentSystem` or `currentTime`.** In pure evaluation `getEnv` returns `""` without an error, so the mistake hides. Pass values through options or `specialArgs`. **[N-02]**
 - **No host paths.** No `/home/…` or `/Users/…`, as path literals or strings. Use paths relative to the file. **[N-03]**
@@ -56,13 +62,13 @@ nix fmt                             # format (nixfmt via nixfmt-tree)
 - **No file-scope `with`.** `with pkgs; [ git curl jq ]` around a list is fine; `with pkgs; with lib;` over a whole module is not. Write `lib.mkIf`, `lib.mkDefault`. **[N-10]**
 - **No `rec` for derivations.** Use `stdenv.mkDerivation (finalAttrs: { … })` and refer to `finalAttrs.version`. **[N-11]**
 - **Verify every `lib` and `builtins` name** against the pinned inputs before you use it: `nix eval --inputs-from . nixpkgs#lib --apply 'lib: lib ? splitString'` (pure; `--inputs-from .` uses this flake's locked nixpkgs). `builtins.stringSplit` and `lib.isEmpty` do not exist. **[N-15]**
-- **Predicate first:** `lib.mkIf cond { … }`, `lib.optionalAttrs cond { … }`, `lib.optionals cond [ … ]`. **[N-18, eval]**
+- **Predicate first:** `lib.mkIf cond { … }`, `lib.optionalAttrs cond { … }`, `lib.optionals cond [ … ]`. **[review]**
 - **No dead bindings; statix and nixfmt clean.** Run `nix fmt`. **[N-12, N-13, N-14]**
 - **No `builtins.trace` or `lib.debug` left in.** **[N-16]**
 
 ### Options and modules
 - **Never guess an option or package name.** Evaluate the configuration: `nix eval .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath`. The module system rejects options that do not exist. Look up options with `nix eval .#nixosConfigurations.<host>.options.<path>.description`. **[N-18]**
-- **Fix warnings; do not ignore them.** A renamed option (`programs.zsh.enableAutosuggestions` → `autosuggestion.enable`) is a warning, and the gate makes warnings fatal. **[N-17]**
+- **Fix warnings; do not ignore them.** A renamed option (for example `programs.carapace.ignoreCase`, renamed to `programs.carapace.environment.CARAPACE_MATCH`) is a warning, and the gate refuses every warning no dated `[[warnings.allow]]` entry covers. **[N-17]**
 - **Guard module config with `lib.mkIf cfg.enable`.** Importing a module without enabling it must change nothing. **[N-20]**
 - **Give every option a `type` and a `description`.** `types.anything` needs an ack. **[N-19]**
 - **`lib.mkForce` needs an ack** that names what it overrides. **[N-21]**
@@ -94,7 +100,6 @@ nix fmt                             # format (nixfmt via nixfmt-tree)
 ## Verification (before finishing any task)
 
 ```bash
-git add -A -- '*.nix'
 nix run .#nixtops -- gate
 ```
 
