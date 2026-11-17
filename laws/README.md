@@ -20,4 +20,4 @@ The catalog row in `NIX_TOPS.md` and the file for the same ID say the same thing
 | `rationale`, `fix` | Why the law exists; the usual fix |
 | `note` | An open point for the spec owners |
 
-`diagnostics.toml` (the `nix` diagnostics table) joins this directory after the warning-model step merges.
+`diagnostics.toml` is the table behind gate 3's third warning source (`NIX_TOPS.md` section 3.1): one `[[diagnostic]]` entry per diagnostic the `nix` command prints, per implementation, each with a `match` expression and a `fixture` line taken from a real run. It is not a law file and has no `N-NN` row.
