@@ -1,8 +1,10 @@
 id = "N-40"
 title = "VM tests wait on conditions"
-law = "VM test scripts wait on conditions (`wait_for_unit`, `wait_for_open_port`, `wait_until_succeeds`), never `sleep`, `time.sleep` or `machine.sleep`."
+law = "VM test scripts wait on conditions (`wait_for_unit`, `wait_for_open_port`, `wait_until_succeeds`), never `sleep`, `time.sleep` or `machine.sleep`"
 severity = "Refuse"
+artifacts = ["vm-test"]
 reader = "an"
+reader_detail = "an: syntax"
 judged = true
 rationale = "A fixed sleep is either too short and flaky or too long and slow."
 fix = "Wait on the condition the test needs."

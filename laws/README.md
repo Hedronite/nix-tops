@@ -12,12 +12,11 @@ The catalog row in `NIX_TOPS.md` and the file for the same ID say the same thing
 |---|---|
 | `id`, `title`, `law` | Stable ID (never renumbered), short name, the rule |
 | `severity` | `Refuse` fails; `Ack` needs an acknowledgement |
-| `classes` | Classes the law is an extra for (section 5.2); absent means every class |
+| `artifacts` | The Applies to cell of section 8.2, as a list; the law applies when one of these artifacts exists |
 | `reader`, `reader_also`, `reader_detail` | Primary reader (`ev`, `tl`, `an`, `at`, `tbd`), further readers, and what is read or run |
 | `judged` | Judged in protocol 0.1 (the check mark in section 8.2) |
 | `sketch` | Section of the source sketch the law comes from, where there is one |
 | `option_names` | Option names a law reads (N-34) |
 | `rationale`, `fix` | Why the law exists; the usual fix |
-| `note` | An open point for the spec owners |
 
 `diagnostics.toml` is the table behind gate 3's third warning source (`NIX_TOPS.md` section 3.1): one `[[diagnostic]]` entry per diagnostic the `nix` command prints, per implementation, each with a `match` expression and a `fixture` line taken from a real run. Each entry carries an `effect`, `report` or `fail`. A classified line takes its entry's effect and a line no entry matches fails the gate; the table, not `NIX_TOPS.md`, decides. All five entries are `report`: the output inventory judges outputs, `N-30` judges `meta`, and gate 3's `--all-systems` leaves no system omitted. It is not a law file and has no `N-NN` row.

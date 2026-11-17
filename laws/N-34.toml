@@ -1,11 +1,11 @@
 id = "N-34"
 title = "Secret files are runtime paths, never store paths"
-law = "Options that take a secret file (`passwordFile`, `environmentFile`, `keyFile`, `tokenFile`, `credentialsFile`, `hashedPasswordFile`, and the like) get a runtime path string: `/run/secrets/…`, `config.sops.secrets.<name>.path`, `config.age.secrets.<name>.path`. Never a Nix path literal (`./secret.env` copies the file into the store) and never `pkgs.writeText`."
+law = "Options that take a secret file (`passwordFile`, `environmentFile`, `keyFile`, `tokenFile`, `credentialsFile`, `hashedPasswordFile`, and the like) get a runtime path string: `/run/secrets/…`, `config.sops.secrets.<name>.path`, `config.age.secrets.<name>.path`. Never a Nix path literal (`./secret.env` copies the file into the store) and never `pkgs.writeText`"
 severity = "Refuse"
-classes = ["nixos-module", "nixos-host", "home-config"]
+artifacts = ["module", "configuration"]
 reader = "ev"
 reader_also = ["an"]
-reader_detail = "value is a string outside /nix/store"
+reader_detail = "ev: options tree (value is a string outside `/nix/store`), an: syntax"
 judged = true
 sketch = "§10"
 option_names = ["passwordFile", "environmentFile", "keyFile", "tokenFile", "credentialsFile", "hashedPasswordFile"]

@@ -4,32 +4,117 @@
   "description": "One law of the Nix-TOPS catalog (NIX_TOPS.md section 8.2). Metadata fields follow section 8.3.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "title", "law", "severity", "reader", "judged", "rationale", "fix"],
+  "required": [
+    "id",
+    "title",
+    "law",
+    "severity",
+    "artifacts",
+    "reader",
+    "judged",
+    "rationale",
+    "fix"
+  ],
   "properties": {
-    "id": { "type": "string", "pattern": "^N-[0-9]{2}$", "description": "Law ID. Never renumbered." },
-    "title": { "type": "string", "minLength": 1, "description": "Short name." },
-    "law": { "type": "string", "minLength": 1, "description": "The rule, as stated in the section 8.2 catalog row." },
-    "severity": { "enum": ["Refuse", "Ack"], "description": "Refuse fails; Ack needs an acknowledgement (section 6.6)." },
-    "classes": {
+    "id": {
+      "type": "string",
+      "pattern": "^N-[0-9]{2}$",
+      "description": "Law ID. Never renumbered."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short name."
+    },
+    "law": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The rule, as stated in the section 8.2 catalog row."
+    },
+    "severity": {
+      "enum": [
+        "Refuse",
+        "Ack"
+      ],
+      "description": "Refuse fails; Ack needs an acknowledgement (section 6.6)."
+    },
+    "artifacts": {
       "type": "array",
       "uniqueItems": true,
       "minItems": 1,
-      "items": { "enum": ["dev-flake", "package-set", "nixos-module", "nixos-host", "home-config", "flake-lib", "darwin-host", "fleet-root", "image"] },
-      "$comment": "Classes the law is an extra for (section 5.2). Absent means every class. A later protocol revision replaces classes with facets and the artifact that triggers each law."
+      "items": {
+        "enum": [
+          "flake",
+          "source",
+          "lock",
+          "output",
+          "module",
+          "configuration",
+          "package",
+          "derivation",
+          "fod",
+          "vm-test",
+          "budgeted",
+          "nixpkgs-config",
+          "nix-tops-input"
+        ]
+      },
+      "description": "The Applies to cell of section 8.2, as a list. A law applies to a flake only when one of these artifacts exists, and is skip otherwise."
     },
-    "reader": { "enum": ["ev", "tl", "an", "at", "tbd"], "description": "Primary reader (section 8.1)." },
+    "reader": {
+      "enum": [
+        "ev",
+        "tl",
+        "an",
+        "at",
+        "tbd"
+      ],
+      "description": "Primary reader (section 8.1): the first reader in the section 8.2 Reader cell."
+    },
     "reader_also": {
       "type": "array",
       "uniqueItems": true,
-      "items": { "enum": ["ev", "tl", "an", "at", "tbd"] },
-      "$comment": "Further readers, in the order the catalog lists them. A later protocol revision lists readers in preference order."
+      "items": {
+        "enum": [
+          "ev",
+          "tl",
+          "an",
+          "at",
+          "tbd"
+        ]
+      },
+      "description": "Further readers of the cell, in the preference order of section 8.1."
     },
-    "reader_detail": { "type": "string", "minLength": 1, "description": "What the reader reads or runs: a tool and its mode, or the artifact." },
-    "judged": { "type": "boolean", "description": "True when the law is judged in protocol 0.1 (the check mark in section 8.2)." },
-    "sketch": { "type": "string", "pattern": "^§[0-9]+$", "description": "Mistake in the source sketch the law comes from." },
-    "option_names": { "type": "array", "uniqueItems": true, "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-    "rationale": { "type": "string", "minLength": 1 },
-    "fix": { "type": "string", "minLength": 1 },
-    "note": { "type": "string", "minLength": 1, "description": "Open point for the spec owners." }
+    "reader_detail": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The section 8.2 Reader cell, when it says more than the reader kind."
+    },
+    "judged": {
+      "type": "boolean",
+      "description": "True when the law is judged in protocol 0.1 (the check mark in section 8.2)."
+    },
+    "sketch": {
+      "type": "string",
+      "pattern": "^§[0-9]+$",
+      "description": "Mistake in the source sketch the law comes from."
+    },
+    "option_names": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fix": {
+      "type": "string",
+      "minLength": 1
+    }
   }
 }

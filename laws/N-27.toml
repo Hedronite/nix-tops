@@ -1,10 +1,10 @@
 id = "N-27"
 title = "No network in build phases"
-law = "No network in build phases: a raw `mkDerivation` does not run `go build`/`go mod download`, `cargo build`/`cargo fetch`, `npm install`/`npm ci`, `pip install`, `curl`, `wget` or `git clone`. Use the language builders (`buildGoModule`, `rustPlatform.buildRustPackage`, `buildNpmPackage`, `buildPythonApplication`)."
+law = "No network in build phases: a raw `mkDerivation` does not run `go build`/`go mod download`, `cargo build`/`cargo fetch`, `npm install`/`npm ci`, `pip install`, `curl`, `wget` or `git clone`. Use the language builders (`buildGoModule`, `rustPlatform.buildRustPackage`, `buildNpmPackage`, `buildPythonApplication`)"
 severity = "Refuse"
-classes = ["dev-flake", "package-set"]
+artifacts = ["derivation"]
 reader = "an"
-reader_detail = "build with sandbox = true"
+reader_detail = "an; build with `sandbox = true`"
 judged = true
 sketch = "§7"
 rationale = "The Nix sandbox has no network, so these commands fail or, outside the sandbox, make the build impure."

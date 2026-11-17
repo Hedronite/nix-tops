@@ -1,10 +1,11 @@
 id = "N-31"
 title = "Filtered package source"
-law = "A package's `src` is filtered (`lib.fileset.toSource`, at least `lib.cleanSource`), not a bare `./.` or `${./.}`, so unrelated edits do not rebuild it and `.git` or `result` never enter the store."
+law = "A package's `src` is filtered (`lib.fileset.toSource`, at least `lib.cleanSource`), not a bare `./.` or `${./.}`, so unrelated edits do not rebuild it and `.git` or `result` never enter the store"
 severity = "Ack"
-classes = ["package-set"]
-reader = "an"
-reader_detail = "derivation JSON: the whole source tree appears as `src` or in `inputSrcs`"
+artifacts = ["package"]
+reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev: derivation [verify], an: syntax"
 judged = false
 rationale = "An unfiltered source rebuilds on every edit and can copy `.git` and build results into the store."
 fix = "Use `lib.fileset.toSource` with the files the build reads."

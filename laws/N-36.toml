@@ -1,10 +1,11 @@
 id = "N-36"
 title = "No sandbox escapes"
-law = "No sandbox escapes: `__noChroot`, `__impure`, `nix.settings.sandbox = false`, `--option sandbox false`."
+law = "No sandbox escapes: `__noChroot`, `__impure`, `nix.settings.sandbox = false`, `--option sandbox false`"
 severity = "Refuse"
-classes = ["nixos-host"]
-reader = "an"
-reader_also = ["ev"]
+artifacts = ["source"]
+reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev: derivation [verify], an: syntax"
 judged = true
 rationale = "A build that leaves the sandbox can read the host and the network, so it is not reproducible."
 fix = "Remove the escape; vendor the input."

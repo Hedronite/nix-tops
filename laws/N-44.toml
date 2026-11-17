@@ -1,9 +1,10 @@
 id = "N-44"
 title = "No registry-indirect inputs"
-law = "Every input has an explicit URL; no registry-indirect inputs (`\"type\": \"indirect\"` in `flake.lock`)."
+law = "Every input has an explicit URL; no registry-indirect inputs (`\"type\": \"indirect\"` in `flake.lock`)"
 severity = "Refuse"
+artifacts = ["lock"]
 reader = "an"
-reader_detail = "flake.lock"
+reader_detail = "an: lock"
 judged = false
 rationale = "An indirect input resolves through the registry on each machine, so the same name can mean different sources."
 fix = "Write the input as `github:owner/repo` or another explicit URL."

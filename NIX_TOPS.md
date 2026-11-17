@@ -176,8 +176,8 @@ escape: dropping `x86_64-darwin` (N1) removes the `rust-tops` case that motivate
 | Tier | Purpose | Contents |
 |---|---|---|
 | **0** | Floor | Laws; config and schema validation |
-| **1** | **Merge gate** (default) | Gates 1–6 on the host system; eval (gate 3) on every declared system |
-| **2** | Deep / nightly | Builds on every declared system; `nix build --rebuild` determinism on budgeted outputs; `vulnix` on runtime closures; fixed-output re-fetch (`--rebuild` on fetchers, §8.2 N-26) |
+| **1** | **Merge gate** (default) | Gates 1–6 on the host system; eval (gate 3) on every declared system; re-fetch of the fixed-output derivations whose fetch inputs changed against the merge base (§8.2 N-26; needs network in the runner, not in the sandbox) |
+| **2** | Deep / nightly | Builds on every declared system; `nix build --rebuild` determinism on budgeted outputs; `vulnix` on runtime closures; fixed-output re-fetch of every fetcher (`--rebuild`, §8.2 N-26) |
 | **3** | Release | Signed binary cache upload check; SBOM of runtime closures **[verify tool]**; tag matches flake `version` where declared |
 
 ### 3.3 Verdicts
@@ -593,7 +593,7 @@ Baseline rules:
 
 ---
 
-## 7. Class layers
+## 7. Facet layers
 
 | Layer | Tool | What fails | Tier |
 |---|---|---|---|
@@ -602,10 +602,11 @@ Baseline rules:
 | VM tests | `testers.runNixOSTest`; needs KVM on Linux CI **[verify runner KVM]** | Any failure; `sleep` in a test script (N-40) | 1 |
 | Disabled-module identity | runner evaluates a minimal host with and without the module imported, `enable = false` | The two `toplevel.drvPath` differ (N-20) | 1 |
 | Closure budget | `closureInfo` in a check | Over budget or baseline | 1 |
-| Eval-cost budget | runner, `NIX_SHOW_STATS` | Over baseline beyond tolerance | 1 |
+| Eval-cost budget | runner, `NIX_SHOW_STATS` with `--no-eval-cache` | Advisory in every profile for 0.x: reported against the baseline, never fails (§6.4) | 1 |
 | Cross-system builds | `nix build` per declared system (remote builders or CI matrix) | Any failure | 2 |
 | Rebuild determinism | `nix build --rebuild` on budgeted outputs | Output differs | 2 |
-| Fixed-output re-fetch | `nix build --rebuild` on each fetcher derivation in the diff | Hash mismatch (N-26) | 2 |
+| Fixed-output re-fetch | runner: `nix build --rebuild` on each fixed-output derivation whose fetch inputs changed against the merge base (network in the runner, not the sandbox) | Hash mismatch (N-26) | 1 |
+| Fixed-output re-fetch, all | `nix build --rebuild` on every fixed-output derivation in the flake's outputs | Hash mismatch (N-26) | 2 |
 | Vulnerabilities | `vulnix` on runtime closures | Reported as `Ack` per CVE; unacknowledged fails (N-38) | 2 |
 | Custom | `[[layers.custom]]` with `id`, `command`, `tier`, `report` | Same rules: missing tool fails, empty report fails, unmapped is `not-run` | declared |
 
@@ -643,13 +644,16 @@ tree (`options` and `config`), then syntax. A law gets an `an` syntax reader onl
 artifact can answer it. Each row of §8.2 lists its readers in this order, strongest first, as
 `kind` or `kind: artifact`. Syntax readers stay for N-01 to N-03 and N-10: a derivation or options
 reader sees only what an output reaches, and a broken file no output imports is invisible to it.
+The runner readers over git and over the diff (`an: git`, `an: diff`) rank with the lock: structured
+data the runner already holds, with no Nix parsing. The `meta` reader (`ev: meta`) reads evaluated
+attributes and ranks with the options tree.
 
 Every delegated rule is proven to fire. `fixtures/laws/` breaks each enabled law on purpose, with
 a `# expect: N-NN` marker on the line. A test fails if a marked law stays quiet or an unmarked one
 fires. This matters: statix does not flag a file-scope `with` or `rec` at all (checked), so those
 rules are `nixtops-lint` rules, not statix mappings.
 
-### 8.2 Law catalog (draft: 43 laws, N-01…N-43)
+### 8.2 Law catalog (draft: 49 laws, N-01…N-49)
 
 Severity: **R** = Refuse, **A** = Ack. ✓ = judged in v0.1. The **Sketch** column names the
 mistake in the source sketch the law comes from (§1–§10), where there is one. The **Applies to**
@@ -668,12 +672,13 @@ Manager or nix-darwin configuration), `package` (an exported package), `derivati
 | N-01 | No search-path lookups (`<nixpkgs>`, `NIX_PATH`) in flake-evaluated code. Pure eval refuses them (checked); `nixtops-lint` also catches them in files the flake does not evaluate. A `flake-compat` shim is the one exemption | R | ev, an: syntax | §2 | source | ✓ |
 | N-02 | No impure builtins: `builtins.getEnv`, `currentSystem`, `currentTime`, `getFlake` on an unlocked ref, `fetchTarball`/`fetchurl`/`fetchGit` without a hash. In pure eval `getEnv` returns `""` instead of failing (checked), so only the analyzer catches it | R | ev, an: syntax | §1 | source | ✓ |
 | N-03 | No host paths (`/home/…`, `/Users/…`, `/root/…`) as path literals or in strings. Runtime paths (`/run`, `/var`, `/etc`, `/dev`, `/proc`, `/sys`, `/tmp`) are allowed in strings | R | an: syntax | §1 | source | ✓ |
-| N-04 | Every `.nix` file under the flake root is tracked by git. Flakes copy only tracked files, so an untracked file fails with "path does not exist" on another machine | R | an: git | §1 | flake | ✓ |
+| N-04 | No untracked, non-ignored `.nix` file under the flake root, and in CI the working tree equals `HEAD` (a file that is staged and not committed counts as untracked). A flake reads tracked files only: an untracked file that is imported fails with "path does not exist" on the machine that has it, and a staged but uncommitted file passes there and fails in CI. Ignored directories such as `.direnv` are exempt | R | an: git | §1 | flake | ✓ |
 | N-05 | `flake.lock` is committed and current; evaluation with `--no-update-lock-file` succeeds | R | ev | | lock | ✓ |
 | N-06 | One nixpkgs per lock: other inputs `follows` the main nixpkgs. Exempt: the `nix-tops` input (N-43), and inputs with an ack (for example a second nixpkgs for a platform the main pin dropped) | A | an: lock | | lock | |
 | N-07 | No import-from-derivation by default: the gate evaluates with `allow-import-from-derivation = false`. IFD is ackable per output: the inventory records which outputs fail only with IFD off, an acked output is re-evaluated with `allow-import-from-derivation = true` and the report says so, and an unacked IFD output fails | R | ev | | output | ✓ |
 | N-08 | Every output evaluates on every system it declares (`--all-systems`). No hardcoded `"x86_64-linux"` inside a per-system function | R | ev, an: syntax | §2 | output | ✓ |
 | N-09 | `pkgs` is instantiated once per system from the flake input (`legacyPackages.${system}`, or one `import nixpkgs { … }`). Modules take `pkgs` as an argument and never `import nixpkgs` | A | an: syntax | §2 | source | |
+| N-44 | Every input has an explicit URL; no registry-indirect inputs (`"type": "indirect"` in `flake.lock`) | R | an: lock | | lock | |
 
 **Language**
 
@@ -684,7 +689,7 @@ Manager or nix-darwin configuration), `package` (an exported package), `derivati
 | N-12 | No dead bindings, lambda arguments or `let` entries | R | tl: `deadnix --fail` | | source | ✓ |
 | N-13 | statix is clean | R | tl: `statix check` | | source | ✓ |
 | N-14 | Source is formatted with nixfmt (RFC 166 style) | R | tl: `treefmt --ci` with `nixfmt` | | source | ✓ |
-| N-15 | Every `lib.<name>` and `builtins.<name>` reference resolves in the locked inputs. The analyzer collects each selection path and checks it with `lib.hasAttrByPath` against the pinned `lib` and `builtins` | R | ev, an: syntax | §4 | source | ✓ |
+| N-15 | Every `lib.<name>` and `builtins.<name>` reference resolves in the locked inputs and exists at the Nix floor the config declares (`[toolchain].nix_floor`), not only in the Nix the gate runs; a builtin newer than the floor passes the gate and breaks for users at the floor. The analyzer collects each selection path and checks it with `lib.hasAttrByPath` against the pinned `lib` and `builtins`; an extended `lib` (`lib.hm`, flake-parts, `lib.extend`) is resolved against the extended set | R | ev, an: syntax | §4 | source | ✓ |
 | N-16 | No `builtins.trace`, `lib.traceVal` or other `lib.debug` tracing committed outside tests | A | an: syntax | | source | |
 | N-17 | Evaluation emits **no unmatched warnings** from any of three sources: `builtins.warn` (renamed NixOS options, `lib.warn`, deprecated aliases; `abort-on-warn = true` makes each an error, checked), `config.warnings` read as data (Home Manager prints it with `builtins.trace`, so `abort-on-warn` does not see it, checked; nix-darwin does the same in source at `ff0e21a`, **[verify]**), and `nix` command diagnostics classified by `laws/diagnostics.toml`. A warning is accepted only by a dated `[[warnings.allow]]` entry | R | ev | §5 | output | ✓ |
 
@@ -704,14 +709,17 @@ Manager or nix-darwin configuration), `package` (an exported package), `derivati
 
 | ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
 |---|---|---|---|---|---|---|
-| N-25 | Fixed-output hashes are SRI (`sha256-` and 44 base64 characters). `lib.fakeHash`, `""` and other placeholders are never committed | R | ev: derivation, an: syntax | §6 | fod | ✓ |
-| N-26 | A diff that changes a fetcher's `rev`, `tag` or `url`, or a `version` the source depends on, also changes its `hash`, and `vendorHash`/`cargoHash`/`npmDepsHash` when the dependency set moved. A fetcher's default store name is `source`, so a stale hash still matches the old path already in the store, and the build silently uses the old source. Tier 2 re-fetches with `--rebuild` | R | ev: derivation (base against head); an: diff; tl at tier 2 | §6 | fod | ✓ |
+| N-25 | Fixed-output hashes are SRI: `sha256-` with 44 base64 characters, or `sha512-` with 88. `lib.fakeHash` (the all-zero `sha256-` value), `lib.fakeSha256`, `""` and other placeholders are refused, although `lib.fakeHash` has the shape of a valid sha256 hash. A valid `sha512-` hash is accepted | R | ev: derivation, an: syntax | §6 | fod | ✓ |
+| N-26 | A fixed-output derivation whose fetch inputs (`rev`, `tag`, `url`, or a `version` the source depends on) changed between the merge base and the head must also change its hash, and `vendorHash`/`cargoHash`/`npmDepsHash` when the dependency set moved. A fetcher's default store name is `source`, so a stale hash still matches the old path already in the store, and the build silently uses the old source. The exact reader compares fetch inputs, not `drvPath` (a lock update changes every fetcher's derivation), and is primary; the diff heuristic is the fallback. Tier 1 re-fetches the changed fixed-output derivations; tier 2 re-fetches all | R | ev: derivation (base against head); an: diff; tl at tier 2 | §6 | fod | ✓ |
 | N-27 | No network in build phases: a raw `mkDerivation` does not run `go build`/`go mod download`, `cargo build`/`cargo fetch`, `npm install`/`npm ci`, `pip install`, `curl`, `wget` or `git clone`. Use the language builders (`buildGoModule`, `rustPlatform.buildRustPackage`, `buildNpmPackage`, `buildPythonApplication`) | R | an; build with `sandbox = true` | §7 | derivation | ✓ |
 | N-28 | `.override` takes package-function arguments; `.overrideAttrs` takes derivation attributes. `.override` with `src`, `version`, `patches`, a `*Phase`, `buildInputs` or `nativeBuildInputs` is refused: it errors, or is silently ignored when the function takes `...` | R | an: syntax | §8 | source | ✓ |
 | N-29 | Store paths keep their string context: no `builtins.unsafeDiscardStringContext`, `builtins.storePath`, `/nix/store/<hash>-…` literals, or string surgery on store paths. Use interpolation, `lib.getExe` or `lib.getExe'` | R | an: syntax | §9 | source | ✓ |
-| N-30 | Exported packages set `meta.description`, `meta.license`, `meta.platforms`, and `meta.mainProgram` when they ship one primary binary (`lib.getExe` warns without it, which N-17 then refuses) | A | ev: meta | | package | |
+| N-30 | Exported packages set `meta.description` and `meta.license`, and `meta.mainProgram` when they ship one primary binary (`lib.getExe` warns without it, which N-17 then refuses). `meta.platforms` is advised, not required | A | ev: meta | | package | |
 | N-31 | A package's `src` is filtered (`lib.fileset.toSource`, at least `lib.cleanSource`), not a bare `./.` or `${./.}`, so unrelated edits do not rebuild it and `.git` or `result` never enter the store | A | ev: derivation **[verify]**, an: syntax | | package | |
 | N-32 | Scripts use `writeShellApplication` (shellcheck, `runtimeInputs`, strict mode), not `writeShellScriptBin` with bare command names | A | an: syntax | §9 | source | |
+| N-45 | Fetcher refs are immutable: a tag or a 40-hex commit, never a branch; no `leaveDotGit = true` | R | ev: derivation, an: syntax | | fod | |
+| N-46 | `doCheck = false`, `dontCheck`, an emptied check phase, or a removed check carries an ack | A | ev: derivation, an: diff | | derivation | |
+| N-47 | Prebuilt binaries declare `meta.sourceProvenance` | A | ev: meta | | package | |
 
 **Secrets and security**
 
@@ -723,20 +731,22 @@ Manager or nix-darwin configuration), `package` (an exported package), `derivati
 | N-36 | No sandbox escapes: `__noChroot`, `__impure`, `nix.settings.sandbox = false`, `--option sandbox false` | R | ev: derivation **[verify]**, an: syntax | | source | ✓ |
 | N-37 | `networking.firewall.enable = false`, and port ranges wider than the services need, carry an ack | A | ev: options tree | | module, configuration | |
 | N-38 | Known vulnerabilities in runtime closures are acknowledged or fixed | A | tl: `vulnix`, tier 2 | | package, configuration | |
+| N-48 | `nixConfig` in `flake.nix` (substituters, keys) carries an ack; the gate never accepts flake config (`--no-accept-flake-config`) | A | an: syntax | | flake | |
 
 **Tests, budgets and tools**
 
 | ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
 |---|---|---|---|---|---|---|
 | N-39 | Oracle-first: tests derive from the contract, not from what the module produces today | A | at | | vm-test, module | |
-| N-40 | VM test scripts wait on conditions (`wait_for_unit`, `wait_for_open_port`, `wait_until_succeeds`), never `sleep` or `time.sleep` | R | an: syntax | | vm-test | ✓ |
+| N-40 | VM test scripts wait on conditions (`wait_for_unit`, `wait_for_open_port`, `wait_until_succeeds`), never `sleep`, `time.sleep` or `machine.sleep` | R | an: syntax | | vm-test | ✓ |
 | N-41 | Each budgeted output's closure stays within its budget or baseline | R | ev (`closureInfo`) | | budgeted | ✓ |
 | N-42 | Each budgeted output's eval cost stays within its baseline and tolerance | A | ev (`NIX_SHOW_STATS`) | | budgeted | |
 | N-43 | The kit's tools come from the kit's own pin: the `nix-tops` input does not `follows` the adopter's nixpkgs | R | an: lock | | nix-tops-input | ✓ |
+| N-49 | No two major versions of the same package in one budgeted closure without an ack | A | ev (`closureInfo`) | | budgeted | |
 
-**v0.1 target:** 29 of 43 laws judged. Twelve of them use the `ev` reader, alone or with an
-analyzer; for those the evaluator does most of the work. Class-specific laws are `skip` for other
-classes.
+**v0.1 target:** 29 of 49 laws judged. Fifteen of them use the `ev` reader, alone or with an
+analyzer; for those the evaluator does most of the work. A law whose artifact is absent is `skip`, with
+the artifact named (§3.3). N-44 to N-49 are not judged in v0.1.
 
 ### 8.3 Law metadata
 
@@ -1075,7 +1085,7 @@ and does not list it. (Abbreviated; the full schema covers every key in §9.)
 | **M0** | This spec, schemas, five profiles, `AGENTS.template.md` | Reviewed; budgets marked for calibration |
 | **M1** | Runner: `init`, `check`, `gate` for gates 1 and 3 (source, eval) and the report | The kit's own flake gates green; a flake with a renamed option fails |
 | **M2** | Sandbox plane: `lib.mkChecks` with nixfmt, statix, deadnix, gitleaks; gate 4; baseline and ratchet | A deliberate deadnix finding fails under `hard` and passes as baseline under `ratchet` |
-| **M3** | Laws v0.1: `nixtops-lint` and readers, 29 judged; `fixtures/laws` | Report shows "29 of 43 judged" |
+| **M3** | Laws v0.1: `nixtops-lint` and readers, 29 judged; `fixtures/laws` | Report shows "29 of 49 judged" |
 | **M4** | Output coverage; closure and eval-cost budgets; VM-test layer | A `nixos-module` example fails when its VM test is removed |
 | **M5** | Tier 2: rebuild determinism, fixed-output re-fetch, `vulnix`, build matrix; module-mutation spike | Nightly green on the examples |
 | **M6** | Protocol 1.0 | Calibrated floors and budgets on three Hedronite flakes; frozen law IDs |

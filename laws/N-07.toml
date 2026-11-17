@@ -1,7 +1,8 @@
 id = "N-07"
 title = "No import-from-derivation"
-law = "No import-from-derivation: the gate evaluates with `allow-import-from-derivation = false`. IFD needs an ack per output."
+law = "No import-from-derivation by default: the gate evaluates with `allow-import-from-derivation = false`. IFD is ackable per output: the inventory records which outputs fail only with IFD off, an acked output is re-evaluated with `allow-import-from-derivation = true` and the report says so, and an unacked IFD output fails"
 severity = "Refuse"
+artifacts = ["output"]
 reader = "ev"
 judged = true
 rationale = "IFD makes evaluation build derivations, which serializes it and hides builds inside the eval gate."

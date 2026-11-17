@@ -1,9 +1,10 @@
 id = "N-37"
 title = "Firewall off or wide ports carry an ack"
-law = "`networking.firewall.enable = false`, and port ranges wider than the services need, carry an ack."
+law = "`networking.firewall.enable = false`, and port ranges wider than the services need, carry an ack"
 severity = "Ack"
-classes = ["nixos-host"]
+artifacts = ["module", "configuration"]
 reader = "ev"
+reader_detail = "ev: options tree"
 judged = false
 rationale = "An open firewall exposes every listening service."
 fix = "Open only the ports the services need, or ack the exception."

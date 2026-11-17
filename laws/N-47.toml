@@ -1,10 +1,10 @@
 id = "N-47"
 title = "Prebuilt binaries declare provenance"
-law = "Prebuilt binaries declare `meta.sourceProvenance`."
+law = "Prebuilt binaries declare `meta.sourceProvenance`"
 severity = "Ack"
-classes = ["package-set"]
+artifacts = ["package"]
 reader = "ev"
-reader_detail = "meta"
+reader_detail = "ev: meta"
 judged = false
 rationale = "A prebuilt binary carries no source the reviewer can read."
 fix = "Set `meta.sourceProvenance` (`lib.sourceTypes.binaryNativeCode` or similar)."

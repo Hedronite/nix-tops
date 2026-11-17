@@ -1,9 +1,10 @@
 id = "N-12"
 title = "No dead bindings"
-law = "No dead bindings, lambda arguments or `let` entries."
+law = "No dead bindings, lambda arguments or `let` entries"
 severity = "Refuse"
+artifacts = ["source"]
 reader = "tl"
-reader_detail = "deadnix --fail"
+reader_detail = "tl: `deadnix --fail`"
 judged = true
 rationale = "Dead code hides what the file really depends on."
 fix = "Delete the binding, or run `deadnix --edit`."

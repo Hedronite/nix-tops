@@ -1,9 +1,10 @@
 id = "N-42"
 title = "Eval cost within baseline"
-law = "Each budgeted output's eval cost stays within its baseline and tolerance."
+law = "Each budgeted output's eval cost stays within its baseline and tolerance"
 severity = "Ack"
+artifacts = ["budgeted"]
 reader = "ev"
-reader_detail = "NIX_SHOW_STATS with --no-eval-cache, normalized against a reference output on the same lock"
+reader_detail = "ev (`NIX_SHOW_STATS`)"
 judged = false
 rationale = "Eval cost grows with every added module and package."
 fix = "Find the added import, or move the baseline with an ack."

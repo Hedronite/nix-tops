@@ -1,10 +1,10 @@
 id = "N-19"
 title = "Options have type and description"
-law = "Every declared option has `type` and `description`. `types.anything`, `types.attrs` and `types.unspecified` need an ack."
+law = "Every declared option has `type` and `description`. `types.anything`, `types.attrs` and `types.unspecified` need an ack"
 severity = "Ack"
-classes = ["nixos-module"]
+artifacts = ["module"]
 reader = "ev"
-reader_detail = "options tree"
+reader_detail = "ev: options tree"
 judged = false
 rationale = "Untyped options accept any value and give no error for a wrong one."
 fix = "Give the option a precise type and a description."

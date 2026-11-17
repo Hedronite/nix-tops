@@ -1,8 +1,10 @@
 id = "N-10"
 title = "No file-scope with"
-law = "No file-scope `with` (a module or file body wrapped in `with pkgs;` or `with lib;`). `with pkgs;` around a list is allowed."
+law = "No file-scope `with` (a module or file body wrapped in `with pkgs;` or `with lib;`). `with pkgs;` around a list is allowed"
 severity = "Refuse"
+artifacts = ["source"]
 reader = "an"
+reader_detail = "an: syntax"
 judged = true
 sketch = "§3"
 rationale = "File-scope `with` hides where each name comes from and defeats dead-binding checks."

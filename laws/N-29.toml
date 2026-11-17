@@ -1,9 +1,10 @@
 id = "N-29"
 title = "Store paths keep their string context"
-law = "Store paths keep their string context: no `builtins.unsafeDiscardStringContext`, `builtins.storePath`, `/nix/store/<hash>-…` literals, or string surgery on store paths. Use interpolation, `lib.getExe` or `lib.getExe'`."
+law = "Store paths keep their string context: no `builtins.unsafeDiscardStringContext`, `builtins.storePath`, `/nix/store/<hash>-…` literals, or string surgery on store paths. Use interpolation, `lib.getExe` or `lib.getExe'`"
 severity = "Refuse"
-classes = ["package-set"]
+artifacts = ["source"]
 reader = "an"
+reader_detail = "an: syntax"
 judged = true
 sketch = "§9"
 rationale = "Discarding string context lets a build use a path without depending on it, so it breaks in a clean store."
