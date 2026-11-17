@@ -304,7 +304,7 @@ profile ships when an adopter does, and `nixtops check` says so.
 
 ### 5.2 Floors by facet
 
-A facet sets floors only: coverage floors and budgets. It never turns a law on or off; a law applies
+A facet sets floors only: coverage floors, budgets, and the layer tiers the table sets (rebuild determinism, `vulnix`). It never turns a law on or off; a law applies
 when the artifact it names exists (§8.2, §8.3). Floors apply to the outputs the facet is derived
 from (`devShells` to `dev-flake`, `packages` to `package-set`, and so on); an output of no facet has
 no floor and is reported as such. There is one floor per facet and row.
@@ -317,7 +317,7 @@ no floor and is reported as such. There is one floor per facet and row.
 | Closure budget | per `devShell`, ratchet | per package, ratchet | n/a | n/a | per host `toplevel`, ratchet | `activationPackage`, ratchet |
 | Eval-cost budget | advisory | ratchet | ratchet | advisory | ratchet | ratchet |
 | Rebuild determinism | no | tier 2 | no | no | tier 2 (`toplevel`) | no |
-| `vulnix` | no | tier 2 | no | no | tier 2 | no |
+| `vulnix` | no | tier 2 | no | no | tier 2 | tier 2 |
 
 All numbers are **proposed**, to be calibrated in M4.6. Under `ratchet` (§6.8) floors and budgets
 apply to new outputs, and existing outputs must not get worse. `vulnix` has one tier per facet: this
