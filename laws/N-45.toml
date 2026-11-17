@@ -1,0 +1,9 @@
+id = "N-45"
+title = "Immutable fetcher refs"
+law = "Fetcher refs are immutable: a tag or a 40-hex commit, never a branch; no `leaveDotGit = true`."
+severity = "Refuse"
+reader = "an"
+reader_detail = "derivation env + syntax"
+judged = false
+rationale = "A branch moves under a fixed hash; `leaveDotGit` makes the output depend on the clone."
+fix = "Pin a tag or a commit."

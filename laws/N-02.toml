@@ -1,0 +1,10 @@
+id = "N-02"
+title = "No impure builtins"
+law = "No impure builtins: `builtins.getEnv`, `currentSystem`, `currentTime`, `getFlake` on an unlocked ref, `fetchTarball`/`fetchurl`/`fetchGit` without a hash. In pure eval `getEnv` returns `\"\"` instead of failing (checked), so only the analyzer catches it."
+severity = "Refuse"
+reader = "an"
+reader_also = ["ev"]
+judged = true
+sketch = "§1"
+rationale = "These builtins read the host or the network at evaluation time, so the same flake evaluates differently on another machine."
+fix = "Pass the value in as an input, an option or a pinned fetcher with a hash."

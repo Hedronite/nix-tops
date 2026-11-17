@@ -1,0 +1,9 @@
+id = "N-13"
+title = "statix is clean"
+law = "statix is clean."
+severity = "Refuse"
+reader = "tl"
+reader_detail = "statix check"
+judged = true
+rationale = "statix finds the common anti-patterns the language allows."
+fix = "Run `statix fix`, or fix by hand."

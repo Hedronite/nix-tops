@@ -1,0 +1,10 @@
+id = "N-04"
+title = "Tracked files and a clean tree"
+law = "No untracked, non-ignored `.nix` file under the flake root, and in CI the working tree equals `HEAD`. A file that is staged and not committed counts as untracked. A git flake fails at gate 3 on the machine that has the file, with \"path does not exist\"; ignored directories such as `.direnv` are exempt."
+severity = "Refuse"
+reader = "an"
+reader_detail = "runner reader over git"
+judged = true
+sketch = "§1"
+rationale = "A flake copies tracked files only, so a file the flake reads but git does not track breaks evaluation, and a staged but uncommitted file passes locally and fails in CI."
+fix = "`git add` and commit the file, or ignore it. Do not stage files you did not write."

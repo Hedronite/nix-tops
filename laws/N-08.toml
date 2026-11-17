@@ -1,0 +1,10 @@
+id = "N-08"
+title = "Every output evaluates on every declared system"
+law = "Every output evaluates on every system it declares (`--all-systems`). No hardcoded `\"x86_64-linux\"` inside a per-system function. An output must not `throw` for a system it declares; do not declare the system."
+severity = "Refuse"
+reader = "ev"
+reader_also = ["an"]
+judged = true
+sketch = "§2"
+rationale = "An output that throws for a declared system breaks `nix flake check --all-systems` for every consumer."
+fix = "Remove the system from the flake's systems, or make the output evaluate."

@@ -1,0 +1,10 @@
+id = "N-41"
+title = "Closure within budget"
+law = "Each budgeted output's closure stays within its budget or baseline."
+severity = "Refuse"
+reader = "an"
+reader_detail = "closureInfo"
+judged = true
+rationale = "A closure that grows unnoticed makes shells and images heavier for everyone."
+fix = "Remove the dependency that grew the closure, or move the baseline with an ack."
+note = "Reader to be corrected in phase 2 (G7): the assessment calls this a measurement, not an analyzer."

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nix-TOPS law file (laws/N-NN.toml)",
+  "description": "One law of the Nix-TOPS catalog (NIX_TOPS.md section 8.2). Metadata fields follow section 8.3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "law", "severity", "reader", "judged", "rationale", "fix"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^N-[0-9]{2}$", "description": "Law ID. Never renumbered." },
+    "title": { "type": "string", "minLength": 1, "description": "Short name." },
+    "law": { "type": "string", "minLength": 1, "description": "The rule, as stated in the section 8.2 catalog row." },
+    "severity": { "enum": ["Refuse", "Ack"], "description": "Refuse fails; Ack needs an acknowledgement (section 6.6)." },
+    "classes": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": { "enum": ["dev-flake", "package-set", "nixos-module", "nixos-host", "home-config", "flake-lib", "darwin-host", "fleet-root", "image"] },
+      "$comment": "Classes the law is an extra for (section 5.2). Absent means every class. G4 replaces classes with facets and triggering artifacts."
+    },
+    "reader": { "enum": ["ev", "tl", "an", "at", "tbd"], "description": "Primary reader (section 8.1)." },
+    "reader_also": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["ev", "tl", "an", "at", "tbd"] },
+      "$comment": "Further readers, in the order the catalog lists them. G6 reorders readers into preference order."
+    },
+    "reader_detail": { "type": "string", "minLength": 1, "description": "What the reader reads or runs: a tool and its mode, or the artifact." },
+    "judged": { "type": "boolean", "description": "True when the law is judged in protocol 0.1 (the check mark in section 8.2)." },
+    "sketch": { "type": "string", "pattern": "^§[0-9]+$", "description": "Mistake in the source sketch the law comes from." },
+    "option_names": { "type": "array", "uniqueItems": true, "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "rationale": { "type": "string", "minLength": 1 },
+    "fix": { "type": "string", "minLength": 1 },
+    "note": { "type": "string", "minLength": 1, "description": "Open point for the spec owners." }
+  }
+}

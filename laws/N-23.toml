@@ -1,0 +1,8 @@
+id = "N-23"
+title = "Unfree by predicate, not blanket"
+law = "Unfree packages are allowed by `allowUnfreePredicate` over a named list, not by a blanket `allowUnfree = true`."
+severity = "Ack"
+reader = "an"
+judged = false
+rationale = "A blanket allow admits every unfree package, including ones added later."
+fix = "List the package names in `allowUnfreePredicate`."

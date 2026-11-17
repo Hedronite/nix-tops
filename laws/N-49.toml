@@ -1,0 +1,9 @@
+id = "N-49"
+title = "No two majors of one package"
+law = "No two major versions of the same package in one budgeted closure without an ack."
+severity = "Ack"
+reader = "an"
+reader_detail = "closure"
+judged = false
+rationale = "Two majors in one closure double its size and usually mean an unpinned dependency."
+fix = "Align the dependency, or ack the duplicate."

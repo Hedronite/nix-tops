@@ -1,0 +1,9 @@
+id = "N-14"
+title = "Source formatted with nixfmt"
+law = "Source is formatted with nixfmt (RFC 166 style)."
+severity = "Refuse"
+reader = "tl"
+reader_detail = "treefmt --ci with nixfmt"
+judged = true
+rationale = "One format keeps diffs small and agent edits reviewable."
+fix = "Run `treefmt`."

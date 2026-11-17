@@ -1,0 +1,8 @@
+id = "N-16"
+title = "No committed tracing"
+law = "No `builtins.trace`, `lib.traceVal` or other `lib.debug` tracing committed outside tests."
+severity = "Ack"
+reader = "an"
+judged = false
+rationale = "Tracing left in code prints on every evaluation."
+fix = "Remove the call."

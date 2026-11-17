@@ -1,0 +1,10 @@
+id = "N-25"
+title = "Fixed-output hashes are SRI and real"
+law = "Fixed-output hashes are SRI: `sha256-` with 44 base64 characters, or `sha512-` with 88; a valid SRI hash of either kind is accepted. `lib.fakeHash` (the all-zero `sha256-` value), `lib.fakeSha256`, `\"\"` and other placeholders are refused wherever they appear, including as the value that matches the 44-character pattern."
+severity = "Refuse"
+classes = ["package-set"]
+reader = "an"
+judged = true
+sketch = "§6"
+rationale = "`lib.fakeHash` has the shape of a valid sha256 SRI hash, so a shape check passes it; `sha512-` is valid SRI and must not be refused."
+fix = "Replace the placeholder with the hash the build reports."

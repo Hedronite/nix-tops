@@ -1,0 +1,8 @@
+id = "N-39"
+title = "Oracle-first tests"
+law = "Oracle-first: tests derive from the contract, not from what the module produces today."
+severity = "Ack"
+reader = "at"
+judged = false
+rationale = "A test copied from current output can only confirm the current behaviour."
+fix = "Write the expected value from the contract."

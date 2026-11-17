@@ -1,0 +1,9 @@
+id = "N-38"
+title = "Known vulnerabilities acknowledged or fixed"
+law = "Known vulnerabilities in runtime closures are acknowledged or fixed."
+severity = "Ack"
+reader = "tl"
+reader_detail = "vulnix, tier 2"
+judged = false
+rationale = "A runtime closure can carry packages with published CVEs."
+fix = "Update the package, or ack the finding."

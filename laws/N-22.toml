@@ -1,0 +1,10 @@
+id = "N-22"
+title = "stateVersion does not change without an ack"
+law = "`system.stateVersion` and `home.stateVersion` do not change in a diff without an ack. They record the state format the machine was installed with. They are not the release version."
+severity = "Refuse"
+classes = ["nixos-host", "home-config"]
+reader = "an"
+reader_detail = "diff"
+judged = true
+rationale = "Changing the state version without migrating state can break services and data."
+fix = "Revert the change, or ack it after the migration."

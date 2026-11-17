@@ -1,0 +1,10 @@
+id = "N-33"
+title = "No secrets in source"
+law = "No secrets in source, fixtures or strings bound for the store."
+severity = "Refuse"
+reader = "tl"
+reader_detail = "gitleaks"
+judged = true
+sketch = "§10"
+rationale = "The store is world-readable and may be copied to binary caches."
+fix = "Remove the secret, rotate it, and read it at runtime."

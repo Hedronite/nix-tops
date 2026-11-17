@@ -1,0 +1,8 @@
+id = "N-05"
+title = "Lock committed and current"
+law = "`flake.lock` is committed and current; evaluation with `--no-update-lock-file` succeeds."
+severity = "Refuse"
+reader = "ev"
+judged = true
+rationale = "An absent or stale lock makes evaluation depend on whatever the inputs are today."
+fix = "Run `nix flake lock` and commit `flake.lock`."

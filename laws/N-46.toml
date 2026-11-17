@@ -1,0 +1,9 @@
+id = "N-46"
+title = "Disabled checks carry an ack"
+law = "`doCheck = false`, `dontCheck`, an emptied check phase, or a removed check carries an ack."
+severity = "Ack"
+reader = "an"
+reader_detail = "derivation + diff"
+judged = false
+rationale = "Turning off the test to make the build pass is the first thing an agent under pressure does."
+fix = "Fix the failing test, or ack the exception with the reason."

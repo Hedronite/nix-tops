@@ -1,0 +1,10 @@
+id = "N-32"
+title = "writeShellApplication for scripts"
+law = "Scripts use `writeShellApplication` (shellcheck, `runtimeInputs`, strict mode), not `writeShellScriptBin` with bare command names."
+severity = "Ack"
+classes = ["package-set"]
+reader = "an"
+judged = false
+sketch = "§9"
+rationale = "Bare command names depend on the caller's `PATH`; `writeShellApplication` pins them and runs shellcheck."
+fix = "Switch to `writeShellApplication` and list `runtimeInputs`."

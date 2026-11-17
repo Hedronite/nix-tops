@@ -1,0 +1,8 @@
+id = "N-24"
+title = "Insecure packages carry an expiring ack"
+law = "Each `permittedInsecurePackages` entry carries an ack with an expiry date."
+severity = "Ack"
+reader = "an"
+judged = false
+rationale = "An insecure package should be a dated decision, not a permanent one."
+fix = "Add an ack with an expiry date, or drop the package."

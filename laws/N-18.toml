@@ -1,0 +1,9 @@
+id = "N-18"
+title = "Configurations evaluate to their build root"
+law = "Every configuration evaluates to its build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`). The module system refuses options that do not exist, such as `virtualHosts.<name>.enableSSL` (checked), and missing package attributes."
+severity = "Refuse"
+reader = "ev"
+judged = true
+sketch = "§5"
+rationale = "Forcing the build root makes the module system reject unknown options and failed assertions."
+fix = "Fix the option name or the assertion the error names."
