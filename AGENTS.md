@@ -9,7 +9,7 @@ The protocol text is [`NIX_TOPS.md`](NIX_TOPS.md). This file is the harness for 
 
 ## State
 
-Milestone M0: the spec. There is no `flake.nix`, no runner, no analyzer and no CI yet. `nixtops` does not exist. Do not document, run or claim a command that has not landed.
+Milestone M0: the spec. There is no `flake.nix`, no runner and no analyzer yet. `nixtops` does not exist. The one workflow, `spec`, runs `scripts/spec_check.py` on the spec itself. Do not document, run or claim a command that has not landed.
 
 Once code lands, the kit is a flake that gates itself `hard` with its own protocol (§17), and its Rust analyzer is gated by Rust-TOPS.
 
@@ -24,14 +24,14 @@ Points from 0.1.0 that code must follow:
 
 ## Do this
 
-1. Read the section of `NIX_TOPS.md` you are changing, and the schema once it exists. Fix the schema first, then the prose (§3.4).
+1. Read the section of `NIX_TOPS.md` you are changing, and the schema once it exists. Fix the schema first, then the prose (§3.4). Before a PR is ready, run `python3 scripts/spec_check.py all` (needs `check-jsonschema` 0.38.0).
 2. A change to `laws/`, `schema/`, `profiles/`, a floor, a budget, an eval option, or normative text in `NIX_TOPS.md` is a protocol change. It carries the `protocol-change` label and a `CHANGELOG.md` entry, and bumps the protocol version together with the schema.
 3. Check Nix behavior before you write it down: evaluate it against the pinned nixpkgs and record the pin. Appendix B exists because the source sketch was not checked.
 4. Once code lands: write the oracle from the contract first, then the smallest shape that satisfies it, then run the gate.
 
 ## Git
 
-- Work on a branch and open a draft PR. Never push `main`, force-push, tag or publish a release.
+- Work on a branch and open a PR ready for review when the slice is complete, never a draft. Never push `main`, force-push, tag or publish a release.
 - Fixes are new commits on the PR branch.
 - No secrets, tokens, local paths or internal notes in the repo.
 
