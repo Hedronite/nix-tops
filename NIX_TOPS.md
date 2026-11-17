@@ -1,7 +1,7 @@
 # Nix-TOPS: Nix Testing and Optimization Protocol Suite
 
 **Spec status:** Draft 0.1.0 · **Date:** 2026-11-14 · **Owner:** Hedronite
-**Modeled on:** [Rust-TOPS](https://github.com/Hedronite/rust-tops), [Go-TOPS](https://github.com/Hedronite/go-tops) 0.3.0 and [Web-TOPS](https://github.com/Hedronite/web-tops) 0.1.0
+**Modeled on:** [Rust-TOPS](https://github.com/Hedronite/rust-tops), [Go-TOPS](https://github.com/Hedronite/go-tops) 0.3.0 and [Web-TOPS](https://github.com/Hedronite/web-tops) 0.2.0
 **Source of the laws:** *Common Mistakes AI Coding Agents Make in Nix* (Hedronite sketch). Appendix B lists where this spec corrects it.
 
 > **How to read this.** Nix-TOPS reuses the shape of the other TOPS protocols: a written spec, a
@@ -653,7 +653,7 @@ Non-negotiable:
 
 ## 14. Deltas
 
-| Area | Go-TOPS 0.3.0 | Web-TOPS 0.1.0 | Nix-TOPS 0.1.0 |
+| Area | Go-TOPS 0.3.0 | Web-TOPS 0.2.0 | Nix-TOPS 0.1.0 |
 |---|---|---|---|
 | Scope | Go | TypeScript, HTML, CSS, Tailwind, Astro | Nix language, flakes, packages, modules, configurations |
 | Strongest check | `go vet` + analyzers | type-aware lint | Pure evaluation with `abort-on-warn` and IFD off |
@@ -907,5 +907,5 @@ Checked on 2026-11-14 against nixpkgs 26.11 (`nixpkgs-weekly`, 2026-11-01) with 
 ## Credits and license
 
 Built by Hedronite. Structure adapted from Rust-TOPS, Go-TOPS and Web-TOPS. The laws draw on
-*Common Mistakes AI Coding Agents Make in Nix* (Hedronite sketch). License (proposed): MIT OR
-Apache-2.0.
+*Common Mistakes AI Coding Agents Make in Nix* (Hedronite sketch). Licensed under MIT OR
+Apache-2.0, as in `LICENSE`, `LICENSE-MIT` and `LICENSE-APACHE`.
