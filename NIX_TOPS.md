@@ -225,7 +225,7 @@ Determinate Nix 3.22.3 on macOS reported `sandbox = false`, checked), a successf
 prove the build is network-free. The build layer still runs, and N-27's build evidence is `not-evaluated` for that
 host. Linux CI with `sandbox = true` is the authoritative build.
 
-**Family terms** (X1). The marked blocks in this section and in §6.8 are the family core, shared
+**Family terms.** The marked blocks in this section and in §6.8 are the family core, shared
 with the other TOPS protocols. Each term as the other three write it, read at the named commit:
 
 | Nix-TOPS | Rust-TOPS 1.2.0 (`77056c9`) | Go-TOPS 0.3.0 (`8d5b416`) | Web-TOPS 0.2.0 (`7767ae0`) |
@@ -242,8 +242,7 @@ with the other TOPS protocols. Each term as the other three write it, read at th
 | missing merge base | none | none | `Failed` |
 
 Differences kept: Rust-TOPS records an `Ack` without failing it; the other three fail an
-unacknowledged one. Rust-TOPS has no `skip` or `not-run`. X3 (a required law that cannot be judged
-fails) is adopted by each protocol in its next revision. Web-TOPS 0.2.1 (`e219e49`) widens `not-run`
+unacknowledged one. Rust-TOPS has no `skip` or `not-run`. The rule that a required law which cannot be judged fails is adopted by each protocol in its next revision. Web-TOPS 0.2.1 (`e219e49`) widens `not-run`
 (also when the run stopped early or an input is missing), `skip` (config needs a `reason`) and
 `not-evaluated` (also when the tool's rule is off or below `error`); each Nix term maps to the 0.2.1
 text the same way.
