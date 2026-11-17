@@ -5,6 +5,10 @@ set -eu
 export PATH=/nix/var/nix/profiles/default/bin:$PATH
 here=$(cd "$(dirname "$0")" && pwd)
 nix=(nix --extra-experimental-features 'nix-command flakes')
+# The Determinate leg runs the way the gate does: Determinate-only settings off (spec section 2).
+if "${nix[@]}" --version | grep -q Determinate; then
+  nix+=(--option lazy-trees false --option eval-cores 1)
+fi
 ov=(--override-input nix-tops "path:$here/stub-kit")
 "${nix[@]}" --version
 "${nix[@]}" flake check --no-build --all-systems --no-update-lock-file \
@@ -32,3 +36,14 @@ m=re.search(r"## 4\. Quick start.*?```nix\n(.*?)```", s, re.S)
 assert m and m.group(1)==f, "section 4 flake block differs from examples/quickstart/flake.nix"
 print("section 4 flake block equals flake.nix")
 PY
+
+# the stub performs the documented TOML read: its check is named by the config's class ...
+printf 'config read: '
+"${nix[@]}" eval --raw --no-write-lock-file "${ov[@]}" "path:$here#checks.x86_64-linux.nixtops-config.name" 2>/dev/null; echo
+# ... and a missing nix-tops.toml fails evaluation, as it would for the real kit
+rm "$tmp/q/nix-tops.toml"
+if "${nix[@]}" eval --raw --no-write-lock-file --override-input nix-tops "path:$tmp/q/stub-kit" \
+  "path:$tmp/q#checks.x86_64-linux.nixtops-config.name" >/dev/null 2>&1; then
+  echo "FAIL: evaluation succeeded without nix-tops.toml" >&2; exit 1
+fi
+echo "missing nix-tops.toml fails evaluation"

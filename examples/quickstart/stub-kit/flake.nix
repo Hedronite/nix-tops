@@ -13,11 +13,16 @@
         # Lint checks exist for one system only (the first declared).
         mkChecks =
           { self, systems }:
+          let
+            # The documented read (spec section 4): the config is TOML, read without IFD. A missing
+            # or invalid file fails evaluation, as it would for the real kit; the class names the check.
+            cfg = builtins.fromTOML (builtins.readFile (self + "/nix-tops.toml"));
+          in
           builtins.listToAttrs (
             map (system: {
               name = system;
               value =
-                { nixtops-config = stubDrv system "nixtops-config"; }
+                { nixtops-config = stubDrv system "nixtops-config-${cfg.class}"; }
                 // (if system == builtins.head systems then { nixtops-lint = stubDrv system "nixtops-lint"; } else { });
             }) systems
           );

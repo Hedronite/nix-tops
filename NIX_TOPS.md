@@ -80,7 +80,7 @@ source, which does not depend on the system, so they are built once.
 | Protocol version | **0.1.0** (draft) |
 | Package version | 0.0.0 (unreleased) |
 | Evaluator (the judge) | The CppNix pinned in the kit's `flake.lock` (2.35.2 when this spec was checked). The host supplies the daemon and the store, not the judge (§10) |
-| Determinate Nix | A named CI leg (§11), checked with 3.22.3 (Nix 2.35.2). Determinate-only settings (`lazy-trees`, parallel evaluation) are off in the gate |
+| Determinate Nix | A named CI leg (§11), checked with 3.22.3 (Nix 2.35.2). Determinate-only settings are off in the gate: `--option lazy-trees false --option eval-cores 1` (both on by default on Determinate Nix 3.22.3, checked) |
 | Nix floor (host daemon) | CppNix **2.24**, or Determinate Nix 3.x. `builtins.warn` and `abort-on-warn` landed in 2.23. `doctor` gates only on this floor (§12) |
 | Lix | Lix 2.95.0 has `builtins.warn` and `abort-on-warn` **[verify]**. Not supported until M7.2 |
 | Supported systems | `aarch64-darwin`, `x86_64-linux`, `aarch64-linux`. `x86_64-darwin` is unsupported: nixpkgs 26.11 dropped it (N1) |
@@ -673,7 +673,7 @@ The drop-in workflow `.github/workflows/nix-tops.yml`:
 | Job | Content |
 |---|---|
 | `gate` | Install Nix (action pinned by commit SHA); `sandbox = true`; `nix run .#nixtops -- gate --max-tier 1` on `x86_64-linux`. It fails if fewer layers ran than are enabled in range. Gate 3 uses `--all-systems`, so evaluation for every declared system runs here and needs no other runner |
-| `determinate` | The same gate, evaluating with Determinate Nix (the named leg of §2), `lazy-trees` and parallel evaluation off |
+| `determinate` | The same gate, evaluating with Determinate Nix (the named leg of §2), `lazy-trees false` and `eval-cores 1` (§2) |
 | `build-matrix` | Tier 2, and where `deferred` outputs build: `ubuntu-24.04` (x86_64), `ubuntu-24.04-arm` (aarch64) and an aarch64-darwin runner, per declared systems. VM tests run on x86_64 only |
 | `nightly` | `nixtops gate --max-tier 2` on a schedule |
 | `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option or a budget without the `protocol-change` label. It runs the base branch's script, never the PR's |
