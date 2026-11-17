@@ -69,6 +69,14 @@ class Parse(unittest.TestCase):
         rules = rg.parse_rules((REPO / "NIX_TOPS.md").read_text(encoding="utf-8"))
         self.assertGreaterEqual(len(rules), 1)
 
+    def test_real_copies_match_the_source(self):
+        status, out = rg.run(REPO, "check")
+        self.assertEqual(status, 0, out)
+
+    def test_every_real_rule_names_its_check_or_review(self):
+        for n, text in rg.parse_rules((REPO / "NIX_TOPS.md").read_text(encoding="utf-8")):
+            self.assertRegex(text, r"\*\*\[[^\]]+\]\*\*$", f"rule {n} has no check tag")
+
 
 class Render(unittest.TestCase):
     def test_styles(self):

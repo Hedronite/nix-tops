@@ -1,5 +1,6 @@
 """Tests for scripts/spec_check.py. Each failing case plants one defect in a scratch copy."""
 
+import re
 import shutil
 import sys
 import tempfile
@@ -24,6 +25,18 @@ class Scratch(unittest.TestCase):
 
     def tearDown(self):
         self._tmp.cleanup()
+
+    def flip(self, law_id):
+        """Toggle the check mark in the last cell of one law row, found by its ID."""
+        p = self.root / "NIX_TOPS.md"
+        lines = p.read_text(encoding="utf-8").splitlines()
+        hits = [i for i, l in enumerate(lines) if l.startswith(f"| {law_id} |")]
+        self.assertEqual(len(hits), 1, law_id)
+        row = lines[hits[0]]
+        flipped = re.sub(r"\|\s*✓\s*\|$", "| |", row) if re.search(r"\|\s*✓\s*\|$", row) else re.sub(r"\|\s*\|$", "| ✓ |", row)
+        self.assertNotEqual(row, flipped, law_id)
+        lines[hits[0]] = flipped
+        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def edit(self, name, old, new, count=1):
         p = self.root / name
@@ -71,13 +84,13 @@ class Catalog(Scratch):
 
     def test_planted_check_mark_flip_fails(self):
         # N-37 is unjudged: mark it judged, and the counts in the text no longer match.
-        self.edit("NIX_TOPS.md", "| A | ev: options tree | | module, configuration | |\n| N-38", "| A | ev: options tree | | module, configuration | ✓ |\n| N-38")
+        self.flip("N-37")
         errs = sc.check_catalog(self.root)
         self.assertTrue(any("table marks" in e for e in errs), errs)
 
     def test_flip_the_other_way_fails(self):
-        self.edit("NIX_TOPS.md", "| ✓ |\n| N-02", "| |\n| N-02")
-        self.assertTrue(sc.check_catalog(self.root))
+        self.flip("N-01")
+        self.assertTrue(any("table marks" in e for e in sc.check_catalog(self.root)))
 
     def test_heading_count_fails(self):
         self.edit("NIX_TOPS.md", "draft: 49 laws, N-01…N-49", "draft: 50 laws, N-01…N-50")
@@ -86,6 +99,14 @@ class Catalog(Scratch):
     def test_roadmap_row_fails(self):
         self.edit("NIX_TOPS.md", "Report shows \"29 of 49 judged\"", "Report shows \"28 of 49 judged\"")
         self.assertTrue(any("M3 row" in e for e in sc.check_catalog(self.root)))
+
+    def test_readme_counts_join_the_check(self):
+        self.edit("README.md", "29 of 49 judged", "29 of 43 judged")
+        self.assertTrue(any(e.startswith("README.md") for e in sc.check_catalog(self.root)))
+
+    def test_readme_without_the_count_fails(self):
+        self.edit("README.md", "29 of 49 judged", "all laws judged")
+        self.assertTrue(any("no 'N of M judged'" in e for e in sc.check_catalog(self.root)))
 
     def test_missing_law_row_fails(self):
         text = (self.root / "NIX_TOPS.md").read_text(encoding="utf-8")
@@ -117,23 +138,81 @@ class Schema(Scratch):
         errs = sc.check_schema(self.root)
         self.assertTrue(errs and "surprise" in errs[0], errs)
 
+    SYSTEMS = 'systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]   # the systems the flake exports'
+
     def test_unknown_nested_key_fails(self):
-        self.edit("NIX_TOPS.md", "[eval]\nall_systems = true\nabort_on_warn = true\nallow_ifd = false\n\n[lint]", "[eval]\nall_systems = true\nnope = 1\nabort_on_warn = true\nallow_ifd = false\n\n[lint]")
+        self.edit("NIX_TOPS.md", self.SYSTEMS, self.SYSTEMS + "\nnope = 1")
         self.assertTrue(sc.check_schema(self.root))
 
     def test_fixed_option_cannot_change(self):
-        self.edit("NIX_TOPS.md", "abort_on_warn = true\nallow_ifd = false\n\n[lint]", "abort_on_warn = false\nallow_ifd = false\n\n[lint]")
+        self.edit("NIX_TOPS.md", "allow_ifd = false\n\n[[warnings.allow]]", "allow_ifd = true\n\n[[warnings.allow]]")
         self.assertTrue(sc.check_schema(self.root))
 
-    def test_version_and_flake_are_optional(self):
-        self.edit("NIX_TOPS.md", 'version = "0.1.0"\nflake = "github:Hedronite/example"\n', "")
-        self.assertEqual(sc.check_schema(self.root), [])
+    def test_version_and_flake_are_dropped(self):
+        self.edit("NIX_TOPS.md", 'enforce = "ratchet"', 'version = "0.2.0"\nenforce = "ratchet"')
+        self.assertTrue(sc.check_schema(self.root))
+        self.edit("NIX_TOPS.md", 'version = "0.2.0"\n', 'flake = "github:Hedronite/example"\n')
+        self.assertTrue(sc.check_schema(self.root))
+
+    def test_x86_64_darwin_is_not_a_system(self):
+        self.edit("NIX_TOPS.md", self.SYSTEMS, 'systems = ["x86_64-linux", "x86_64-darwin"]')
+        self.assertTrue(sc.check_schema(self.root))
+
+    def test_config_needs_facets_and_systems(self):
+        self.edit("NIX_TOPS.md", 'facets = ["dev-flake"]               # a subset of the facets the outputs show (§5.4)\n', "")
+        self.assertTrue(sc.check_schema(self.root))
+
+    def test_warning_entry_needs_all_three_fields(self):
+        self.edit("NIX_TOPS.md", 'until = "2026-12-31"                 # UTC date; an expired entry fails (§3.1)\n', "")
+        self.assertTrue(sc.check_schema(self.root))
+
+    def test_profile_cannot_carry_both_facet_and_facets(self):
+        p = self.root / "profiles" / "dev-flake.toml"
+        p.write_text('facets = ["dev-flake"]\n' + p.read_text(encoding="utf-8"), encoding="utf-8")
+        self.assertTrue(sc.check_schema(self.root))
+
+    def test_profile_facet_must_match_the_file_name(self):
+        p = self.root / "profiles" / "flake-lib.toml"
+        p.write_text(p.read_text(encoding="utf-8").replace('facet = "flake-lib"', 'facet = "package-set"'), encoding="utf-8")
+        self.assertTrue(any("file name says" in e for e in sc.check_schema(self.root)))
+
+    def test_profile_with_unknown_key_fails(self):
+        p = self.root / "profiles" / "package-set.toml"
+        p.write_text(p.read_text(encoding="utf-8").replace('protocol = "0.2.0"', 'protocol = "0.2.0"\nsurprise = 1'), encoding="utf-8")
+        self.assertTrue(sc.check_schema(self.root))
+
+    def test_example_config_is_validated(self):
+        p = self.root / "examples" / "quickstart" / "nix-tops.toml"
+        p.write_text('class = "dev-flake"\n' + p.read_text(encoding="utf-8"), encoding="utf-8")
+        self.assertTrue(sc.check_schema(self.root))
+
+
+class Ids(Scratch):
+    def test_repo_is_clean(self):
+        self.assertEqual(sc.check_ids(REPO), [])
+
+    def test_planted_labels_fail(self):
+        for label in ("N1", "X2", "Q5", "R4", "P7", "G7", "M4.6"):
+            with self.subTest(label=label):
+                self.edit("README.md", "## Status", f"## Status\n\nSee {label} for why.")
+                self.assertTrue(any(label in e for e in sc.check_ids(self.root)))
+                self.edit("README.md", f"See {label} for why.", "See the plan for why.")
+
+    def test_law_ids_and_code_spans_are_fine(self):
+        self.edit("README.md", "## Status", "## Status\n\nLaw N-17, N-01 to N-49, `N1` and `R4` in code.")
+        self.assertEqual(sc.check_ids(self.root), [])
+
+    def test_labels_in_a_fragment_fail(self):
+        (self.root / "changelog.d").mkdir(exist_ok=True)
+        (self.root / "changelog.d" / "x.md").write_text("- Closes R6.\n", encoding="utf-8")
+        self.assertTrue(sc.check_ids(self.root))
 
 
 class Cli(unittest.TestCase):
     def test_exit_status(self):
         self.assertEqual(sc.main(["links", "--root", str(REPO)]), 0)
         self.assertEqual(sc.main(["catalog", "--root", str(REPO)]), 0)
+        self.assertEqual(sc.main(["ids", "--root", str(REPO)]), 0)
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(sc.main(["catalog", "--root", tmp]), 1)
 

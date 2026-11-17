@@ -1,4 +1,4 @@
-# Floors for the nixos-module facet. All numbers are proposed; calibrated in M4.6.
+# Floors for the nixos-module facet. All numbers are proposed; calibrated in M4 (NIX_TOPS.md 19).
 # A facet sets floors only: it never turns a law on or off (NIX_TOPS.md 5.2).
 # Eval cost is advisory in every profile for 0.x (NIX_TOPS.md 6.4).
 # built: n/a. tested: every module eval-tested; every service module VM-tested.

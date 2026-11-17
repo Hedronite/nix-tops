@@ -15,14 +15,14 @@
           { self, systems }:
           let
             # The documented read (spec section 4): the config is TOML, read without IFD. A missing
-            # or invalid file fails evaluation, as it would for the real kit; the class names the check.
+            # or invalid file fails evaluation, as it would for the real kit; the first facet names the check.
             cfg = builtins.fromTOML (builtins.readFile (self + "/nix-tops.toml"));
           in
           builtins.listToAttrs (
             map (system: {
               name = system;
               value =
-                { nixtops-config = stubDrv system "nixtops-config-${cfg.class}"; }
+                { nixtops-config = stubDrv system "nixtops-config-${builtins.head cfg.facets}"; }
                 // (if system == builtins.head systems then { nixtops-lint = stubDrv system "nixtops-lint"; } else { });
             }) systems
           );
