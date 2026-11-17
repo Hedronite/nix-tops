@@ -7,7 +7,7 @@ Flakes, packages and overlays, NixOS and Home Manager modules and configurations
 
 ## Status
 
-Draft. Protocol **0.1.0**. The package is unreleased (0.0.0). There is no code yet.
+Draft. Protocol **0.1.0**. The package is unreleased (0.0.0). There is no kit code yet; the only code is the spec checker.
 
 This repo is at milestone M0: the spec. `nixtops` does not exist yet, and nothing here is ready to copy into CI.
 
@@ -41,6 +41,9 @@ Three gates differ from the other TOPS protocols, because Nix has no line covera
 |---|---|
 | [`NIX_TOPS.md`](NIX_TOPS.md) | The protocol, draft 0.1.0 |
 | [`config/AGENTS.template.md`](config/AGENTS.template.md) | The `AGENTS.md` section that `nixtops init` will write into an adopting repo |
+| [`scripts/spec_check.py`](scripts/spec_check.py) | Spec checks: links, law catalog counts, config schema (run by the `spec` workflow) |
+| [`schema/nix-tops.schema.json`](schema/nix-tops.schema.json) | JSON Schema for `nix-tops.toml` at protocol 0.1.0 |
+| [`changelog.d/`](changelog.d/README.md) | Changelog fragments, one per protocol-change PR |
 | [`AGENTS.md`](AGENTS.md) | Standing orders for agents working on this repo ([`CLAUDE.md`](CLAUDE.md) imports it) |
 
 ## Related
@@ -53,7 +56,7 @@ A repo can adopt Nix-TOPS alongside its language protocol: the language protocol
 
 ## Contributing
 
-Read `NIX_TOPS.md` and `AGENTS.md` first. Work on a branch and open a draft PR. A change to laws, schema, profiles, floors, budgets, eval options or normative spec text is a protocol change: it carries the `protocol-change` label, a changelog entry, and a protocol version bump.
+Read `NIX_TOPS.md` and `AGENTS.md` first. Work on a branch and open a PR ready for review when the slice is complete, never a draft. A change to laws, schema, profiles, floors, budgets, eval options or normative spec text is a protocol change: it carries the `protocol-change` label, a changelog entry, and a protocol version bump.
 
 ## Credits
 

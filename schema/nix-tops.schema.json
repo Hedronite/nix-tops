@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hedronite.com/schemas/nix-tops/0.1.0/nix-tops.schema.json",
+  "title": "Nix-TOPS configuration",
+  "description": "nix-tops.toml, converted to JSON, at protocol 0.1.0. Covers every key in NIX_TOPS.md section 9.",
+  "type": "object",
+  "required": ["protocol", "class"],
+  "additionalProperties": false,
+  "$defs": {
+    "mode": { "enum": ["hard", "ratchet", "advisory"] },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "tier": { "type": "integer", "minimum": 0, "maximum": 2 }
+      }
+    }
+  },
+  "properties": {
+    "protocol": { "const": "0.1.0" },
+    "version": {
+      "$comment": "Required in NIX_TOPS.md section 18 but defined nowhere in 0.1.0, so optional here. G8 (release-0.2.0) defines it or drops it.",
+      "type": "string",
+      "minLength": 1
+    },
+    "flake": {
+      "$comment": "Required in NIX_TOPS.md section 18 but defined nowhere in 0.1.0, so optional here. G8 (release-0.2.0) defines it or drops it.",
+      "type": "string",
+      "minLength": 1
+    },
+    "class": {
+      "enum": ["dev-flake", "package-set", "nixos-module", "nixos-host", "home-config",
+               "flake-lib", "darwin-host", "fleet-root", "image"]
+    },
+    "enforce": { "$ref": "#/$defs/mode", "default": "ratchet" },
+    "baseline": { "type": "string", "minLength": 1 },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nix_floor": { "type": "string", "pattern": "^2\\.[0-9]+$" },
+        "systems": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "enum": ["x86_64-linux", "aarch64-linux", "aarch64-darwin", "x86_64-darwin"] }
+        }
+      }
+    },
+    "eval": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "all_systems": { "type": "boolean" },
+        "abort_on_warn": { "const": true },
+        "allow_ifd": { "const": false }
+      }
+    },
+    "lint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "statix": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "config": { "type": "string", "minLength": 1 } }
+        },
+        "deadnix": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "fail": { "type": "boolean" } }
+        },
+        "formatter": { "type": "string", "minLength": 1 },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "tool": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "built_floor": { "type": "number", "minimum": 0, "maximum": 100 },
+        "tested_floor": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "closure": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "$ref": "#/$defs/mode" },
+            "outputs": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "eval_cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "$ref": "#/$defs/mode" },
+            "tolerance_pct": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vm_tests": { "$ref": "#/$defs/layer" },
+        "rebuild": { "$ref": "#/$defs/layer" },
+        "vulnix": { "$ref": "#/$defs/layer" },
+        "custom": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "command"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "command": { "type": "string", "minLength": 1 },
+              "tier": { "type": "integer", "minimum": 0, "maximum": 2 },
+              "report": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "laws": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enable": {
+          "oneOf": [
+            { "const": "default" },
+            { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^N-[0-9]{2}$" } }
+          ]
+        },
+        "ack_ledger": { "type": "string", "minLength": 1 }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "path": { "type": "string", "minLength": 1 } }
+    }
+  }
+}
