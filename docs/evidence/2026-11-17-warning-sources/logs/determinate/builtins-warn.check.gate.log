@@ -1,0 +1,15 @@
+evaluating 'packages'...
+evaluating 'packages'...
+evaluating 'packages.x86_64-linux'...
+evaluating 'packages.x86_64-linux.default'...
+evaluation warning: fixture builtins.warn
+❌ packages.x86_64-linux.default
+error:
+       … while calling the 'warn' builtin
+         at /var/folders/bp/kztyrpcx4vg_r2czk2gwck3r0000gp/T/tmp.Jqzzx4kZ2o/builtins-warn/flake.nix:4:37:
+            3|   outputs = { self }: {
+            4|     packages.x86_64-linux.default = builtins.warn "fixture builtins.warn" (derivation {
+             |                                     ^
+            5|       name = "fixture";
+
+       error: aborting to reveal stack trace of warning, as abort-on-warn is set
