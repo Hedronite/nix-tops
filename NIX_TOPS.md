@@ -236,7 +236,7 @@ with the other TOPS protocols. Each term as the other three write it, read at th
 | `skip` | none (a layer is on or off in config) | `skip` | `skip` |
 | `not-run` | none | `not-run`, fails | `not-run`, fails |
 | `not-evaluated` | `not-evaluated`, never a pass | `not-evaluated`, never a pass | `not-evaluated`, never a pass; `not_evaluated` counted in the report |
-| fails when required | not stated | open (Q10) | open (Q5) |
+| fails when required | not stated | not stated | not stated |
 | `deferred` | none | none | none (new here) |
 | `vacuous` | none | none | `Vacuous`: an empty mutation diff, not a pass |
 | missing merge base | none | none | `Failed` |
