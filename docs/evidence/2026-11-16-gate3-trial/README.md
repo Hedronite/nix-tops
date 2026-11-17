@@ -16,7 +16,7 @@ The first run of the gate-3 command in `NIX_TOPS.md` section 3.1 against real fl
 ./counters.sh cppnix      # or: ./counters.sh determinate
 ```
 
-`trial.sh` refuses a ref that is not 40-hex, writes `logs/<impl>/gate3-<flake>.log`, `exit-codes.txt` and `summary.txt` (the matching warning and error lines, counted). `counters.sh` writes `counters/<impl>/` (`s*.json`, `summary.txt`). Both need network access to GitHub and the NixOS binary cache, and write nothing outside this directory except the Nix store and caches, plus a throwaway cache directory that `counters.sh` removes.
+`trial.sh` refuses a ref that is not 40-hex, runs each flake with an empty cache directory (removed after the run) and writes `logs/<impl>/gate3-<flake>.log`, `exit-codes.txt` and `summary.txt` (the matching warning and error lines, counted). `counters.sh` writes `counters/<impl>/` (`s*.json`, `summary.txt`). Both need network access to GitHub and the NixOS binary cache, and write nothing outside this directory except the Nix store and caches, plus a throwaway cache directory that `counters.sh` removes.
 
 ## Gate 3 outcome per flake
 
@@ -54,9 +54,10 @@ Reading: counters are deterministic from run to run on each implementation, diff
 
 None in outcome or counters. Every flake has the same exit code on both implementations, the same warning and error text, and every counter above equals the 2026-11-16 figure (CppNix 283,686 / 779,909, Determinate 283,739 / 780,032, warm Determinate 262,075 / 639,170, `x86_64-linux` 170,309 on CppNix).
 
-Differences in the log text only:
+Differences in the log text only (per-output verdict lines, warnings and errors are identical to 2026-11-16 on both implementations):
 
-- Fewer `unpacking ... into the Git cache` and `copying path ... from 'https://cache.nixos.org'` lines in the 2026-11-17 logs, because the flake sources and inputs were already in the store and fetch cache. Cause: warm caches. No effect on any verdict.
-- Determinate logs list the same per-output lines in a different order. Cause: Determinate evaluates outputs in parallel (`eval-cores = 0`), so line order varies. The set of outputs and verdicts is unchanged.
+- Fetch-progress lines differ in both directions. The 2026-11-17 logs start every flake from an empty cache directory, so the flake inputs show `unpacking ... into the Git cache`, while the `copying path ... from 'https://cache.nixos.org'` lines of 2026-11-16 are absent because the sources were already in the store. Cause: store and cache state. No effect on any verdict.
+- Determinate evaluates outputs in parallel (`eval-cores = 0`), so the order of per-output lines varies, and for a failing output under `abort-on-warn` the printed stack-trace excerpt (the `at ...` lines) names whichever output hit the warning first. Cause: evaluation order. The set of outputs and verdicts is unchanged.
+- `trial.sh` gives each flake an empty `XDG_CACHE_HOME`. Without it, Determinate's eval cache replays `error: cached failure of attribute ...` lines for outputs that failed earlier in the same cache, text that the 2026-11-16 logs do not have. Cause: eval-cache replay. The empty cache removes it.
 
 Not carried over from the 2026-11-16 directory: the `e1.sh` first draft (it ran the same command against unpinned `main`) and the lint-option, `lib.warn` alias, tool-version and `x86_64-darwin` probes (`e3.sh` sections F to J). The assessment cites those; they are not part of the section 0 table or the counter table.

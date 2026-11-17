@@ -16,16 +16,13 @@
    1        error: Nixpkgs 26.11 has dropped support for x86_64-darwin.
    1        … while calling the 'throw' builtin
    1 error:
-   1 error: cached failure of attribute 'devShells.x86_64-darwin.default'
-   1 error: cached failure of attribute 'packages.x86_64-darwin.default'
-   1 error: cached failure of attribute 'packages.x86_64-darwin.lapis'
-   1 error: cached failure of attribute 'packages.x86_64-darwin.tome-eval'
+   4 error: Nixpkgs 26.11 has dropped support for x86_64-darwin.
 ######## Hedronite/hedronetes-h3s@50eb72998d exit=1
    1           153|         throw "hedronetes-h3s flake does not support ${unsupported}; bundled runtime artifacts are aarch64-linux only";
    1        error: hedronetes-h3s flake does not support x86_64-linux; bundled runtime artifacts are aarch64-linux only
    1        … while calling the 'throw' builtin
    1 error:
-   1 error: cached failure of attribute 'packages.x86_64-linux'
+   1 error: hedronetes-h3s flake does not support x86_64-linux; bundled runtime artifacts are aarch64-linux only
 ######## Hedronite/facet@398fa4c9e7 exit=0
 ######## Hedronite/bezel@a2c974016e exit=1
    1        error: aborting to reveal stack trace of warning, as abort-on-warn is set

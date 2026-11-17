@@ -7,6 +7,8 @@
 #   determinate  Determinate Nix; the same flags are accepted and change nothing
 #
 # Eval only: --no-build, no --impure, no unlocked reference.
+# Each flake runs with an empty XDG_CACHE_HOME (removed after the run), so a failure the
+# eval cache remembered from an earlier flake or run never shows up as "cached failure".
 set -u
 impl=${1:?usage: trial.sh cppnix|determinate}
 here=$(cd "$(dirname "$0")" && pwd)
@@ -24,10 +26,12 @@ while read -r repo sha; do
   if [[ ! $sha =~ ^[0-9a-f]{40}$ ]]; then echo "refs.txt: not a 40-hex commit: $repo $sha" >&2; exit 2; fi
   name=${repo##*/}
   log=$out/gate3-$name.log
-  nix "${X[@]}" flake check --no-build --all-systems --no-update-lock-file \
+  cache=$(mktemp -d)
+  XDG_CACHE_HOME=$cache nix "${X[@]}" flake check --no-build --all-systems --no-update-lock-file \
     --option abort-on-warn true --option allow-import-from-derivation false \
     "github:$repo/$sha" > "$log" 2>&1
   code=$?
+  rm -rf "$cache"
   echo "$repo ${sha:0:10} exit=$code" >> "$out/exit-codes.txt"
   {
     echo "######## $repo@${sha:0:10} exit=$code"
