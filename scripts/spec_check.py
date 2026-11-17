@@ -5,7 +5,8 @@
 
 links    intra-repo Markdown links and heading anchors resolve
 catalog  law rows, judged marks and the counts quoted in the text agree
-schema   the section 9 TOML example validates against schema/nix-tops.schema.json
+schema   every schema/**/*.json is a valid 2020-12 schema; the section 9 TOML example validates
+         against schema/nix-tops.schema.json
          (needs check-jsonschema, pinned below)
 
 Exit status is 0 when every selected check passes, 1 otherwise.
@@ -240,6 +241,14 @@ def check_jsonschema_cmd():
     return [sys.executable, "-m", "check_jsonschema"] if probe.returncode == 0 else None
 
 
+def validate(cmd, schema, instance):
+    """Validate one instance file. --base-uri makes relative $refs resolve from the schema's own file."""
+    return subprocess.run(
+        cmd + ["--base-uri", Path(schema).resolve().as_uri(), "--schemafile", str(schema), str(instance)],
+        capture_output=True, text=True,
+    )
+
+
 def check_schema(root):
     cmd = check_jsonschema_cmd()
     if cmd is None:
@@ -265,13 +274,14 @@ def check_schema(root):
         return [f"{SPEC}: the section 9 example is not valid TOML: {exc}"]
 
     errors = []
-    meta = subprocess.run(cmd + ["--check-metaschema", str(schema)], capture_output=True, text=True)
-    if meta.returncode != 0:
-        errors.append(f"{SCHEMA}: not a valid 2020-12 schema:\n{(meta.stdout + meta.stderr).strip()}")
+    for sch in sorted((root / "schema").rglob("*.json")):
+        meta = subprocess.run(cmd + ["--check-metaschema", str(sch)], capture_output=True, text=True)
+        if meta.returncode != 0:
+            errors.append(f"{sch.relative_to(root)}: not a valid 2020-12 schema:\n{(meta.stdout + meta.stderr).strip()}")
     with tempfile.TemporaryDirectory() as tmp:
         inst = Path(tmp) / "section9.toml"
         inst.write_text(text, encoding="utf-8")
-        run = subprocess.run(cmd + ["--schemafile", str(schema), str(inst)], capture_output=True, text=True)
+        run = validate(cmd, schema, inst)
     if run.returncode != 0:
         errors.append(f"the section 9 example does not validate:\n{(run.stdout + run.stderr).strip()}")
     return errors

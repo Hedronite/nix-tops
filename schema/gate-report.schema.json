@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nix-TOPS gate report",
+  "description": "The shape of .nix-tops/report.json written by nixtops gate (NIX_TOPS.md 6.7). Shared definitions come from core/core.schema.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "enforce", "baseline_identity", "facets", "passed", "counts", "layers", "laws", "outputs", "warnings", "acks"],
+  "properties": {
+    "protocol": { "const": "0.2.0" },
+    "enforce": { "$ref": "core/core.schema.json#/$defs/mode" },
+    "baseline_identity": { "$ref": "core/core.schema.json#/$defs/baselineIdentity" },
+    "facets": {
+      "type": "array", "uniqueItems": true,
+      "items": { "enum": ["dev-flake", "package-set", "nixos-module", "flake-lib", "nixos-host", "home-config"] }
+    },
+    "passed": { "type": "boolean" },
+    "counts": {
+      "description": "Every verdict counted on its own, and failed: failures include a required law that is not_evaluated, a deferred output no leg built, and a missing merge base in CI.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdicts", "failed"],
+      "properties": {
+        "verdicts": { "$ref": "core/core.schema.json#/$defs/verdictCounts" },
+        "failed": { "$ref": "core/core.schema.json#/$defs/count" }
+      }
+    },
+    "layers": {
+      "description": "Every layer is present. skip carries a reason; not-run fails.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/layer" },
+      "allOf": [
+        { "contains": { "properties": { "id": { "const": "source" } } } },
+        { "contains": { "properties": { "id": { "const": "lint" } } } },
+        { "contains": { "properties": { "id": { "const": "eval" } } } },
+        { "contains": { "properties": { "id": { "const": "build-test" } } } },
+        { "contains": { "properties": { "id": { "const": "coverage" } } } },
+        { "contains": { "properties": { "id": { "const": "facet-layers" } } } },
+        { "contains": { "properties": { "id": { "const": "laws" } } } }
+      ]
+    },
+    "laws": { "type": "array", "items": { "$ref": "#/$defs/law" } },
+    "outputs": { "type": "array", "items": { "$ref": "#/$defs/output" } },
+    "warnings": { "type": "array", "items": { "$ref": "#/$defs/warning" } },
+    "acks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "entries"],
+      "properties": {
+        "count": { "$ref": "core/core.schema.json#/$defs/count" },
+        "entries": { "type": "array", "items": { "$ref": "core/core.schema.json#/$defs/ack" } }
+      }
+    }
+  },
+  "$defs": {
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "verdict"],
+      "properties": {
+        "id": { "enum": ["source", "lint", "eval", "build-test", "coverage", "facet-layers", "laws"] },
+        "verdict": { "$ref": "core/core.schema.json#/$defs/verdict" },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "if": { "properties": { "verdict": { "enum": ["skip", "deferred", "vacuous"] } }, "required": ["verdict"] },
+      "then": { "required": ["reason"] }
+    },
+    "law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "verdict", "reader", "required"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^N-[0-9]{2}$" },
+        "verdict": { "$ref": "core/core.schema.json#/$defs/verdict" },
+        "reader": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean", "description": "Judged in this version and its artifact exists (NIX_TOPS.md 3.3)." },
+        "reason": { "type": "string", "minLength": 1 },
+        "ack": { "$ref": "core/core.schema.json#/$defs/ack" }
+      },
+      "if": { "properties": { "verdict": { "enum": ["skip", "not-run", "not-evaluated", "deferred", "vacuous"] } }, "required": ["verdict"] },
+      "then": { "required": ["reason"] }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attr", "level"],
+      "properties": {
+        "attr": { "type": "string", "minLength": 1, "description": "Flake attribute path, for example packages.x86_64-linux.foo." },
+        "level": { "enum": ["evaluated", "built", "tested"] },
+        "deferred": { "type": "boolean", "description": "Cannot be built on this host; a build-matrix leg owns it. Never counts as built." },
+        "ifd_reevaluated": { "type": "boolean", "description": "Re-evaluated with import-from-derivation on, under an ack (N-07)." },
+        "closure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bytes"],
+          "properties": {
+            "bytes": { "$ref": "core/core.schema.json#/$defs/count" },
+            "delta_bytes": { "type": "integer" },
+            "new_paths": { "type": "array", "items": { "type": "string" } },
+            "duplicate_packages": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "eval_cost": {
+          "description": "Uncached counters; normalized is the ratio to a reference output on the same lock.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["function_calls", "thunks"],
+          "properties": {
+            "function_calls": { "$ref": "core/core.schema.json#/$defs/count" },
+            "thunks": { "$ref": "core/core.schema.json#/$defs/count" },
+            "normalized": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "message", "verdict"],
+      "properties": {
+        "source": { "enum": ["builtins-warn", "config-warnings", "diagnostic"] },
+        "message": { "type": "string", "minLength": 1 },
+        "verdict": { "enum": ["pass", "Refuse", "Ack"] },
+        "entry": { "$ref": "core/core.schema.json#/$defs/ack" }
+      }
+    }
+  }
+}
