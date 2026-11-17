@@ -182,19 +182,71 @@ escape: dropping `x86_64-darwin` (N1) removes the `rust-tops` case that motivate
 
 ### 3.3 Verdicts
 
+<!-- tops-core:begin -->
 | Verdict | Meaning | Effect |
 |---|---|---|
 | `pass` | Evaluated and satisfied | none |
 | `Refuse` | Hard rule violated | **Fails the gate** |
-| `Ack` | Soft rule; needs a recorded acknowledgement (`# nixtops-ack N-NN: reason` on the line above, or the ledger) | Fails if unacknowledged |
-| `skip` | The class does not require the layer, or config sets `enabled = false` | Printed with the reason |
+| `Ack` | Soft rule; needs a recorded acknowledgement (see Acks below) | Fails if unacknowledged |
+| `skip` | The facet's artifact is absent (the reason names it), or config sets `enabled = false` | Printed with the reason |
 | `not-run` | The layer is enabled but has no command mapped | **Fails the gate** |
-| `not-evaluated` | The reader or tool could not judge, or its config is off | Reported; **never a pass** |
+| `not-evaluated` | The reader or tool could not judge, or its config is off | Reported; never a pass. **Fails the gate under `hard` and `ratchet` when the law is required** |
+| `deferred` | The output cannot be built on this host and a `build-matrix` leg owns it (§11) | Printed locally. **CI fails while any output is `deferred` that no leg built** |
+| `vacuous` | A diff law ran with nothing to compare: an empty diff, or no merge base | Printed; never counted as a pass for another law (see below) |
+<!-- tops-core:end -->
+
+**Required laws.** A law is *required* when it is judged in this version (✓ in §8.2) and its
+artifact exists (§5.1, §8.2). `not-evaluated` on a required law fails the gate under `hard` and
+`ratchet`: a disabled lint or a broken reader cannot turn a refusal into a line in a report. Under
+`ratchet` the baseline stores the set of judged law IDs, and losing one from the set fails. Laws
+outside the required set are reported `not-evaluated` and do not block. A broken upstream tool
+therefore blocks merges until it is fixed or exempted; that is the intent.
+
+`not-evaluated` is the verdict and `not_evaluated` is its key in the JSON report (§6.7): one name
+for one thing, with the hyphen written as an underscore. The same holds for `not-run` and `not_run`.
+
+**`deferred`** exists because a host cannot always build what the flake exports: a NixOS
+configuration has no buildable output on an `aarch64-darwin` machine. The local run reports it and
+goes on; it never counts as built.
+
+**`vacuous`** is for the diff laws. With a merge base present and an empty diff, a diff law is
+`vacuous` and passes: there was nothing to compare, and the report says so. With no merge base
+(a shallow clone, or unrelated history) the law is `vacuous` outside CI and **fails in CI**, which
+checks out with `fetch-depth: 0` (§11).
+
+<!-- tops-core:begin -->
+**Acks.** An Ack is recorded in the source (`# nixtops-ack N-NN: reason` on the line above) or in
+the ledger. A ledger entry carries a reason and an expiry date, and an expired entry fails (§3.1).
+The number of acks is in the baseline and does not rise under `ratchet` (§6.8).
+<!-- tops-core:end -->
 
 **Sandbox state is evidence.** On a host where `sandbox` is not `true` (the default on macOS;
 Determinate Nix 3.22.3 on macOS reported `sandbox = false`, checked), a successful build does not
 prove the build is network-free. The build layer still runs, and N-27's build evidence is `not-evaluated` for that
 host. Linux CI with `sandbox = true` is the authoritative build.
+
+**Family terms** (X1). The marked blocks in this section and in §6.8 are the family core, shared
+with the other TOPS protocols. Each term as the other three write it, read at the named commit:
+
+| Nix-TOPS | Rust-TOPS 1.2.0 (`77056c9`) | Go-TOPS 0.3.0 (`8d5b416`) | Web-TOPS 0.2.0 (`7767ae0`) |
+|---|---|---|---|
+| `pass` | `Allow`, the Bend verdict (§3.1) | `pass` | `pass` |
+| `Refuse` | `Refuse`, fails the run | `Refuse` | `Refuse` |
+| `Ack` | `Ack`, recorded and does not fail | `Ack`, fails if unacknowledged | `Ack`, fails if unacknowledged |
+| `skip` | none (a layer is on or off in config) | `skip` | `skip` |
+| `not-run` | none | `not-run`, fails | `not-run`, fails |
+| `not-evaluated` | `not-evaluated`, never a pass | `not-evaluated`, never a pass | `not-evaluated`, never a pass; `not_evaluated` counted in the report |
+| fails when required | not stated | open (Q10) | open (Q5) |
+| `deferred` | none | none | none (new here) |
+| `vacuous` | none | none | `Vacuous`: an empty mutation diff, not a pass |
+| missing merge base | none | none | `Failed` |
+
+Differences kept: Rust-TOPS records an `Ack` without failing it; the other three fail an
+unacknowledged one. Rust-TOPS has no `skip` or `not-run`. X3 (a required law that cannot be judged
+fails) is adopted by each protocol in its next revision. Web-TOPS 0.2.1 (`e219e49`) widens `not-run`
+(also when the run stopped early or an input is missing), `skip` (config needs a `reason`) and
+`not-evaluated` (also when the tool's rule is off or below `error`); each Nix term maps to the 0.2.1
+text the same way.
 
 ### 3.4 Stated rules
 
@@ -315,7 +367,7 @@ no floor and is reported as such. There is one floor per facet and row.
 | Output coverage: built | 100% | 100% | n/a | 100% of non-function outputs | 100% (build root) | 100% (activation package) |
 | Output coverage: tested | 50% | 80% | **100%** of modules eval-tested; every service module VM-tested | 80% of exported functions have a `nix-unit` case | every declared service VM-tested | n/a |
 | Closure budget | per `devShell`, ratchet | per package, ratchet | n/a | n/a | per host `toplevel`, ratchet | `activationPackage`, ratchet |
-| Eval-cost budget | advisory | ratchet | ratchet | advisory | ratchet | ratchet |
+| Eval-cost budget | advisory (0.x) | advisory (0.x) | advisory (0.x) | advisory (0.x) | advisory (0.x) | advisory (0.x) |
 | Rebuild determinism | no | tier 2 | no | no | tier 2 (`toplevel`) | no |
 | `vulnix` | no | tier 2 | no | no | tier 2 | tier 2 |
 
@@ -401,22 +453,41 @@ exactly.
 - **Measured:** NAR size of the runtime closure of each budgeted output, in bytes. Computed in the
   sandbox from `pkgs.closureInfo { rootPaths = [ drv ]; }` (`total-nar-size`), so it needs no
   network and is cached.
-- **Budgeted outputs** per class (§5.2): `devShells.*` for `dev-flake`, `packages.*` for
+- **Budgeted outputs** per facet (§5.2): `devShells.*` for `dev-flake`, `packages.*` for
   `package-set`, `toplevel` for hosts, `activationPackage` for Home Manager.
 - **Why it gates:** closure bytes are the same on every run for the same lock. A change that pulls
   a second Python or a full GHC into a closure is visible in one number.
+- **Tolerance (proposed):** an output is over its baseline when its closure grows by more than 1%
+  or 5 MiB, whichever is larger.
+- **A lock update is reported and re-baselined in the same PR.** A PR that changes `flake.lock`
+  reports the closure delta per output and runs `nixtops baseline` in the same PR (§6.8).
+- **Names before bytes.** The report lists new store-path names and duplicate packages (the same
+  name at two versions or hashes in one closure) ahead of the byte total.
+- **Own derivations** point at `outputChecks` (`maxClosureSize`, `allowedRequisites`) **[verify the
+  attribute names with structured attributes on the pinned Nix]**, so the build itself refuses an
+  oversized closure.
 - The report names the largest new paths when a budget is exceeded (the `nix-tree` view, as text).
 
 ### 6.4 Eval-cost budget
 
 - **Measured:** `nrFunctionCalls` and `nrThunks` from `NIX_SHOW_STATS` (`NIX_SHOW_STATS_PATH`
-  writes JSON; checked). For a minimal NixOS host on 26.11, evaluating `toplevel.drvPath` costs
-  about 4.6 million function calls and 6.9 million thunks.
+  writes JSON; checked), **always with `--no-eval-cache`**: the eval cache changes the counters on
+  Determinate Nix (a warm run had 7.6% fewer calls and 18.1% fewer thunks). For a minimal NixOS host
+  on 26.11, evaluating `toplevel.drvPath` costs about 4.6 million function calls and 6.9 million thunks.
 - **Why counters and not seconds:** counters do not depend on machine load. They do depend on the
-  Nix version and the lock, so the baseline is keyed by Nix version and `flake.lock` hash, and a
-  Nix upgrade or lock update rewrites the baseline through `nixtops baseline`, as a reviewed change.
-- **Determinism** of the counters across runs with the same inputs is **[verify]** before the
-  budget can be `hard`. Until then `eval_cost` defaults to `ratchet` with a 2% tolerance (proposed).
+  implementation, its version, the system and the lock, so the baseline is keyed by (implementation,
+  version, system, `flake.lock` hash) as in §2. A change of any of the four rewrites the baseline
+  through `nixtops baseline`, as a reviewed change.
+- **Normalized (proposed, not measured):** the report shows each output's counters as a ratio to a
+  reference output evaluated on the same lock, so the number survives a lock update. The reference
+  is chosen and calibrated in M4.
+- **Advisory in every profile for 0.x:** whatever §5.2 and §6.8 say for other budgets, eval cost
+  does not fail a run in 0.x.
+- **Determinism:** on one implementation the counters are identical across runs with the same
+  inputs (three runs each on CppNix 2.35.2 and Determinate Nix 3.22.3, 2026-11-17). They differ
+  between the two implementations (53 calls on one devShell), with the eval cache on Determinate
+  Nix, and by system (40% fewer calls for `x86_64-linux` than `aarch64-darwin` on the same devShell)
+  (`docs/evidence/2026-11-16-gate3-trial/`). §16 open 2 is closed on this.
 
 ### 6.5 Mutation: not in 0.1
 
@@ -430,37 +501,47 @@ commitment.
 
 ### 6.6 Law verdicts
 
-`Refuse` fails, `Ack` needs an acknowledgement, and `not-evaluated` is never a pass. The report
-names each law's reader.
+`Refuse` fails, `Ack` needs an acknowledgement, and `not-evaluated` is never a pass: on a required
+law it fails under `hard` and `ratchet` (§3.3). The report names each law's reader.
 
 ### 6.7 Report
 
 `nixtops gate` always writes `.nix-tops/report.json` and prints text. The schema is
 `schema/gate-report.schema.json`. Every layer is present; `skip` carries a reason; `not-run`
-fails; `not_evaluated` is counted on its own.
+fails; `not_evaluated`, `deferred` and `vacuous` are each counted on their own, and a required law
+that is `not_evaluated` also counts as failed. An output re-evaluated with IFD on (N-07) is marked as
+such. Eval cost is the uncached, normalized figure of §6.4.
 
 ### 6.8 Enforcement modes
 
 The top-level key `enforce` sets how floors and budgets apply. Adopters default to `ratchet`.
 Nix-TOPS runs `hard` on itself.
 
+<!-- tops-core:begin -->
 | Mode | What fails |
 |---|---|
-| `hard` | Any finding; any output below the coverage floor; any budget overrun |
-| `ratchet` | A new output below the floor or over budget; an existing output whose closure bytes or eval counters rise above baseline; a per-linter, per-file finding count that rises; an ack count that rises |
+| `hard` | Any finding; any output below the coverage floor; any budget overrun; a required law `not-evaluated`; in CI, any `deferred` output that no leg built |
+| `ratchet` | A new output below the floor or over budget; an existing output whose closure bytes rise above baseline plus tolerance (§6.3); a per-linter, per-file finding count that rises; an ack count that rises; a law lost from the judged set; a required law `not-evaluated` |
 | `advisory` | Nothing; needs a dated exemption, and the report prints the run as not enforced |
+<!-- tops-core:end -->
 
+<!-- tops-core:begin -->
 Baseline rules:
 
-- `.nix-tops/baseline.json` holds finding counts per linter per file, closure bytes per output,
-  eval counters per output (keyed by Nix version and lock hash), coverage level per output, and
-  the ack count.
+- `.nix-tops/baseline.json` holds finding counts per linter per file, closure bytes per output, eval
+  counters per output (keyed by implementation, version, system and lock hash, §2), coverage level
+  per output, the ack count, the judged-law ID set, and the tool configuration it was taken under (a
+  hash of the statix, deadnix, formatter and secrets-scan configs and the enabled-law set).
 - Only `nixtops baseline` writes it, after a run in which every layer that feeds it passed. It is
   tracked and clean against `HEAD`. Under `ratchet` a missing baseline fails, and deleting it is
   not a reset.
+- A narrower tool configuration is refused: a run with fewer lints or laws enabled than the baseline
+  was taken under fails. A wider one is allowed and re-baselines.
 - An output is identified by its flake attribute path (`packages.x86_64-linux.foo`). A renamed
   output is new. A new file starts at 0 findings; a deleted file's allowance does not move.
+- A PR that changes `flake.lock` runs `nixtops baseline` in the same PR (§6.3).
 - Legacy findings stay in the baseline. They are not wrapped in `# nixtops-ack` to zero a count.
+<!-- tops-core:end -->
 
 ---
 
@@ -535,7 +616,7 @@ Manager or nix-darwin configuration), `package` (an exported package), `derivati
 | N-04 | Every `.nix` file under the flake root is tracked by git. Flakes copy only tracked files, so an untracked file fails with "path does not exist" on another machine | R | an (runner) | §1 | flake | ✓ |
 | N-05 | `flake.lock` is committed and current; evaluation with `--no-update-lock-file` succeeds | R | ev | | lock | ✓ |
 | N-06 | One nixpkgs per lock: other inputs `follows` the main nixpkgs. Exempt: the `nix-tops` input (N-43), and inputs with an ack (for example a second nixpkgs for a platform the main pin dropped) | A | an (`flake.lock`) | | lock | |
-| N-07 | No import-from-derivation: the gate evaluates with `allow-import-from-derivation = false`. IFD needs an ack per output | R | ev | | output | ✓ |
+| N-07 | No import-from-derivation by default: the gate evaluates with `allow-import-from-derivation = false`. IFD is ackable per output: the inventory records which outputs fail only with IFD off, an acked output is re-evaluated with `allow-import-from-derivation = true` and the report says so, and an unacked IFD output fails | R | ev | | output | ✓ |
 | N-08 | Every output evaluates on every system it declares (`--all-systems`). No hardcoded `"x86_64-linux"` inside a per-system function | R | ev + an | §2 | output | ✓ |
 | N-09 | `pkgs` is instantiated once per system from the flake input (`legacyPackages.${system}`, or one `import nixpkgs { … }`). Modules take `pkgs` as an argument and never `import nixpkgs` | A | an | §2 | source | |
 
@@ -809,7 +890,7 @@ report; an agent contract.
 5. **Eval options:** the gate always sets `abort-on-warn = true` and `allow-import-from-derivation = false`,
    and never `--impure`. `abort-on-warn` covers `builtins.warn` only; warnings in `config.warnings`
    and diagnostics printed by `nix` itself are read separately (§3.1), and a warning is accepted only by a
-   dated `[[warnings.allow]]` entry.
+   dated `[[warnings.allow]]` entry. IFD stays off by default and is ackable per output (N-07).
 6. **Config format:** TOML, for `builtins.fromTOML`.
 7. **Tool lock:** the kit's `flake.lock`; the `nix-tops` input never follows the adopter's nixpkgs.
 8. **Formatter:** `nixfmt` through `nixfmt-tree`; `nixfmt-rfc-style` is not used.
@@ -824,12 +905,16 @@ report; an agent contract.
     narrow them and never add one; a facet sets floors only; `flake-lib` launches; `nixos-host` and
     `home-config` are specified, unproven. Floors are proposed and calibrated in M4.6. After launch the
     order is `fleet-root`, `darwin-host`, `image`.
+14. **Eval-cost determinism (0.2.0):** `NIX_SHOW_STATS` counters are deterministic from run to run
+    for the same implementation, version, system and lock. They differ between implementations
+    (53 calls on one devShell), with the eval cache on Determinate Nix, and by system
+    (`docs/evidence/2026-11-16-gate3-trial/`, run 2026-11-17). Hence the baseline key and
+    `--no-eval-cache` (§6.4); `eval_cost` is advisory in 0.x.
 
 **Open:**
 
 1. *Resolved: item 11.*
-2. **Eval-cost determinism.** Confirm that `NIX_SHOW_STATS` counters are stable across runs with
-   identical inputs before any class sets `eval_cost` to `hard` (§6.4).
+2. *Resolved: item 14.*
 3. **Module coverage reader.** Confirm that option declaration positions in a VM test's node
    configurations are reachable from the check derivation's passthru **[verify]** (§6.1).
 4. *Resolved: item 12.*
