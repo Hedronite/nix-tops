@@ -1,0 +1,22 @@
+evaluation warning: fixture profile: The option `programs.carapace.ignoreCase' defined in `/nix/store/jmjkk93yxd1qxqbh8n0ks8gpfb5idkjz-source/flake.nix' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'.
+error:
+       … while calling the 'derivationStrict' builtin
+         at «nix-internal»/derivation-internal.nix:38:12:
+           37|
+           38|   strict = drvFunc drvAttrs;
+             |            ^
+           39|
+
+       … while evaluating derivation 'nixos-system-nixos-26.11.20261115.1c872b8'
+         whose name attribute is located at «github:NixOS/nixpkgs/1c872b8»/pkgs/stdenv/generic/make-derivation.nix:651:11
+
+       … while evaluating attribute 'buildCommand' of derivation 'nixos-system-nixos-26.11.20261115.1c872b8'
+         at «github:NixOS/nixpkgs/1c872b8»/nixos/modules/system/activation/top-level.nix:64:7:
+           63|       # We handle assertions here so that merely evaluating the name attribute (e.g. in `nix flake show`) doesn't trigger heavy instantiations.
+           64|       buildCommand = lib.asserts.checkAssertWarn config.assertions config.warnings systemBuilder;
+             |       ^
+           65|
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: aborting to reveal stack trace of warning, as abort-on-warn is set

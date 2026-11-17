@@ -1,0 +1,5 @@
+protocol = "0.1.0"
+class = "dev-flake"
+
+[toolchain]
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]
