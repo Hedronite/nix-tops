@@ -6,7 +6,7 @@ One file per law of the Nix-TOPS catalog (`NIX_TOPS.md` section 8.2): `N-01.toml
 check-jsonschema --schemafile schema/law.schema.json laws/N-*.toml
 ```
 
-The catalog row in `NIX_TOPS.md` and the file for the same ID say the same thing. `spec_check.py catalog` compares the two sets: one file per row, no extra file, and the judged count (`judged = true`) equal to the count in section 8.2.
+The catalog row in `NIX_TOPS.md` and the file for the same ID say the same thing. `spec_check.py catalog` checks one thing about the files: there is one file per row of section 8.2 and no extra file. It does not compare the fields of a file with its row; that comparison belongs to the runner.
 
 | Field | Meaning |
 |---|---|

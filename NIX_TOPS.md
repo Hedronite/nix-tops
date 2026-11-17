@@ -751,14 +751,21 @@ the artifact named (§3.3). N-44 to N-49 are not judged in v0.1.
 ### 8.3 Law metadata
 
 Each law lives in `laws/N-NN.toml`. `artifacts` is the "Applies to" cell of §8.2, as a list; a law
-applies to a flake only when one of those artifacts exists, and is `skip` otherwise.
+applies to a flake only when one of those artifacts exists, and is `skip` otherwise. The example is `laws/N-34.toml`; every law file validates against
+`schema/law.schema.json`, which requires `id`, `title`, `law`, `severity`, `artifacts`, `reader`, `judged`,
+`rationale` and `fix`.
 
 ```toml
 id = "N-34"
 title = "Secret files are runtime paths, never store paths"
+law = "Options that take a secret file (`passwordFile`, `environmentFile`, `keyFile`, `tokenFile`, `credentialsFile`, `hashedPasswordFile`, and the like) get a runtime path string: `/run/secrets/…`, `config.sops.secrets.<name>.path`, `config.age.secrets.<name>.path`. Never a Nix path literal (`./secret.env` copies the file into the store) and never `pkgs.writeText`"
 severity = "Refuse"
 artifacts = ["module", "configuration"]
 reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev: options tree (value is a string outside `/nix/store`), an: syntax"
+judged = true
+sketch = "§10"
 option_names = ["passwordFile", "environmentFile", "keyFile", "tokenFile", "credentialsFile", "hashedPasswordFile"]
 rationale = "A Nix path literal or writeText copies the secret into /nix/store, which every local user can read and which binary caches may copy."
 fix = "Use config.sops.secrets.<name>.path, config.age.secrets.<name>.path, or a /run/secrets string."
