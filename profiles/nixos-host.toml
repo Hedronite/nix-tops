@@ -1,0 +1,27 @@
+# Floors for the nixos-host facet. All numbers are proposed; calibrated in M4.6.
+# A facet sets floors only: it never turns a law on or off (NIX_TOPS.md 5.2).
+# Eval cost is advisory in every profile for 0.x (NIX_TOPS.md 6.4).
+# Specified, unproven: no adopter has run these floors yet (NIX_TOPS.md 5.1).
+# Eval is for the host's own system, which the adopter's config declares.
+facet = "nixos-host"
+protocol = "0.2.0"
+
+[eval]
+all_systems = false
+abort_on_warn = true
+allow_ifd = false
+
+[coverage]
+built_floor = 100
+tested_floor = 100   # every declared service VM-tested
+
+[budgets.closure]
+mode = "ratchet"
+
+[budgets.eval_cost]
+mode = "advisory"
+
+[layers]
+vm_tests = { enabled = true }
+rebuild = { tier = 2 }
+vulnix = { tier = 2 }

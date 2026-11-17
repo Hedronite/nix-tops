@@ -1,0 +1,22 @@
+# Floors for the flake-lib facet. All numbers are proposed; calibrated in M4.6.
+# A facet sets floors only: it never turns a law on or off (NIX_TOPS.md 5.2).
+# Eval cost is advisory in every profile for 0.x (NIX_TOPS.md 6.4).
+# built: 100% of non-function outputs. tested: 80% of exported functions have a nix-unit case.
+facet = "flake-lib"
+protocol = "0.2.0"
+
+[eval]
+all_systems = true
+abort_on_warn = true
+allow_ifd = false
+
+[coverage]
+built_floor = 100
+tested_floor = 80
+
+[budgets.eval_cost]
+mode = "advisory"
+
+[layers]
+rebuild = { enabled = false }
+vulnix = { enabled = false }
