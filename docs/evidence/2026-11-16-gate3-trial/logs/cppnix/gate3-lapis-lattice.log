@@ -1,0 +1,49 @@
+unpacking 'github:Hedronite/lapis-lattice/42aa3b8dcdac51c684bd3cd4c3c6a5c3c17a9092' into the Git cache...
+evaluating flake...
+checking flake output 'devShells'...
+checking derivation devShells.x86_64-linux.default...
+unpacking 'github:oxalica/rust-overlay/3f4df219c0d9aa82710232324856755d51ef0b69?narHash=sha256-NvjQLSztzad7ulLbvrYFKpz4pRrxZ34zKM7mTGEK1wk%3D' into the Git cache...
+derivation evaluated to /nix/store/d73h90dxswc4pidgjvzwp4vi8m7is1sm-nix-shell.drv
+checking derivation devShells.aarch64-linux.default...
+derivation evaluated to /nix/store/6l19aa3ypy4bwd16sdwy385gwnb3i2ny-nix-shell.drv
+checking derivation devShells.x86_64-darwin.default...
+error:
+       … while checking flake output 'devShells'
+         at «github:Hedronite/lapis-lattice/42aa3b8dcdac51c684bd3cd4c3c6a5c3c17a9092»/flake.nix:57:7:
+           56|     {
+           57|       devShells = each ({ pkgs, rust, ... }: {
+             |       ^
+           58|         default = pkgs.mkShell {
+
+       … while checking the derivation 'devShells.x86_64-darwin.default'
+         at «github:Hedronite/lapis-lattice/42aa3b8dcdac51c684bd3cd4c3c6a5c3c17a9092»/flake.nix:58:9:
+           57|       devShells = each ({ pkgs, rust, ... }: {
+           58|         default = pkgs.mkShell {
+             |         ^
+           59|           packages = [
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: Nixpkgs 26.11 has dropped support for x86_64-darwin.
+
+       The 26.05 stable branch still supports x86_64-darwin, and will
+       receive security fixes until the end of 2026. If you use channels,
+       you can switch to 26.05 as follows:
+
+           $ sudo nix-channel --add https://nixos.org/channels/nixpkgs-26.05-darwin nixpkgs
+           $ sudo nix-channel --update
+
+       If this doesn’t work, you may need to run:
+
+           # Lack of sudo is deliberate:
+           $ nix-channel --remove nixpkgs
+
+       If you use flakes, switch your flake input:
+
+           inputs.nixpkgs = {
+             url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
+           };
+
+       See the release notes for more information and alternatives:
+
+         https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.11
