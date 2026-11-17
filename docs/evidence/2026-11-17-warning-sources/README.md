@@ -56,7 +56,7 @@ Exit codes are identical on both implementations for every command.
 ## Fixture choice
 
 `programs.zsh.enableAutosuggestions`, the option the template cites for N-17, is a **removed**
-option at Home Manager `9d7ba6b` (`modules/programs/zsh/default.nix:36-39`, `mkRemovedOptionModule`):
+option at Home Manager `9d7ba6b` (`modules/programs/zsh/default.nix:35-39`, `mkRemovedOptionModule`):
 it fails as an assertion, not a warning, so it cannot show the warning path. The fixtures use
 `programs.carapace.ignoreCase`, still a `mkRenamedOptionModule` at that commit
 (`modules/programs/carapace.nix:32-35`).
