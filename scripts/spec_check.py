@@ -319,14 +319,14 @@ def check_schema(root):
 # --------------------------------------------------------------------- ids
 
 LABEL_FILES = ["NIX_TOPS.md", "README.md", "AGENTS.md", "CHANGELOG.md", "config/AGENTS.template.md", "laws/README.md"]
-# Decision, question, risk and slice labels from the planning documents. Law IDs (N-01) have a hyphen and a
+# Decision, question, risk and slice labels from the planning documents. Inline code is left out. Law IDs (N-01) have a hyphen and a
 # two-digit number, so N1..N3 does not match them.
 LABEL = re.compile(r"(?<![\w-])(N[1-9]|X[1-9]|Q[0-9]{1,2}|R[0-9]{1,2}|P[0-9]{1,2}|G[0-9][a-d]?|M[0-9]\.[0-9])(?![\w-])")
 
 
 def check_ids(root):
     errors = []
-    files = [root / f for f in LABEL_FILES] + sorted((root / "changelog.d").glob("*.md")) + sorted((root / "profiles").glob("*.toml"))
+    files = [root / f for f in LABEL_FILES] + sorted((root / "changelog.d").glob("*.md")) + sorted((root / "profiles").glob("*.toml")) + sorted((root / "laws").glob("*.toml"))
     for path in files:
         if not path.is_file():
             continue

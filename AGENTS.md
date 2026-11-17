@@ -24,7 +24,7 @@ Points from 0.2.0 that code must follow:
 
 ## Do this
 
-1. Read the section of `NIX_TOPS.md` you are changing, and the schema. Fix the schema first, then the prose (rule 11 below).
+1. Read the section of `NIX_TOPS.md` you are changing, and the schema. Fix the schema first, then the prose (the Schema precedence rule in Stated rules below).
 2. A change to `laws/`, `schema/`, `profiles/`, a floor, a budget, an eval option, or normative text in `NIX_TOPS.md` is a protocol change. It carries the `protocol-change` label and a `CHANGELOG.md` entry (as a fragment in `changelog.d/` until the release folds them), and bumps the protocol version together with the schema.
 3. Check Nix behavior before you write it down: evaluate it against the pinned nixpkgs and record the pin. Appendix B exists because the source sketch was not checked.
 4. Before a PR is ready, run `python3 scripts/spec_check.py all`, `python3 -m unittest discover -s scripts/tests` and `python3 scripts/rules_gen.py check`. The schema check needs `check-jsonschema` 0.38.0, which needs Python 3.10 or later; an older Python cannot run the schema check.

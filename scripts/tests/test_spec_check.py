@@ -202,6 +202,16 @@ class Ids(Scratch):
         self.edit("README.md", "## Status", "## Status\n\nLaw N-17, N-01 to N-49, `N1` and `R4` in code.")
         self.assertEqual(sc.check_ids(self.root), [])
 
+    def test_labels_in_a_law_file_fail(self):
+        p = self.root / "laws" / "N-01.toml"
+        p.write_text(p.read_text(encoding="utf-8") + '\nrationale_note = "see Q5 for why"\n', encoding="utf-8")
+        self.assertTrue(any("laws/N-01.toml" in e for e in sc.check_ids(self.root)))
+
+    def test_inline_code_in_a_law_file_is_left_out(self):
+        p = self.root / "laws" / "N-01.toml"
+        p.write_text(p.read_text(encoding="utf-8") + '\nnote = "the `R4` span"\n', encoding="utf-8")
+        self.assertEqual(sc.check_ids(self.root), [])
+
     def test_labels_in_a_fragment_fail(self):
         (self.root / "changelog.d").mkdir(exist_ok=True)
         (self.root / "changelog.d" / "x.md").write_text("- Closes R6.\n", encoding="utf-8")
