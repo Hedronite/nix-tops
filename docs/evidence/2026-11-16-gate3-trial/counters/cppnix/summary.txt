@@ -1,0 +1,17 @@
+== A: no eval cache, aarch64-darwin devShell, x3
+sa1 "nrFunctionCalls":283686"nrLookups":138335"nrPrimOpCalls":161733"nrThunks":779909
+sa2 "nrFunctionCalls":283686"nrLookups":138335"nrPrimOpCalls":161733"nrThunks":779909
+sa3 "nrFunctionCalls":283686"nrLookups":138335"nrPrimOpCalls":161733"nrThunks":779909
+== B: --option eval-cores 1, x2
+sb1 "nrFunctionCalls":283686"nrLookups":138335"nrPrimOpCalls":161733"nrThunks":779909
+sb2 "nrFunctionCalls":283686"nrLookups":138335"nrPrimOpCalls":161733"nrThunks":779909
+== C: eval cache on, empty cache dir, x2 (run 1 cold, run 2 warm)
+sc1 "nrFunctionCalls":283686"nrLookups":138335"nrPrimOpCalls":161733"nrThunks":779909
+sc2 "nrFunctionCalls":283686"nrLookups":138335"nrPrimOpCalls":161733"nrThunks":779909
+== D: no eval cache, x86_64-linux devShell, x2
+sd1 "nrFunctionCalls":170309"nrLookups":97370"nrPrimOpCalls":89385"nrThunks":552385
+sd2 "nrFunctionCalls":170309"nrLookups":97370"nrPrimOpCalls":89385"nrThunks":552385
+== E: NIX_COUNT_CALLS
+top-level keys: attributes, cpuTime, envs, functions, gc, list, nrAvoided, nrExprs, nrFunctionCalls, nrLookups, nrOpUpdateValuesCopied, nrOpUpdates, nrPrimOpCalls, nrThunks, primops, sets, sizes, symbols, time, values
+function entries: 1622
+entries outside nixpkgs: 21

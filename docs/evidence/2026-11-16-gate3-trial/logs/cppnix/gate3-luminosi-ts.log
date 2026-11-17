@@ -1,0 +1,45 @@
+evaluating flake...
+checking flake output 'devShells'...
+checking derivation devShells.aarch64-darwin.default...
+derivation evaluated to /nix/store/p7d9ai462l20h17x9dzashpd7hnr6pfx-nix-shell.drv
+checking derivation devShells.x86_64-darwin.default...
+error:
+       … while checking flake output 'devShells'
+         at «github:Hedronite/luminosi-ts/c86e8408198d40f75f083709de71e88ad6d47dae»/flake.nix:12:7:
+           11|     {
+           12|       devShells = forAllSystems (pkgs: {
+             |       ^
+           13|         default = pkgs.mkShell {
+
+       … while checking the derivation 'devShells.x86_64-darwin.default'
+         at «github:Hedronite/luminosi-ts/c86e8408198d40f75f083709de71e88ad6d47dae»/flake.nix:13:9:
+           12|       devShells = forAllSystems (pkgs: {
+           13|         default = pkgs.mkShell {
+             |         ^
+           14|           # TypeScript and every JS tool come from bun.lock, not from Nix.
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: Nixpkgs 26.11 has dropped support for x86_64-darwin.
+
+       The 26.05 stable branch still supports x86_64-darwin, and will
+       receive security fixes until the end of 2026. If you use channels,
+       you can switch to 26.05 as follows:
+
+           $ sudo nix-channel --add https://nixos.org/channels/nixpkgs-26.05-darwin nixpkgs
+           $ sudo nix-channel --update
+
+       If this doesn’t work, you may need to run:
+
+           # Lack of sudo is deliberate:
+           $ nix-channel --remove nixpkgs
+
+       If you use flakes, switch your flake input:
+
+           inputs.nixpkgs = {
+             url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
+           };
+
+       See the release notes for more information and alternatives:
+
+         https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.11

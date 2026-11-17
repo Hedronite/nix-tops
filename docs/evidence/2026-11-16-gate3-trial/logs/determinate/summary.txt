@@ -1,0 +1,34 @@
+######## Hedronite/luminosi-ts@c86e840819 exit=1
+   1          1003|   throwIf = cond: msg: if cond then throw msg else x: x;
+   1        error: Nixpkgs 26.11 has dropped support for x86_64-darwin.
+   1        … while calling the 'throw' builtin
+   1 error:
+######## Hedronite/rust-tops@77056c9908 exit=1
+   1        error: aborting to reveal stack trace of warning, as abort-on-warn is set
+   1 error:
+   5 error: aborting to reveal stack trace of warning, as abort-on-warn is set
+   1 evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05
+######## Hedronite/python-gate@2cb1775fa0 exit=0
+######## VirtualMachinist/Omahedron@35dda32b0e exit=0
+   1 warning: The following flake outputs are unchecked: homeManagerModules.
+######## Hedronite/lapis-lattice@42aa3b8dcd exit=1
+   1          1003|   throwIf = cond: msg: if cond then throw msg else x: x;
+   1        error: Nixpkgs 26.11 has dropped support for x86_64-darwin.
+   1        … while calling the 'throw' builtin
+   1 error:
+   1 error: cached failure of attribute 'devShells.x86_64-darwin.default'
+   1 error: cached failure of attribute 'packages.x86_64-darwin.default'
+   1 error: cached failure of attribute 'packages.x86_64-darwin.lapis'
+   1 error: cached failure of attribute 'packages.x86_64-darwin.tome-eval'
+######## Hedronite/hedronetes-h3s@50eb72998d exit=1
+   1           153|         throw "hedronetes-h3s flake does not support ${unsupported}; bundled runtime artifacts are aarch64-linux only";
+   1        error: hedronetes-h3s flake does not support x86_64-linux; bundled runtime artifacts are aarch64-linux only
+   1        … while calling the 'throw' builtin
+   1 error:
+   1 error: cached failure of attribute 'packages.x86_64-linux'
+######## Hedronite/facet@398fa4c9e7 exit=0
+######## Hedronite/bezel@a2c974016e exit=1
+   1        error: aborting to reveal stack trace of warning, as abort-on-warn is set
+   1 error:
+  28 error: aborting to reveal stack trace of warning, as abort-on-warn is set
+   1 evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05
