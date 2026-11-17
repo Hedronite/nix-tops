@@ -1,0 +1,10 @@
+id = "N-20"
+title = "Disabled module changes nothing"
+law = "A module that is imported but not enabled changes nothing: the `toplevel.drvPath` of a minimal host with the module imported and `enable = false` equals the one without it"
+severity = "Refuse"
+artifacts = ["module"]
+reader = "ev"
+reader_detail = "ev: derivation"
+judged = true
+rationale = "A module that sets options outside `mkIf cfg.enable` changes every host that imports it."
+fix = "Put the module's `config` under `lib.mkIf cfg.enable`."

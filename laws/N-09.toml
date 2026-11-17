@@ -1,0 +1,11 @@
+id = "N-09"
+title = "pkgs instantiated once per system"
+law = "`pkgs` is instantiated once per system from the flake input (`legacyPackages.${system}`, or one `import nixpkgs { … }`). Modules take `pkgs` as an argument and never `import nixpkgs`"
+severity = "Ack"
+artifacts = ["source"]
+reader = "an"
+reader_detail = "an: syntax"
+judged = false
+sketch = "§2"
+rationale = "Each extra instantiation of nixpkgs costs evaluation time and can use different settings."
+fix = "Take `pkgs` as an argument."

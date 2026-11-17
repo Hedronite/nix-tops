@@ -1,0 +1,11 @@
+id = "N-03"
+title = "No host paths"
+law = "No host paths (`/home/…`, `/Users/…`, `/root/…`) as path literals or in strings. Runtime paths (`/run`, `/var`, `/etc`, `/dev`, `/proc`, `/sys`, `/tmp`) are allowed in strings"
+severity = "Refuse"
+artifacts = ["source"]
+reader = "an"
+reader_detail = "an: syntax"
+judged = true
+sketch = "§1"
+rationale = "A path under a user's home exists on one machine only."
+fix = "Use a path relative to the flake, an option, or a runtime path under `/run` or `/var`."

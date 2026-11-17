@@ -1,0 +1,70 @@
+# Source 3 of gate 3 (NIX_TOPS.md section 3.1): diagnostics the `nix` command prints itself.
+# The runner captures the command's output and classifies each line with this table.
+# A line that matches no entry fails the gate as an unclassified diagnostic.
+#
+# One entry per diagnostic per implementation. An implementation that does not print a
+# diagnostic has no entry for it (Determinate Nix 3.22.3 prints nothing for an app without `meta`).
+#
+# effect        what the runner does with a classified line: `report` (listed in the gate report,
+#               gate unaffected) or `fail` (the gate fails). A line no entry matches always fails.
+# match         regular expression, anchored to the whole line
+# fixture       an exact line that `match` accepts, taken from a real run
+# continuation  optional exact line that follows the first line of the same diagnostic
+# versions      implementation versions the fixture was taken on
+#
+# Fixture provenance. Run date 2026-11-17, eval only, `--no-build --no-update-lock-file`, no `--impure`.
+#   unknown-output and app-meta: docs/evidence/2026-11-17-warning-sources/logs/<implementation>/
+#     (gate 3's options, `--all-systems`), fixtures `unknown-output` and `app-no-meta`.
+#   omitted-systems: `nix flake check --no-build --no-update-lock-file` without `--all-systems` on the
+#     `app-no-meta` fixture (an app for x86_64-linux) from an aarch64-darwin host, on both
+#     implementations; exit 0. Gate 3 passes `--all-systems`, so the line does not appear in the gate's
+#     own run; an entry exists so a run without it is classified, not unknown.
+
+table_version = 1
+
+[[diagnostic]]
+id = "D-01"
+kind = "unknown-output"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.2"]
+match = "^warning: unknown flake output '[^']+'$"
+fixture = "warning: unknown flake output 'fooBar'"
+
+[[diagnostic]]
+id = "D-02"
+kind = "unknown-output"
+implementation = "determinate"
+effect = "report"
+versions = ["3.22.3"]
+match = "^warning: The following flake outputs are unchecked: .+\\.$"
+fixture = "warning: The following flake outputs are unchecked: fooBar."
+
+[[diagnostic]]
+id = "D-03"
+kind = "app-without-meta"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.2"]
+match = "^warning: app '[^']+' lacks attribute 'meta'$"
+fixture = "warning: app 'apps.x86_64-linux.default' lacks attribute 'meta'"
+
+[[diagnostic]]
+id = "D-04"
+kind = "omitted-systems"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.2"]
+match = "^warning: The check omitted these incompatible systems: .+$"
+fixture = "warning: The check omitted these incompatible systems: x86_64-linux"
+continuation = "Use '--all-systems' to check all."
+
+[[diagnostic]]
+id = "D-05"
+kind = "omitted-systems"
+implementation = "determinate"
+effect = "report"
+versions = ["3.22.3"]
+match = "^warning: The check omitted these incompatible systems: .+$"
+fixture = "warning: The check omitted these incompatible systems: x86_64-linux"
+continuation = "Use '--all-systems' to check all."

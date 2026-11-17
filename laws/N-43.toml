@@ -1,0 +1,10 @@
+id = "N-43"
+title = "Kit tools come from the kit's pin"
+law = "The kit's tools come from the kit's own pin: the `nix-tops` input does not `follows` the adopter's nixpkgs"
+severity = "Refuse"
+artifacts = ["nix-tops-input"]
+reader = "an"
+reader_detail = "an: lock"
+judged = true
+rationale = "The kit's tools must be the version the kit was tested with."
+fix = "Remove the `follows` on the `nix-tops` input."

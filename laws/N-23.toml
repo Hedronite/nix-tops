@@ -1,0 +1,11 @@
+id = "N-23"
+title = "Unfree by predicate, not blanket"
+law = "Unfree packages are allowed by `allowUnfreePredicate` over a named list, not by a blanket `allowUnfree = true`"
+severity = "Ack"
+artifacts = ["nixpkgs-config"]
+reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev: options tree [verify], an: syntax"
+judged = false
+rationale = "A blanket allow admits every unfree package, including ones added later."
+fix = "List the package names in `allowUnfreePredicate`."

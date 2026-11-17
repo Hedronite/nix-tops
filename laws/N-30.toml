@@ -1,0 +1,10 @@
+id = "N-30"
+title = "Package meta"
+law = "Exported packages set `meta.description` and `meta.license`, and `meta.mainProgram` when they ship one primary binary (`lib.getExe` warns without it, which N-17 then refuses). `meta.platforms` is advised, not required"
+severity = "Ack"
+artifacts = ["package"]
+reader = "ev"
+reader_detail = "ev: meta"
+judged = false
+rationale = "`meta` is what tools and users read about a package; nixpkgs itself does not require `meta.platforms` on every package."
+fix = "Set the missing `meta` fields."

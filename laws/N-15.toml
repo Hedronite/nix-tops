@@ -1,0 +1,12 @@
+id = "N-15"
+title = "Library references resolve at the floor"
+law = "Every `lib.<name>` and `builtins.<name>` reference resolves in the locked inputs and exists at the Nix floor the config declares (`[toolchain].nix_floor`), not only in the Nix the gate runs; a builtin newer than the floor passes the gate and breaks for users at the floor. The analyzer collects each selection path and checks it with `lib.hasAttrByPath` against the pinned `lib` and `builtins`; an extended `lib` (`lib.hm`, flake-parts, `lib.extend`) is resolved against the extended set"
+severity = "Refuse"
+artifacts = ["source"]
+reader = "ev"
+reader_also = ["an"]
+reader_detail = "ev, an: syntax"
+judged = true
+sketch = "§4"
+rationale = "A builtin newer than the declared floor passes the gate and breaks for users at the floor; an extended `lib` is a false positive otherwise."
+fix = "Use a name that exists at the floor, or raise the floor."

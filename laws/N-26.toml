@@ -1,0 +1,12 @@
+id = "N-26"
+title = "Stale hash"
+law = "A fixed-output derivation whose fetch inputs (`rev`, `tag`, `url`, or a `version` the source depends on) changed between the merge base and the head must also change its hash, and `vendorHash`/`cargoHash`/`npmDepsHash` when the dependency set moved. A fetcher's default store name is `source`, so a stale hash still matches the old path already in the store, and the build silently uses the old source. The exact reader compares fetch inputs, not `drvPath` (a lock update changes every fetcher's derivation), and is primary; the diff heuristic is the fallback. Tier 1 re-fetches the changed fixed-output derivations; tier 2 re-fetches all"
+severity = "Refuse"
+artifacts = ["fod"]
+reader = "ev"
+reader_also = ["an", "tl"]
+reader_detail = "ev: derivation (base against head); an: diff; tl at tier 2"
+judged = true
+sketch = "§6"
+rationale = "A stale hash builds the old source from the store and reports success."
+fix = "Update the hash with the fetch inputs: build once with an empty hash and copy the reported one."

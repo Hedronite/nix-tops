@@ -80,11 +80,11 @@ class Catalog(Scratch):
         self.assertTrue(sc.check_catalog(self.root))
 
     def test_heading_count_fails(self):
-        self.edit("NIX_TOPS.md", "draft: 43 laws, N-01…N-43", "draft: 44 laws, N-01…N-44")
+        self.edit("NIX_TOPS.md", "draft: 49 laws, N-01…N-49", "draft: 50 laws, N-01…N-50")
         self.assertTrue(any("heading" in e for e in sc.check_catalog(self.root)))
 
     def test_roadmap_row_fails(self):
-        self.edit("NIX_TOPS.md", "Report shows \"29 of 43 judged\"", "Report shows \"28 of 43 judged\"")
+        self.edit("NIX_TOPS.md", "Report shows \"29 of 49 judged\"", "Report shows \"28 of 49 judged\"")
         self.assertTrue(any("M3 row" in e for e in sc.check_catalog(self.root)))
 
     def test_missing_law_row_fails(self):
@@ -97,7 +97,7 @@ class Catalog(Scratch):
         laws = self.root / "laws"
         shutil.rmtree(laws, ignore_errors=True)
         laws.mkdir()
-        for k in range(1, 44):
+        for k in range(1, 50):
             (laws / f"N-{k:02d}.toml").write_text(f'id = "N-{k:02d}"\n', encoding="utf-8")
         self.assertEqual(sc.check_catalog(self.root), [])
         (laws / "N-07.toml").unlink()
