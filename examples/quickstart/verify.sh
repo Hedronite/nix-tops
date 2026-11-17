@@ -14,3 +14,12 @@ for s in x86_64-linux aarch64-linux aarch64-darwin; do
   printf '%s: ' "$s"
   "${nix[@]}" eval --json --no-update-lock-file "${ov[@]}" "path:$here#checks.$s" --apply builtins.attrNames 2>/dev/null
 done
+
+# the stub hides nothing the interface would raise: rename the adopter's own check in a copy and
+# confirm the rename is what the merged checks show (the stub must not swallow or keep the old name)
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+cp -R "$here/." "$tmp/q"
+perl -pi -e 's/\{ package = self\.packages/{ renamed = self.packages/' "$tmp/q/flake.nix"
+printf 'renamed copy: '
+"${nix[@]}" eval --json --no-write-lock-file --override-input nix-tops "path:$tmp/q/stub-kit" \
+  "path:$tmp/q#checks.x86_64-linux" --apply builtins.attrNames 2>/dev/null
