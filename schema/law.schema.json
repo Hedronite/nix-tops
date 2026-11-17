@@ -15,14 +15,14 @@
       "uniqueItems": true,
       "minItems": 1,
       "items": { "enum": ["dev-flake", "package-set", "nixos-module", "nixos-host", "home-config", "flake-lib", "darwin-host", "fleet-root", "image"] },
-      "$comment": "Classes the law is an extra for (section 5.2). Absent means every class. G4 replaces classes with facets and triggering artifacts."
+      "$comment": "Classes the law is an extra for (section 5.2). Absent means every class. A later protocol revision replaces classes with facets and the artifact that triggers each law."
     },
     "reader": { "enum": ["ev", "tl", "an", "at", "tbd"], "description": "Primary reader (section 8.1)." },
     "reader_also": {
       "type": "array",
       "uniqueItems": true,
       "items": { "enum": ["ev", "tl", "an", "at", "tbd"] },
-      "$comment": "Further readers, in the order the catalog lists them. G6 reorders readers into preference order."
+      "$comment": "Further readers, in the order the catalog lists them. A later protocol revision lists readers in preference order."
     },
     "reader_detail": { "type": "string", "minLength": 1, "description": "What the reader reads or runs: a tool and its mode, or the artifact." },
     "judged": { "type": "boolean", "description": "True when the law is judged in protocol 0.1 (the check mark in section 8.2)." },
