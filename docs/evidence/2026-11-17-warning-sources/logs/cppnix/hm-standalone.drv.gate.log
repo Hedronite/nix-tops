@@ -1,0 +1,2 @@
+trace: warning: The option `programs.carapace.ignoreCase' defined in `<unknown-file>' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'.
+/nix/store/9gcz2y88cghcb5h4qaxnhjl5b494cwg9-home-manager-generation.drv

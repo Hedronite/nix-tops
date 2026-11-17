@@ -1,0 +1,2 @@
+trace: warning: The option `programs.carapace.ignoreCase' defined in `<unknown-file>' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'.
+["The option `programs.carapace.ignoreCase' defined in `<unknown-file>' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'."]
