@@ -1,0 +1,22 @@
+evaluating flake...
+checking flake output 'packages'...
+checking derivation packages.x86_64-linux.default...
+evaluation warning: fixture builtins.warn
+error:
+       … while checking flake output 'packages'
+         at /nix/store/r8yphnm0hw2wmzsxx8g8cqsm1mzzhrg1-source/flake.nix:4:5:
+            3|   outputs = { self }: {
+            4|     packages.x86_64-linux.default = builtins.warn "fixture builtins.warn" (derivation {
+             |     ^
+            5|       name = "fixture";
+
+       … while checking the derivation 'packages.x86_64-linux.default'
+         at /nix/store/r8yphnm0hw2wmzsxx8g8cqsm1mzzhrg1-source/flake.nix:4:5:
+            3|   outputs = { self }: {
+            4|     packages.x86_64-linux.default = builtins.warn "fixture builtins.warn" (derivation {
+             |     ^
+            5|       name = "fixture";
+
+       (stack trace truncated; use '--show-trace' to show the full, detailed trace)
+
+       error: aborting to reveal stack trace of warning, as abort-on-warn is set
