@@ -5,6 +5,8 @@
 # One entry per diagnostic per implementation. An implementation that does not print a
 # diagnostic has no entry for it (Determinate Nix 3.22.3 prints nothing for an app without `meta`).
 #
+# effect        what the runner does with a classified line: `report` (listed in the gate report,
+#               gate unaffected) or `fail` (the gate fails). A line no entry matches always fails.
 # match         regular expression, anchored to the whole line
 # fixture       an exact line that `match` accepts, taken from a real run
 # continuation  optional exact line that follows the first line of the same diagnostic
@@ -24,6 +26,7 @@ table_version = 1
 id = "D-01"
 kind = "unknown-output"
 implementation = "cppnix"
+effect = "report"
 versions = ["2.35.2"]
 match = "^warning: unknown flake output '[^']+'$"
 fixture = "warning: unknown flake output 'fooBar'"
@@ -32,6 +35,7 @@ fixture = "warning: unknown flake output 'fooBar'"
 id = "D-02"
 kind = "unknown-output"
 implementation = "determinate"
+effect = "report"
 versions = ["3.22.3"]
 match = "^warning: The following flake outputs are unchecked: .+\\.$"
 fixture = "warning: The following flake outputs are unchecked: fooBar."
@@ -40,6 +44,7 @@ fixture = "warning: The following flake outputs are unchecked: fooBar."
 id = "D-03"
 kind = "app-without-meta"
 implementation = "cppnix"
+effect = "report"
 versions = ["2.35.2"]
 match = "^warning: app '[^']+' lacks attribute 'meta'$"
 fixture = "warning: app 'apps.x86_64-linux.default' lacks attribute 'meta'"
@@ -48,6 +53,7 @@ fixture = "warning: app 'apps.x86_64-linux.default' lacks attribute 'meta'"
 id = "D-04"
 kind = "omitted-systems"
 implementation = "cppnix"
+effect = "report"
 versions = ["2.35.2"]
 match = "^warning: The check omitted these incompatible systems: .+$"
 fixture = "warning: The check omitted these incompatible systems: x86_64-linux"
@@ -57,6 +63,7 @@ continuation = "Use '--all-systems' to check all."
 id = "D-05"
 kind = "omitted-systems"
 implementation = "determinate"
+effect = "report"
 versions = ["3.22.3"]
 match = "^warning: The check omitted these incompatible systems: .+$"
 fixture = "warning: The check omitted these incompatible systems: x86_64-linux"
