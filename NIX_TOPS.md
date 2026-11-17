@@ -100,7 +100,7 @@ Gates run in this order. A failing gate stops the run unless `--keep-going` is s
 |---|---|---|---|
 | 1 | **Source** | runner: every `.nix` file under the flake root is tracked by git; `flake.lock` is committed; evaluation runs with `--no-update-lock-file`; the tree is clean in CI | No untracked `.nix`; lock current |
 | 2 | **Lint** | sandbox: `checks.<system>.nixtops-lint` runs `treefmt --ci` (nixfmt), `statix check`, `deadnix --fail`, `nixtops-lint`, `gitleaks` | All clean, or within ratchet |
-| 3 | **Eval** | runner: `nix flake check --no-build --all-systems --no-update-lock-file --option abort-on-warn true --option allow-import-from-derivation false`; then evaluate each configuration's build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`) under the same options; record eval-cost counters (§6.4) | No error; **no warning**; no IFD |
+| 3 | **Eval** | runner, three warning sources. (a) `nix flake check --no-build --all-systems --no-update-lock-file --option abort-on-warn true --option allow-import-from-derivation false`, then each configuration's build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`) under the same options; `abort-on-warn` makes every `builtins.warn` fatal. (b) `config.warnings` of every NixOS, Home Manager and nix-darwin configuration, read as data. (c) the `nix` command's own diagnostics, captured and classified by `laws/diagnostics.toml`. Then record eval-cost counters (§6.4) | No error; no warning from any source that `[[warnings.allow]]` does not match; no IFD |
 | 4 | **Build and test** | `nix flake check` (builds every `checks` derivation: nix-unit, module eval tests, VM tests) and `nix build` of every `packages`, `devShells` and configuration build root for the host system. Linux runs with `sandbox = true` | Everything builds; every test passes |
 | 5 | **Output coverage** | runner: maps each exported output to the checks that exercise it (§6.1) | Class floor or ratchet met |
 | 6 | **Class layers** | closure-size budgets, eval-cost budgets; at tier 2, rebuild determinism, `vulnix`, cross-system builds | Per class (§7) |
@@ -110,10 +110,55 @@ Gates run in this order. A failing gate stops the run unless `--keep-going` is s
 the JSON they wrote in gate 2.
 
 Gate 3 is the most important gate in this protocol. Evaluating a NixOS configuration's
-`toplevel.drvPath` makes the module system refuse every option that does not exist, and
-`abort-on-warn` turns every renamed option and deprecated alias into an error (both checked, §8.2
-N-17, N-18). That one gate catches most of what the source sketch calls "guessing options and
-package names".
+`toplevel.drvPath` makes the module system refuse every option that does not exist. A warning,
+unlike an error, has three sources, and `abort-on-warn` covers one of them:
+
+1. **`builtins.warn`** (and `lib.warn`, which delegates to it). `abort-on-warn true` turns each one into
+   an error. This is what makes a renamed NixOS option fatal. Checked: exit 1 on CppNix 2.35.2 and
+   Determinate Nix 3.22.3, for a flake output and for a NixOS configuration that includes Home Manager
+   as a module (`docs/evidence/2026-11-17-warning-sources/logs/*/builtins-warn.*`, `docs/evidence/2026-11-17-warning-sources/logs/*/hm-nixos-module.drv.gate`).
+2. **`config.warnings`.** Home Manager and nix-darwin print the list with `builtins.trace`, not
+   `builtins.warn` (Home Manager `9d7ba6b` `modules/default.nix:16-21`, run in the fixtures below;
+   nix-darwin `ff0e21a` `modules/system/default.nix:14`, read in source at that commit, not run **[verify]**). A renamed option in a standalone Home Manager configuration
+   evaluates to exit 0 under gate 3's options on both implementations
+   (`docs/evidence/2026-11-17-warning-sources/logs/*/hm-standalone.drv.gate`). The runner therefore evaluates `config.warnings` of every NixOS, Home
+   Manager and nix-darwin configuration as data and requires the list to be empty or matched by the
+   ledger. It does not trust `nix flake check` for this: `nix flake check --no-build` on a NixOS
+   configuration whose Home Manager module has a renamed option exits 0 on both implementations
+   (`docs/evidence/2026-11-17-warning-sources/logs/*/hm-nixos-module.check.gate`); only evaluating `toplevel.drvPath` is fatal. Checked on nixpkgs
+   `1c872b8c` and Home Manager `9d7ba6b`.
+3. **Diagnostics from the `nix` command.** Unknown flake outputs, apps without `meta`, omitted systems.
+   They are log lines and the exit code stays 0, and the two implementations differ: for an unknown
+   output CppNix 2.35.2 prints `unknown flake output 'fooBar'` and Determinate 3.22.3 prints `The
+   following flake outputs are unchecked: fooBar.`; for an app without `meta` CppNix prints a warning
+   and Determinate prints none (`docs/evidence/2026-11-17-warning-sources/logs/*/app-no-meta.check.gate`). The runner captures the command's output and
+   classifies each line with a versioned table, `laws/diagnostics.toml` (one entry per diagnostic per
+   implementation, each with a fixture string; written in G7). A line the table does not know fails the
+   gate as an unclassified diagnostic.
+
+**The ledger.** `nix-tops.toml` may hold `[[warnings.allow]]` entries:
+
+| Field | Meaning |
+|---|---|
+| `match` | Text that must occur in the warning message (substring, not a regex) |
+| `reason` | Why the warning is accepted; required |
+| `until` | Date (`YYYY-MM-DD`, UTC) after which the entry no longer applies; required |
+
+An entry is an Ack (§3.3) with an expiry. It matches warnings from sources 1 and 2 (source 3 is
+classified by the table, not matched by text). An entry whose `until` is before the run date fails the
+gate, whether or not its warning still appears, and matches nothing: the ledger must be cleaned, and no
+expired entry passes silently. The report names the entry and its expiry.
+Warnings without a match fail the gate.
+
+**Every warning in one run.** The `abort-on-warn true` run stays the judge. Source 1 is fatal, so the
+first `builtins.warn` ends it; only after such a failure the runner re-runs the same locked invocation
+with `abort-on-warn false` and every other option unchanged (IFD off, never `--impure`), only to
+collect each `evaluation warning:` line, and the verdict stays fail unless every collected warning
+matches an unexpired ledger entry (both implementations print the lines and exit 0 on the re-run,
+checked on CppNix 2.35.2 and Determinate Nix 3.22.3, `docs/evidence/2026-11-17-warning-sources/` "The collect
+re-run"). The report lists every warning with its source and the matching entry, so a host with five
+renamed options costs one run. The ledger is for upstream warnings with a dated reason, not a standing
+escape: dropping `x86_64-darwin` (N1) removes the `rust-tops` case that motivated it (§20).
 
 ### 3.2 Tiers
 
@@ -451,7 +496,7 @@ mistake in the source sketch the law comes from (§1–§10), where there is one
 | N-14 | Source is formatted with nixfmt (RFC 166 style) | R | tl: `treefmt --ci` with `nixfmt` | | ✓ |
 | N-15 | Every `lib.<name>` and `builtins.<name>` reference resolves in the locked inputs. The analyzer collects each selection path and checks it with `lib.hasAttrByPath` against the pinned `lib` and `builtins` | R | an + ev | §4 | ✓ |
 | N-16 | No `builtins.trace`, `lib.traceVal` or other `lib.debug` tracing committed outside tests | A | an | | |
-| N-17 | Evaluation emits **no warnings**: renamed options, `lib.warn`, deprecated aliases. The gate sets `abort-on-warn = true`, which turns a renamed option into an error (checked) | R | ev | §5 | ✓ |
+| N-17 | Evaluation emits **no unmatched warnings** from any of three sources: `builtins.warn` (renamed NixOS options, `lib.warn`, deprecated aliases; `abort-on-warn = true` makes each an error, checked), `config.warnings` read as data (Home Manager prints it with `builtins.trace`, so `abort-on-warn` does not see it, checked; nix-darwin does the same in source at `ff0e21a`, **[verify]**), and `nix` command diagnostics classified by `laws/diagnostics.toml`. A warning is accepted only by a dated `[[warnings.allow]]` entry | R | ev | §5 | ✓ |
 
 **Modules and options**
 
@@ -699,8 +744,10 @@ report; an agent contract.
 2. **Coverage:** output coverage (§6.1), at three levels, `tested` floored per class.
 3. **CRAP:** none. Budgets instead.
 4. **Mutation:** none in 0.1.
-5. **Eval options:** the gate always sets `abort-on-warn = true` and
-   `allow-import-from-derivation = false`, and never `--impure`.
+5. **Eval options:** the gate always sets `abort-on-warn = true` and `allow-import-from-derivation = false`,
+   and never `--impure`. `abort-on-warn` covers `builtins.warn` only; warnings in `config.warnings`
+   and diagnostics printed by `nix` itself are read separately (§3.1), and a warning is accepted only by a
+   dated `[[warnings.allow]]` entry.
 6. **Config format:** TOML, for `builtins.fromTOML`.
 7. **Tool lock:** the kit's `flake.lock`; the `nix-tops` input never follows the adopter's nixpkgs.
 8. **Formatter:** `nixfmt` through `nixfmt-tree`; `nixfmt-rfc-style` is not used.
@@ -805,7 +852,10 @@ Self-hosting: the kit runs `hard` and passes its own tier-1 gate before any rele
 ```
 
 `abort_on_warn` and `allow_ifd` are constants: they exist in the file so a reader sees them, and a
-config that tries to change them is invalid. (Abbreviated; the full schema covers every key in §9.)
+config that tries to change them is invalid. `abort_on_warn` is the first of three warning sources
+(§3.1); it does not make every warning fatal. The `[[warnings.allow]]` table (`match`, `reason`,
+`until`) is part of the 0.2.0 schema and lands in the schema files with G8; this sketch is abbreviated
+and does not list it. (Abbreviated; the full schema covers every key in §9.)
 
 ---
 
