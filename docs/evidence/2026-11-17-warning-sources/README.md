@@ -60,3 +60,18 @@ option at Home Manager `9d7ba6b` (`modules/programs/zsh/default.nix:35-39`, `mkR
 it fails as an assertion, not a warning, so it cannot show the warning path. The fixtures use
 `programs.carapace.ignoreCase`, still a `mkRenamedOptionModule` at that commit
 (`modules/programs/carapace.nix:32-35`).
+
+## The collect re-run (source 1, option off)
+
+After a source-1 failure the runner re-runs the same command with only `abort-on-warn` changed to
+`false`, to collect every `evaluation warning:` line in one run. The `*.control` logs are that re-run
+for each fixture, same locked invocation, `allow-import-from-derivation false`, no `--impure`:
+
+| Fixture | Command | Gate (true) | Re-run (false) | Collected line |
+|---|---|---|---|---|
+| `builtins-warn` | check | 1 | 0 | `evaluation warning: fixture builtins.warn` |
+| `builtins-warn` | drv | 1 | 0 | same |
+| `hm-nixos-module` | drv | 1 | 0 | `evaluation warning: fixture profile: The option ... has been renamed ...` |
+
+Exit codes and the `evaluation warning:` prefix are the same on CppNix 2.35.2 and Determinate Nix 3.22.3
+(`logs/cppnix/*.control.*`, `logs/determinate/*.control.*`).
