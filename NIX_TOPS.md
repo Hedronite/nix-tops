@@ -49,9 +49,10 @@ mistakes are mechanically detectable. Nix-TOPS makes them laws.
 ### 1.3 Name and binary
 
 - Protocol: **Nix-TOPS**. Binary: **`nixtops`**. Repo: `github.com/Hedronite/nix-tops`.
-- The kit is itself a flake. Adopters add it as an input and run
-  `nix run .#nixtops -- gate`, or run it directly with
-  `nix run github:Hedronite/nix-tops -- gate`.
+- The kit is itself a flake. An adopter adds it as an input and re-exports its runner as
+  `apps.<system>.nixtops` (§4), so one command runs the gate: `nix run .#nixtops -- gate`. The
+  command resolves the kit through the adopter's `flake.lock`. No command in this spec resolves an
+  unlocked reference, and there is no `nix run github:...` form.
 
 ### 1.4 Two planes: the sandbox and the runner
 
@@ -61,10 +62,14 @@ things need the world outside it. Nix-TOPS splits the work that way:
 | Plane | What runs there | Why |
 |---|---|---|
 | **Sandbox** (`checks.<system>.nixtops-*`) | format, statix, deadnix, the `nixtops-lint` analyzer, secrets scan, nix-unit, VM tests, closure-size reader | Hermetic and cacheable. A check that passed for a given input is not rerun |
-| **Runner** (`nixtops gate`) | git-tracked files, lock state, pure evaluation of every output on every system with `abort-on-warn`, eval-cost counters, diff-based laws, the report | These need git, the evaluator's own flags, or the diff. None of them can run in a derivation |
+| **Runner** (`nixtops gate`) | git-tracked files, lock state, pure evaluation of every output on every system with `abort-on-warn`, the `config.warnings` and diagnostics reads (§3.1), eval-cost counters, diff-based laws, the report | These need git, the evaluator's own flags, or the diff. None of them can run in a derivation |
 
 `nix flake check` alone runs the sandbox plane. It is useful, but it is not the gate: it does not
 know about untracked files, does not set `abort-on-warn`, and does not write a report.
+
+The kit's `lib.mkChecks` returns an attrset per system (`checks.<system>.nixtops-*`) that the
+adopter merges with its own checks (§4). The lint checks exist for one system only: they read
+source, which does not depend on the system, so they are built once.
 
 ---
 
@@ -74,8 +79,12 @@ know about untracked files, does not set `abort-on-warn`, and does not write a r
 |---|---|
 | Protocol version | **0.1.0** (draft) |
 | Package version | 0.0.0 (unreleased) |
-| Nix floor | CppNix **2.24**, or Determinate Nix 3.x. `builtins.warn` and `abort-on-warn` landed in 2.23. Lix is not supported at 0.1 **[verify]** |
-| Nix current | 2.35.2 (Determinate Nix 3.22.3), the version this spec was checked with |
+| Evaluator (the judge) | The CppNix pinned in the kit's `flake.lock` (2.35.2 when this spec was checked). The host supplies the daemon and the store, not the judge (§10) |
+| Determinate Nix | A named CI leg (§11), checked with 3.22.3 (Nix 2.35.2). Determinate-only settings are off in the gate: `--option lazy-trees false --option eval-cores 1` (both on by default on Determinate Nix 3.22.3, checked) |
+| Nix floor (host daemon) | CppNix **2.24**, or Determinate Nix 3.x. `builtins.warn` and `abort-on-warn` landed in 2.23. `doctor` gates only on this floor (§12) |
+| Lix | Lix 2.95.0 has `builtins.warn` and `abort-on-warn` **[verify]**. Not supported until M7.2 |
+| Supported systems | `aarch64-darwin`, `x86_64-linux`, `aarch64-linux`. `x86_64-darwin` is unsupported: nixpkgs 26.11 dropped it (N1) |
+| Baseline key | (implementation, version, system, `flake.lock` hash) |
 | nixpkgs (kit's own) | 26.11 (`nixos-unstable` line); the kit's tools come from this pin, not the adopter's (§10) |
 | Format | `nixfmt` 1.5.0 through `nixfmt-tree` (treefmt). `nixfmt-rfc-style` is now an alias that warns (checked) |
 | Lint | `statix` 0.5.8-unstable-2026-07-17, `deadnix` 1.3.2, `nixtops-lint` (the kit's analyzer) |
@@ -208,8 +217,9 @@ host. Linux CI with `sandbox = true` is the authoritative build.
 
 ## 4. Quick start
 
+The adopter's `flake.nix` (also `examples/quickstart/flake.nix`, which `verify.sh` there compares with this block):
+
 ```nix
-# flake.nix (adopter)
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -221,14 +231,22 @@ host. Linux CI with `sandbox = true` is the authoritative build.
     { self, nixpkgs, nix-tops }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
-      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      perSystem = f: nixpkgs.lib.genAttrs systems f;
+      forAllSystems = f: perSystem (system: f nixpkgs.legacyPackages.${system});
     in
     {
       packages = forAllSystems (pkgs: { default = pkgs.callPackage ./nix/package.nix { }; });
 
-      # Adds checks.<system>.nixtops-* from ./nix-tops.toml. No IFD: the TOML is read with builtins.fromTOML.
-      checks = nix-tops.lib.mkChecks { inherit self systems; };
-      formatter = nix-tops.lib.formatter;
+      # mkChecks returns checks.<system>.nixtops-* from ./nix-tops.toml (no IFD: builtins.fromTOML).
+      # Merge it with your own checks per system.
+      checks = nixpkgs.lib.recursiveUpdate (nix-tops.lib.mkChecks { inherit self systems; }) (
+        perSystem (system: { package = self.packages.${system}.default; })
+      );
+
+      formatter = perSystem (system: nix-tops.formatter.${system});
+
+      # Re-export the runner so one locked command runs the gate: nix run .#nixtops -- gate
+      apps = perSystem (system: { nixtops = nix-tops.apps.${system}.nixtops; });
     };
 }
 ```
@@ -238,6 +256,13 @@ nix run .#nixtops -- init --class dev-flake
 nix run .#nixtops -- check
 nix run .#nixtops -- gate
 ```
+
+`.#nixtops` is the adopter's re-export of the kit's runner, so the command resolves the kit through
+the adopter's own `flake.lock`. A `flake` `formatter` output is an attrset by system, so it is
+re-exported per system. `checks` merges `mkChecks` with the adopter's own checks per system.
+`x86_64-darwin` is not in `systems` (§2). `examples/quickstart/` holds this flake and a `stub-kit/`
+that exports the interface as stubs; `nix flake check --no-build --all-systems` passes on both
+CppNix 2.35.2 and Determinate Nix 3.22.3, and the adopter's own check survives the merge.
 
 `init` writes:
 
@@ -450,7 +475,7 @@ Lean) layer.
 
 Readers:
 
-- **`ev`** (evaluation): judged by evaluating the flake with the pinned Nix and the gate's options.
+- **`ev`** (evaluation): judged by evaluating the flake with the CppNix pinned in the kit's lock (§2) and the gate's options.
   This reader is new in Nix-TOPS. It is the strongest one, because the module system and the
   evaluator do the judging.
 - **`tl`** (tool): mapped from that tool's JSON output. A `tl` reader reads the tool's effective
@@ -634,6 +659,11 @@ One rule keeps it true: the adopter must not set `nix-tops.inputs.nixpkgs.follow
 same kit revision would judge differently in different repos (N-43). Updating the kit is
 `nix flake update nix-tops`, a reviewed change.
 
+The same lock pins the evaluator that judges: the CppNix in the kit's lock (§2), not the host's
+`nix`. The host supplies the daemon and the store. Two implementations are different judges on the
+same input (the `flake check` model, which warnings print, `--build-all`), so a baseline records
+which one produced it (§2).
+
 ---
 
 ## 11. CI floor
@@ -642,17 +672,19 @@ The drop-in workflow `.github/workflows/nix-tops.yml`:
 
 | Job | Content |
 |---|---|
-| `gate` | Install Nix (action pinned by commit SHA); `sandbox = true`; `nix run .#nixtops -- gate --max-tier 1` on `x86_64-linux`. It fails if fewer layers ran than are enabled in range |
-| `eval-systems` | Gate 3 for every declared system. Evaluation is cross-system, so this needs no other runners |
-| `build-matrix` | Tier 2: builds on `ubuntu-24.04` (x86_64), `ubuntu-24.04-arm` (aarch64) and macOS (aarch64-darwin), per declared systems |
+| `gate` | Install Nix (action pinned by commit SHA); `sandbox = true`; `nix run .#nixtops -- gate --max-tier 1` on `x86_64-linux`. It fails if fewer layers ran than are enabled in range. Gate 3 uses `--all-systems`, so evaluation for every declared system runs here and needs no other runner |
+| `determinate` | The same gate, evaluating with Determinate Nix (the named leg of §2), `lazy-trees false` and `eval-cores 1` (§2) |
+| `build-matrix` | Tier 2, and where `deferred` outputs build: `ubuntu-24.04` (x86_64), `ubuntu-24.04-arm` (aarch64) and an aarch64-darwin runner, per declared systems. VM tests run on x86_64 only |
 | `nightly` | `nixtops gate --max-tier 2` on a schedule |
-| `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option or a budget without the `protocol-change` label |
+| `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option or a budget without the `protocol-change` label. It runs the base branch's script, never the PR's |
 
 CI rules: `fetch-depth: 0` (diff laws need the merge base); actions pinned by commit SHA; minimal
-`permissions:`; `--dry-run` refused; empty reports fail. A binary cache is allowed, and its token
-comes from the CI secret store, never from the repo (N-33). The gate is one job running one
-command. The workflow does not repeat the tools as separate steps, because steps that bypass
-`nixtops` judge nothing.
+`permissions:`; `--dry-run` refused; empty reports fail. Every `nix` command passes
+`--no-accept-flake-config`, so a flake cannot change the gate's settings. Workflows never use
+`pull_request_target`. No command resolves an unlocked reference. The kit publishes a binary cache
+for its tools (owner: open, Q5); an adopter may add its own, and any token comes from the CI secret
+store, never from the repo (N-33). The gate is one job running one command. The workflow does not
+repeat the tools as separate steps, because steps that bypass `nixtops` judge nothing.
 
 ---
 
@@ -661,13 +693,13 @@ command. The workflow does not repeat the tools as separate steps, because steps
 | Command | Behavior |
 |---|---|
 | `init --class <c>` | Writes `nix-tops.toml`, the class workflow and the `AGENTS.md` section (§4). Prints the `flake.nix` lines; never edits `flake.nix`. Refuses to overwrite without `--force` |
-| `check` | Validates `nix-tops.toml` against the JSON Schema, plus semantic checks: protocol id, the class has a profile, declared systems are valid, the Nix version meets the floor, `advisory` has a dated exemption, the `nix-tops` input does not follow nixpkgs, and under `ratchet` the baseline exists and is clean |
+| `check` | Validates `nix-tops.toml` against the JSON Schema, plus semantic checks: protocol id, the class has a profile, declared systems are valid, the host daemon meets the floor, `advisory` has a dated exemption, the `nix-tops` input does not follow nixpkgs, and under `ratchet` the baseline exists and is clean |
 | `gate` | Runs enabled layers at or below `--max-tier` (default 1). `--base`, `--keep-going`, `--json`, `--only <layer>`, `--system <s>`, `--dry-run` (refused in CI) |
 | `baseline` | Writes `.nix-tops/baseline.json` after a passing run; the only writer |
 | `laws [list \| run \| explain N-NN]` | Catalog with readers; laws alone; one law explained |
 | `outputs` | Lists every output with its coverage level (§6.1) |
 | `report [--format text \| json]` | Renders the last report |
-| `doctor` | Environment: Nix version and implementation, `sandbox`, `experimental-features`, KVM, remote builders, substituters |
+| `doctor` | Reports the host: Nix version and implementation, daemon, `sandbox`, `experimental-features`, KVM, remote builders, substituters, and Determinate-only settings. It gates only on the daemon floor (§2); the judge is the kit's pinned CppNix |
 | `version` | Protocol, package, and tool versions from the kit's pin |
 
 Exit codes: 0 pass; 1 gate failed; 2 config invalid; 3 environment error (Nix below floor, no
@@ -753,19 +785,20 @@ report; an agent contract.
 8. **Formatter:** `nixfmt` through `nixfmt-tree`; `nixfmt-rfc-style` is not used.
 9. **Enforcement:** `ratchet` for adopters, `hard` for the kit.
 10. **Formal layer:** none.
+11. **Analyzer and runner language (0.2.0, N2):** one Rust binary from M1, `nixtops`, with
+    `nixtops-lint` as its analyzer on `rnix`, gated by Rust-TOPS; the kit's flake by Nix-TOPS.
+12. **`nix flake check --build-all` (0.2.0):** absent on CppNix 2.35.2 (`error: unrecognised flag
+    '--build-all'`), accepted on Determinate Nix 3.22.3 (both run 2026-11-17). Gate 4 does not use
+    it: it builds outputs one by one.
 
 **Open:**
 
-1. **Analyzer language.** `nixtops-lint` needs a real Nix parser. Proposed: Rust on `rnix`, the
-   parser statix and deadnix already use, so the analyzer is gated by Rust-TOPS and the kit's
-   flake by Nix-TOPS. The runner could be a `writeShellApplication` over `jq` at M1 and move into
-   the same Rust binary when it outgrows shell.
+1. *Resolved: item 11.*
 2. **Eval-cost determinism.** Confirm that `NIX_SHOW_STATS` counters are stable across runs with
    identical inputs before any class sets `eval_cost` to `hard` (§6.4).
 3. **Module coverage reader.** Confirm that option declaration positions in a VM test's node
    configurations are reachable from the check derivation's passthru **[verify]** (§6.1).
-4. **`nix flake check --build-all`.** Determinate Nix has it; confirm on CppNix before gate 4 relies
-   on it rather than building outputs one by one **[verify]**.
+4. *Resolved: item 12.*
 5. **Home Manager pin.** `home-config` evaluates against the adopter's Home Manager input; decide
    whether the kit tests its HM laws against a pinned Home Manager of its own.
 6. **Profile order after launch:** `flake-lib`, then `fleet-root`.
