@@ -80,7 +80,7 @@ source, which does not depend on the system, so they are built once.
 | Protocol version | **0.1.0** (draft) |
 | Package version | 0.0.0 (unreleased) |
 | Evaluator (the judge) | The CppNix pinned in the kit's `flake.lock` (2.35.2 when this spec was checked). The host supplies the daemon and the store, not the judge (§10) |
-| Determinate Nix | A named CI leg (§11), checked with 3.22.3 (Nix 2.35.2). Determinate-only settings are off in the gate: `--option lazy-trees false --option eval-cores 1` (both on by default on Determinate Nix 3.22.3, checked) |
+| Determinate Nix | A named CI leg (§11), checked with 3.22.3 (Nix 2.35.2). Determinate-only settings are off in the gate: `--option lazy-trees false --option eval-cores 1` (the Determinate binary defaults to `lazy-trees false` and `eval-cores 1`; the managed `/etc/nix/nix.conf` from the Determinate installer turns both on, checked on 3.22.3) |
 | Nix floor (host daemon) | CppNix **2.24**, or Determinate Nix 3.x. `builtins.warn` and `abort-on-warn` landed in 2.23. `doctor` gates only on this floor (§12) |
 | Lix | Lix 2.95.0 has `builtins.warn` and `abort-on-warn` **[verify]**. Not supported until M7.2 |
 | Supported systems | `aarch64-darwin`, `x86_64-linux`, `aarch64-linux`. `x86_64-darwin` is unsupported: nixpkgs 26.11 dropped it (N1) |
@@ -277,46 +277,57 @@ only `nixtops baseline` does (§6.8). It refuses to overwrite without `--force`.
 
 ---
 
-## 5. Classes and profiles
+## 5. Facets and profiles
 
-### 5.1 Class catalog
+### 5.1 Facet catalog
 
-| Class | Typical code | Launch profile? |
-|---|---|---|
-| `dev-flake` (default) | The flake inside a Rust, Go or web repo: `devShells`, `packages`, `checks` for that project | **Yes** |
-| `package-set` | Packages and overlays published for others | **Yes** |
-| `nixos-module` | Reusable NixOS (or Home Manager, nix-darwin) modules exported as `nixosModules.*` | **Yes** |
-| `nixos-host` | `nixosConfigurations` for real machines | **Yes** |
-| `home-config` | `homeConfigurations`, or Home Manager as a NixOS/darwin module | **Yes** |
-| `flake-lib` | A pure Nix library exported as `lib` | No (high priority next) |
-| `darwin-host` | `darwinConfigurations` | No |
-| `fleet-root` | One flake for many hosts, with colmena or deploy-rs | No |
-| `image` | OCI, ISO or SD images (`dockerTools`, image builders) | No |
+**Facet replaces class.** Earlier sections and some files still say "class" (`class`, `--class`,
+"per class"): read it as "facet", with the rules of this section; each section is renamed by the
+step that owns it (0.2.0).
 
-A flake declares one class. A flake that is both a `package-set` and a `nixos-host` is two
-concerns; split it, or pick the class of its main output and enable the other's layers by config.
+A flake is judged as the facets its outputs make it. A facet is derived from the artifact it names;
+`nix-tops.toml` may narrow the set (§5.4) and never add a facet the outputs do not show.
 
-### 5.2 Proposed floors by class
+| Facet | Derived when the flake exports | Typical code | Profile |
+|---|---|---|---|
+| `dev-flake` | `devShells.<system>` | The flake inside a Rust, Go or web repo: its dev shell and checks | **Launch** |
+| `package-set` | `packages.<system>` or `overlays` for others to use | Packages and overlays published for others | **Launch** |
+| `nixos-module` | `nixosModules.*`, `homeManagerModules.*` or `darwinModules.*` | Reusable modules | **Launch** |
+| `flake-lib` | `lib` | A pure Nix library, and the kit's own `lib.mkChecks` | **Launch** |
+| `nixos-host` | `nixosConfigurations.*` | Real machines | Specified, unproven (no adopter in the house) |
+| `home-config` | `homeConfigurations.*`, or Home Manager as a NixOS or nix-darwin module | Home Manager setups | Specified, unproven (no adopter in the house) |
+| `darwin-host`, `fleet-root`, `image` | `darwinConfigurations.*`; colmena or deploy-rs outputs; `dockerTools` or image-builder outputs | | No profile |
 
-| | `dev-flake` | `package-set` | `nixos-module` | `nixos-host` | `home-config` |
-|---|---|---|---|---|---|
-| Eval on every declared system | required | required | `x86_64-linux`, `aarch64-linux` | the host's system | the config's system |
-| Output coverage: built | 100% | 100% | n/a | 100% (build root) | 100% (activation package) |
-| Output coverage: tested | 50% | 80% | **100%** of modules eval-tested; every service module VM-tested | every declared service VM-tested | n/a |
-| Closure budget | per `devShell`, ratchet | per package, ratchet | n/a | per host `toplevel`, ratchet | `activationPackage`, ratchet |
-| Eval-cost budget | advisory | ratchet | ratchet | ratchet | ratchet |
-| Rebuild determinism | no | tier 2 | no | tier 2 (`toplevel`) | no |
-| `vulnix` | no | tier 2 | no | tier 2 | no |
-| Extra laws | N-27, N-43 | N-25–N-32 | N-19–N-21 | N-22, N-34–N-37 | N-22, N-34 |
+A flake that exports `packages` and `nixosModules` has two facets, and nothing to split.
+"Specified, unproven" means the floors and laws are written and no adopter has run them: the
+profile ships when an adopter does, and `nixtops check` says so.
 
-All numbers are **proposed**. Under `ratchet` (§6.8) floors and budgets apply to new outputs, and
-existing outputs must not get worse.
+### 5.2 Floors by facet
+
+A facet sets floors only: coverage floors, budgets, and the layer tiers the table sets (rebuild determinism, `vulnix`). It never turns a law on or off; a law applies
+when the artifact it names exists (§8.2, §8.3). Floors apply to the outputs the facet is derived
+from (`devShells` to `dev-flake`, `packages` to `package-set`, and so on); an output of no facet has
+no floor and is reported as such. There is one floor per facet and row.
+
+| | `dev-flake` | `package-set` | `nixos-module` | `flake-lib` | `nixos-host` (unproven) | `home-config` (unproven) |
+|---|---|---|---|---|---|---|
+| Eval on every declared system | required | required | `x86_64-linux`, `aarch64-linux` | required | the host's system | the config's system |
+| Output coverage: built | 100% | 100% | n/a | 100% of non-function outputs | 100% (build root) | 100% (activation package) |
+| Output coverage: tested | 50% | 80% | **100%** of modules eval-tested; every service module VM-tested | 80% of exported functions have a `nix-unit` case | every declared service VM-tested | n/a |
+| Closure budget | per `devShell`, ratchet | per package, ratchet | n/a | n/a | per host `toplevel`, ratchet | `activationPackage`, ratchet |
+| Eval-cost budget | advisory | ratchet | ratchet | advisory | ratchet | ratchet |
+| Rebuild determinism | no | tier 2 | no | no | tier 2 (`toplevel`) | no |
+| `vulnix` | no | tier 2 | no | no | tier 2 | tier 2 |
+
+All numbers are **proposed**, to be calibrated in M4.6. Under `ratchet` (§6.8) floors and budgets
+apply to new outputs, and existing outputs must not get worse. `vulnix` has one tier per facet: this
+table is its definition, and a profile's `[layers]` block (§5.3) repeats it.
 
 ### 5.3 Profile file shape
 
 ```toml
 # profiles/package-set.toml
-class = "package-set"
+facet = "package-set"
 protocol = "0.1.0"
 
 [eval]
@@ -336,11 +347,22 @@ mode = "ratchet"
 
 [layers]
 rebuild = { tier = 2 }
-vulnix = { enabled = false }
-
-[laws]
-enable = ["N-25", "N-26", "N-27", "N-28", "N-29", "N-30", "N-31", "N-32"]
+vulnix = { tier = 2 }
 ```
+
+There is no `[laws]` list: a law applies by artifact, not by profile, and the set of laws a facet
+requires (§3.3) is derived from the artifacts present.
+
+### 5.4 Narrowing
+
+`nix-tops.toml` may list `facets = [...]`. The list must be a subset of the derived facets;
+`nixtops check` refuses a facet the outputs do not show. Narrowing drops the dropped facet's floors,
+and the report lists the outputs left without a floor. It never removes a law.
+
+### 5.5 The kit's own facets
+
+The kit exports `lib` (`mkChecks`), `packages` (`nixtops`, `nixtops-lint`), `apps`, `formatter` and a
+dev shell, so it is `flake-lib`, `package-set` and `dev-flake`, and runs `hard` (§6.8) on all three.
 
 ---
 
@@ -494,80 +516,87 @@ rules are `nixtops-lint` rules, not statix mappings.
 ### 8.2 Law catalog (draft: 43 laws, N-01…N-43)
 
 Severity: **R** = Refuse, **A** = Ack. ✓ = judged in v0.1. The **Sketch** column names the
-mistake in the source sketch the law comes from (§1–§10), where there is one.
+mistake in the source sketch the law comes from (§1–§10), where there is one. The **Applies to**
+column names the artifact that triggers the law; a law whose artifact is absent is `skip`, with the
+artifact named (§3.3). Artifacts: `flake` (always), `source` (any `.nix` file), `lock` (`flake.lock`),
+`output` (any evaluated output), `module` (an exported module), `configuration` (a NixOS, Home
+Manager or nix-darwin configuration), `package` (an exported package), `derivation` (an own
+`mkDerivation` or builder call), `fod` (an own fixed-output derivation in an output's closure),
+`vm-test` (a NixOS test in `checks`), `budgeted` (an output with a budget), `nixpkgs-config` (an
+`import nixpkgs` config or `nixpkgs.config`), `nix-tops-input` (the `nix-tops` input in the lock).
 
 **Purity and flakes**
 
-| ID | Law | Sev | Reader | Sketch | v0.1 |
-|---|---|---|---|---|---|
-| N-01 | No search-path lookups (`<nixpkgs>`, `NIX_PATH`) in flake-evaluated code. Pure eval refuses them (checked); `nixtops-lint` also catches them in files the flake does not evaluate. A `flake-compat` shim is the one exemption | R | ev + an | §2 | ✓ |
-| N-02 | No impure builtins: `builtins.getEnv`, `currentSystem`, `currentTime`, `getFlake` on an unlocked ref, `fetchTarball`/`fetchurl`/`fetchGit` without a hash. In pure eval `getEnv` returns `""` instead of failing (checked), so only the analyzer catches it | R | an + ev | §1 | ✓ |
-| N-03 | No host paths (`/home/…`, `/Users/…`, `/root/…`) as path literals or in strings. Runtime paths (`/run`, `/var`, `/etc`, `/dev`, `/proc`, `/sys`, `/tmp`) are allowed in strings | R | an | §1 | ✓ |
-| N-04 | Every `.nix` file under the flake root is tracked by git. Flakes copy only tracked files, so an untracked file fails with "path does not exist" on another machine | R | an (runner) | §1 | ✓ |
-| N-05 | `flake.lock` is committed and current; evaluation with `--no-update-lock-file` succeeds | R | ev | | ✓ |
-| N-06 | One nixpkgs per lock: other inputs `follows` the main nixpkgs. Exempt: the `nix-tops` input (N-43), and inputs with an ack (for example a second nixpkgs for a platform the main pin dropped) | A | an (`flake.lock`) | | |
-| N-07 | No import-from-derivation: the gate evaluates with `allow-import-from-derivation = false`. IFD needs an ack per output | R | ev | | ✓ |
-| N-08 | Every output evaluates on every system it declares (`--all-systems`). No hardcoded `"x86_64-linux"` inside a per-system function | R | ev + an | §2 | ✓ |
-| N-09 | `pkgs` is instantiated once per system from the flake input (`legacyPackages.${system}`, or one `import nixpkgs { … }`). Modules take `pkgs` as an argument and never `import nixpkgs` | A | an | §2 | |
+| ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
+|---|---|---|---|---|---|---|
+| N-01 | No search-path lookups (`<nixpkgs>`, `NIX_PATH`) in flake-evaluated code. Pure eval refuses them (checked); `nixtops-lint` also catches them in files the flake does not evaluate. A `flake-compat` shim is the one exemption | R | ev + an | §2 | source | ✓ |
+| N-02 | No impure builtins: `builtins.getEnv`, `currentSystem`, `currentTime`, `getFlake` on an unlocked ref, `fetchTarball`/`fetchurl`/`fetchGit` without a hash. In pure eval `getEnv` returns `""` instead of failing (checked), so only the analyzer catches it | R | an + ev | §1 | source | ✓ |
+| N-03 | No host paths (`/home/…`, `/Users/…`, `/root/…`) as path literals or in strings. Runtime paths (`/run`, `/var`, `/etc`, `/dev`, `/proc`, `/sys`, `/tmp`) are allowed in strings | R | an | §1 | source | ✓ |
+| N-04 | Every `.nix` file under the flake root is tracked by git. Flakes copy only tracked files, so an untracked file fails with "path does not exist" on another machine | R | an (runner) | §1 | flake | ✓ |
+| N-05 | `flake.lock` is committed and current; evaluation with `--no-update-lock-file` succeeds | R | ev | | lock | ✓ |
+| N-06 | One nixpkgs per lock: other inputs `follows` the main nixpkgs. Exempt: the `nix-tops` input (N-43), and inputs with an ack (for example a second nixpkgs for a platform the main pin dropped) | A | an (`flake.lock`) | | lock | |
+| N-07 | No import-from-derivation: the gate evaluates with `allow-import-from-derivation = false`. IFD needs an ack per output | R | ev | | output | ✓ |
+| N-08 | Every output evaluates on every system it declares (`--all-systems`). No hardcoded `"x86_64-linux"` inside a per-system function | R | ev + an | §2 | output | ✓ |
+| N-09 | `pkgs` is instantiated once per system from the flake input (`legacyPackages.${system}`, or one `import nixpkgs { … }`). Modules take `pkgs` as an argument and never `import nixpkgs` | A | an | §2 | source | |
 
 **Language**
 
-| ID | Law | Sev | Reader | Sketch | v0.1 |
-|---|---|---|---|---|---|
-| N-10 | No file-scope `with` (a module or file body wrapped in `with pkgs;` or `with lib;`). `with pkgs;` around a list is allowed | R | an | §3 | ✓ |
-| N-11 | No `rec` attrset passed to `mkDerivation` or a builder that accepts `finalAttrs:` in the pinned nixpkgs **[verify which builders]**; use `finalAttrs`. `rec` elsewhere is an Ack | R | an | §3 | ✓ |
-| N-12 | No dead bindings, lambda arguments or `let` entries | R | tl: `deadnix --fail` | | ✓ |
-| N-13 | statix is clean | R | tl: `statix check` | | ✓ |
-| N-14 | Source is formatted with nixfmt (RFC 166 style) | R | tl: `treefmt --ci` with `nixfmt` | | ✓ |
-| N-15 | Every `lib.<name>` and `builtins.<name>` reference resolves in the locked inputs. The analyzer collects each selection path and checks it with `lib.hasAttrByPath` against the pinned `lib` and `builtins` | R | an + ev | §4 | ✓ |
-| N-16 | No `builtins.trace`, `lib.traceVal` or other `lib.debug` tracing committed outside tests | A | an | | |
-| N-17 | Evaluation emits **no unmatched warnings** from any of three sources: `builtins.warn` (renamed NixOS options, `lib.warn`, deprecated aliases; `abort-on-warn = true` makes each an error, checked), `config.warnings` read as data (Home Manager prints it with `builtins.trace`, so `abort-on-warn` does not see it, checked; nix-darwin does the same in source at `ff0e21a`, **[verify]**), and `nix` command diagnostics classified by `laws/diagnostics.toml`. A warning is accepted only by a dated `[[warnings.allow]]` entry | R | ev | §5 | ✓ |
+| ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
+|---|---|---|---|---|---|---|
+| N-10 | No file-scope `with` (a module or file body wrapped in `with pkgs;` or `with lib;`). `with pkgs;` around a list is allowed | R | an | §3 | source | ✓ |
+| N-11 | No `rec` attrset passed to `mkDerivation` or a builder that accepts `finalAttrs:` in the pinned nixpkgs **[verify which builders]**; use `finalAttrs`. `rec` elsewhere is an Ack | R | an | §3 | derivation | ✓ |
+| N-12 | No dead bindings, lambda arguments or `let` entries | R | tl: `deadnix --fail` | | source | ✓ |
+| N-13 | statix is clean | R | tl: `statix check` | | source | ✓ |
+| N-14 | Source is formatted with nixfmt (RFC 166 style) | R | tl: `treefmt --ci` with `nixfmt` | | source | ✓ |
+| N-15 | Every `lib.<name>` and `builtins.<name>` reference resolves in the locked inputs. The analyzer collects each selection path and checks it with `lib.hasAttrByPath` against the pinned `lib` and `builtins` | R | an + ev | §4 | source | ✓ |
+| N-16 | No `builtins.trace`, `lib.traceVal` or other `lib.debug` tracing committed outside tests | A | an | | source | |
+| N-17 | Evaluation emits **no unmatched warnings** from any of three sources: `builtins.warn` (renamed NixOS options, `lib.warn`, deprecated aliases; `abort-on-warn = true` makes each an error, checked), `config.warnings` read as data (Home Manager prints it with `builtins.trace`, so `abort-on-warn` does not see it, checked; nix-darwin does the same in source at `ff0e21a`, **[verify]**), and `nix` command diagnostics classified by `laws/diagnostics.toml`. A warning is accepted only by a dated `[[warnings.allow]]` entry | R | ev | §5 | output | ✓ |
 
 **Modules and options**
 
-| ID | Law | Sev | Reader | Sketch | v0.1 |
-|---|---|---|---|---|---|
-| N-18 | Every configuration evaluates to its build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`). The module system refuses options that do not exist, such as `virtualHosts.<name>.enableSSL` (checked), and missing package attributes | R | ev | §5 | ✓ |
-| N-19 | Every declared option has `type` and `description`. `types.anything`, `types.attrs` and `types.unspecified` need an ack | A | ev (`options` tree) | | |
-| N-20 | A module that is imported but not enabled changes nothing: the `toplevel.drvPath` of a minimal host with the module imported and `enable = false` equals the one without it | R | ev | | ✓ |
-| N-21 | `lib.mkForce`, and `lib.mkOverride` with a priority below 100, carry an ack naming the definition they override | A | an | | |
-| N-22 | `system.stateVersion` and `home.stateVersion` do not change in a diff without an ack. They record the state format the machine was installed with. They are not the release version | R | an (diff) | | ✓ |
-| N-23 | Unfree packages are allowed by `allowUnfreePredicate` over a named list, not by a blanket `allowUnfree = true` | A | an | | |
-| N-24 | Each `permittedInsecurePackages` entry carries an ack with an expiry date | A | an | | |
+| ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
+|---|---|---|---|---|---|---|
+| N-18 | Every configuration evaluates to its build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`). The module system refuses options that do not exist, such as `virtualHosts.<name>.enableSSL` (checked), and missing package attributes | R | ev | §5 | configuration | ✓ |
+| N-19 | Every declared option has `type` and `description`. `types.anything`, `types.attrs` and `types.unspecified` need an ack | A | ev (`options` tree) | | module | |
+| N-20 | A module that is imported but not enabled changes nothing: the `toplevel.drvPath` of a minimal host with the module imported and `enable = false` equals the one without it | R | ev | | module | ✓ |
+| N-21 | `lib.mkForce`, and `lib.mkOverride` with a priority below 100, carry an ack naming the definition they override | A | an | | module, configuration | |
+| N-22 | `system.stateVersion` and `home.stateVersion` do not change in a diff without an ack. They record the state format the machine was installed with. They are not the release version | R | an (diff) | | configuration | ✓ |
+| N-23 | Unfree packages are allowed by `allowUnfreePredicate` over a named list, not by a blanket `allowUnfree = true` | A | an | | nixpkgs-config | |
+| N-24 | Each `permittedInsecurePackages` entry carries an ack with an expiry date | A | an | | nixpkgs-config | |
 
 **Derivations and packaging**
 
-| ID | Law | Sev | Reader | Sketch | v0.1 |
-|---|---|---|---|---|---|
-| N-25 | Fixed-output hashes are SRI (`sha256-` and 44 base64 characters). `lib.fakeHash`, `""` and other placeholders are never committed | R | an | §6 | ✓ |
-| N-26 | A diff that changes a fetcher's `rev`, `tag` or `url`, or a `version` the source depends on, also changes its `hash`, and `vendorHash`/`cargoHash`/`npmDepsHash` when the dependency set moved. A fetcher's default store name is `source`, so a stale hash still matches the old path already in the store, and the build silently uses the old source. Tier 2 re-fetches with `--rebuild` | R | an (diff); tl at tier 2 | §6 | ✓ |
-| N-27 | No network in build phases: a raw `mkDerivation` does not run `go build`/`go mod download`, `cargo build`/`cargo fetch`, `npm install`/`npm ci`, `pip install`, `curl`, `wget` or `git clone`. Use the language builders (`buildGoModule`, `rustPlatform.buildRustPackage`, `buildNpmPackage`, `buildPythonApplication`) | R | an; build with `sandbox = true` | §7 | ✓ |
-| N-28 | `.override` takes package-function arguments; `.overrideAttrs` takes derivation attributes. `.override` with `src`, `version`, `patches`, a `*Phase`, `buildInputs` or `nativeBuildInputs` is refused: it errors, or is silently ignored when the function takes `...` | R | an | §8 | ✓ |
-| N-29 | Store paths keep their string context: no `builtins.unsafeDiscardStringContext`, `builtins.storePath`, `/nix/store/<hash>-…` literals, or string surgery on store paths. Use interpolation, `lib.getExe` or `lib.getExe'` | R | an | §9 | ✓ |
-| N-30 | Exported packages set `meta.description`, `meta.license`, `meta.platforms`, and `meta.mainProgram` when they ship one primary binary (`lib.getExe` warns without it, which N-17 then refuses) | A | ev (`meta`) | | |
-| N-31 | A package's `src` is filtered (`lib.fileset.toSource`, at least `lib.cleanSource`), not a bare `./.` or `${./.}`, so unrelated edits do not rebuild it and `.git` or `result` never enter the store | A | an | | |
-| N-32 | Scripts use `writeShellApplication` (shellcheck, `runtimeInputs`, strict mode), not `writeShellScriptBin` with bare command names | A | an | §9 | |
+| ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
+|---|---|---|---|---|---|---|
+| N-25 | Fixed-output hashes are SRI (`sha256-` and 44 base64 characters). `lib.fakeHash`, `""` and other placeholders are never committed | R | an | §6 | fod | ✓ |
+| N-26 | A diff that changes a fetcher's `rev`, `tag` or `url`, or a `version` the source depends on, also changes its `hash`, and `vendorHash`/`cargoHash`/`npmDepsHash` when the dependency set moved. A fetcher's default store name is `source`, so a stale hash still matches the old path already in the store, and the build silently uses the old source. Tier 2 re-fetches with `--rebuild` | R | an (diff); tl at tier 2 | §6 | fod | ✓ |
+| N-27 | No network in build phases: a raw `mkDerivation` does not run `go build`/`go mod download`, `cargo build`/`cargo fetch`, `npm install`/`npm ci`, `pip install`, `curl`, `wget` or `git clone`. Use the language builders (`buildGoModule`, `rustPlatform.buildRustPackage`, `buildNpmPackage`, `buildPythonApplication`) | R | an; build with `sandbox = true` | §7 | derivation | ✓ |
+| N-28 | `.override` takes package-function arguments; `.overrideAttrs` takes derivation attributes. `.override` with `src`, `version`, `patches`, a `*Phase`, `buildInputs` or `nativeBuildInputs` is refused: it errors, or is silently ignored when the function takes `...` | R | an | §8 | source | ✓ |
+| N-29 | Store paths keep their string context: no `builtins.unsafeDiscardStringContext`, `builtins.storePath`, `/nix/store/<hash>-…` literals, or string surgery on store paths. Use interpolation, `lib.getExe` or `lib.getExe'` | R | an | §9 | source | ✓ |
+| N-30 | Exported packages set `meta.description`, `meta.license`, `meta.platforms`, and `meta.mainProgram` when they ship one primary binary (`lib.getExe` warns without it, which N-17 then refuses) | A | ev (`meta`) | | package | |
+| N-31 | A package's `src` is filtered (`lib.fileset.toSource`, at least `lib.cleanSource`), not a bare `./.` or `${./.}`, so unrelated edits do not rebuild it and `.git` or `result` never enter the store | A | an | | package | |
+| N-32 | Scripts use `writeShellApplication` (shellcheck, `runtimeInputs`, strict mode), not `writeShellScriptBin` with bare command names | A | an | §9 | source | |
 
 **Secrets and security**
 
-| ID | Law | Sev | Reader | Sketch | v0.1 |
-|---|---|---|---|---|---|
-| N-33 | No secrets in source, fixtures or strings bound for the store | R | tl: `gitleaks` | §10 | ✓ |
-| N-34 | Options that take a secret file (`passwordFile`, `environmentFile`, `keyFile`, `tokenFile`, `credentialsFile`, `hashedPasswordFile`, and the like) get a runtime path string: `/run/secrets/…`, `config.sops.secrets.<name>.path`, `config.age.secrets.<name>.path`. Never a Nix path literal (`./secret.env` copies the file into the store) and never `pkgs.writeText` | R | ev (value is a string outside `/nix/store`) + an | §10 | ✓ |
-| N-35 | No plaintext `password` or `initialPassword` for users; use `hashedPasswordFile`. A `hashedPassword` literal is an Ack: the hash is world-readable in the store | R | ev | §10 | ✓ |
-| N-36 | No sandbox escapes: `__noChroot`, `__impure`, `nix.settings.sandbox = false`, `--option sandbox false` | R | an + ev | | ✓ |
-| N-37 | `networking.firewall.enable = false`, and port ranges wider than the services need, carry an ack | A | ev | | |
-| N-38 | Known vulnerabilities in runtime closures are acknowledged or fixed | A | tl: `vulnix`, tier 2 | | |
+| ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
+|---|---|---|---|---|---|---|
+| N-33 | No secrets in source, fixtures or strings bound for the store | R | tl: `gitleaks` | §10 | flake | ✓ |
+| N-34 | Options that take a secret file (`passwordFile`, `environmentFile`, `keyFile`, `tokenFile`, `credentialsFile`, `hashedPasswordFile`, and the like) get a runtime path string: `/run/secrets/…`, `config.sops.secrets.<name>.path`, `config.age.secrets.<name>.path`. Never a Nix path literal (`./secret.env` copies the file into the store) and never `pkgs.writeText` | R | ev (value is a string outside `/nix/store`) + an | §10 | module, configuration | ✓ |
+| N-35 | No plaintext `password` or `initialPassword` for users; use `hashedPasswordFile`. A `hashedPassword` literal is an Ack: the hash is world-readable in the store | R | ev | §10 | configuration | ✓ |
+| N-36 | No sandbox escapes: `__noChroot`, `__impure`, `nix.settings.sandbox = false`, `--option sandbox false` | R | an + ev | | source | ✓ |
+| N-37 | `networking.firewall.enable = false`, and port ranges wider than the services need, carry an ack | A | ev | | module, configuration | |
+| N-38 | Known vulnerabilities in runtime closures are acknowledged or fixed | A | tl: `vulnix`, tier 2 | | package, configuration | |
 
 **Tests, budgets and tools**
 
-| ID | Law | Sev | Reader | Sketch | v0.1 |
-|---|---|---|---|---|---|
-| N-39 | Oracle-first: tests derive from the contract, not from what the module produces today | A | at | | |
-| N-40 | VM test scripts wait on conditions (`wait_for_unit`, `wait_for_open_port`, `wait_until_succeeds`), never `sleep` or `time.sleep` | R | an | | ✓ |
-| N-41 | Each budgeted output's closure stays within its budget or baseline | R | an (`closureInfo`) | | ✓ |
-| N-42 | Each budgeted output's eval cost stays within its baseline and tolerance | A | an (`NIX_SHOW_STATS`) | | |
-| N-43 | The kit's tools come from the kit's own pin: the `nix-tops` input does not `follows` the adopter's nixpkgs | R | an (`flake.lock`) | | ✓ |
+| ID | Law | Sev | Reader | Sketch | Applies to | v0.1 |
+|---|---|---|---|---|---|---|
+| N-39 | Oracle-first: tests derive from the contract, not from what the module produces today | A | at | | vm-test, module | |
+| N-40 | VM test scripts wait on conditions (`wait_for_unit`, `wait_for_open_port`, `wait_until_succeeds`), never `sleep` or `time.sleep` | R | an | | vm-test | ✓ |
+| N-41 | Each budgeted output's closure stays within its budget or baseline | R | an (`closureInfo`) | | budgeted | ✓ |
+| N-42 | Each budgeted output's eval cost stays within its baseline and tolerance | A | an (`NIX_SHOW_STATS`) | | budgeted | |
+| N-43 | The kit's tools come from the kit's own pin: the `nix-tops` input does not `follows` the adopter's nixpkgs | R | an (`flake.lock`) | | nix-tops-input | ✓ |
 
 **v0.1 target:** 29 of 43 laws judged. Twelve of them use the `ev` reader, alone or with an
 analyzer; for those the evaluator does most of the work. Class-specific laws are `skip` for other
@@ -575,13 +604,14 @@ classes.
 
 ### 8.3 Law metadata
 
-Each law lives in `laws/N-NN.toml`:
+Each law lives in `laws/N-NN.toml`. `artifacts` is the "Applies to" cell of §8.2, as a list; a law
+applies to a flake only when one of those artifacts exists, and is `skip` otherwise.
 
 ```toml
 id = "N-34"
 title = "Secret files are runtime paths, never store paths"
 severity = "Refuse"
-classes = ["nixos-module", "nixos-host", "home-config"]
+artifacts = ["module", "configuration"]
 reader = "ev"
 option_names = ["passwordFile", "environmentFile", "keyFile", "tokenFile", "credentialsFile", "hashedPasswordFile"]
 rationale = "A Nix path literal or writeText copies the secret into /nix/store, which every local user can read and which binary caches may copy."
@@ -790,6 +820,10 @@ report; an agent contract.
 12. **`nix flake check --build-all` (0.2.0):** absent on CppNix 2.35.2 (`error: unrecognised flag
     '--build-all'`), accepted on Determinate Nix 3.22.3 (both run 2026-11-17). Gate 4 does not use
     it: it builds outputs one by one.
+13. **Facets (0.2.0, R4, X2):** facets derived from the outputs replace the single class; config may
+    narrow them and never add one; a facet sets floors only; `flake-lib` launches; `nixos-host` and
+    `home-config` are specified, unproven. Floors are proposed and calibrated in M4.6. After launch the
+    order is `fleet-root`, `darwin-host`, `image`.
 
 **Open:**
 
@@ -801,7 +835,7 @@ report; an agent contract.
 4. *Resolved: item 12.*
 5. **Home Manager pin.** `home-config` evaluates against the adopter's Home Manager input; decide
    whether the kit tests its HM laws against a pinned Home Manager of its own.
-6. **Profile order after launch:** `flake-lib`, then `fleet-root`.
+6. *Resolved: item 13.*
 
 ---
 

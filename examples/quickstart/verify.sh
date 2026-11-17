@@ -24,9 +24,10 @@ done
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 cp -R "$here/." "$tmp/q"
 perl -pi -e 's/\{ package = self\.packages/{ renamed = self.packages/' "$tmp/q/flake.nix"
-printf 'renamed copy: '
-"${nix[@]}" eval --json --no-write-lock-file --override-input nix-tops "path:$tmp/q/stub-kit" \
-  "path:$tmp/q#checks.x86_64-linux" --apply builtins.attrNames 2>/dev/null
+renamed=$("${nix[@]}" eval --json --no-write-lock-file --override-input nix-tops "path:$tmp/q/stub-kit" \
+  "path:$tmp/q#checks.x86_64-linux" --apply builtins.attrNames 2>/dev/null)
+echo "renamed copy: $renamed"
+[ "$renamed" = '["nixtops-config","nixtops-lint","renamed"]' ] || { echo "FAIL: the renamed check did not survive the merge" >&2; exit 1; }
 
 # section 4 of the spec carries this flake word for word
 python3 - "$here/flake.nix" "$here/../../NIX_TOPS.md" <<'PY'
