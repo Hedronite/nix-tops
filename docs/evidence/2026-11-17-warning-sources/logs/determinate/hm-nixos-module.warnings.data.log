@@ -1,0 +1,1 @@
+["fixture profile: The option `programs.carapace.ignoreCase' defined in `/nix/store/2xr0wf47plvy3lv0j0naz7zz50naia7y-source/flake.nix' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'."]

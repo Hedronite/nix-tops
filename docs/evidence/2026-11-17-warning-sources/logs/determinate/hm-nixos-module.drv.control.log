@@ -1,0 +1,2 @@
+evaluation warning: fixture profile: The option `programs.carapace.ignoreCase' defined in `/nix/store/b1qvqh8w6xv9s8f9bg5migib24672g44-source/flake.nix' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'.
+/nix/store/xxq2pn8d1z1vpl2pbzxdfklv9k7abrg6-nixos-system-nixos-26.11.20261115.1c872b8.drv
