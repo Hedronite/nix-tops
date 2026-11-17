@@ -23,3 +23,12 @@ perl -pi -e 's/\{ package = self\.packages/{ renamed = self.packages/' "$tmp/q/f
 printf 'renamed copy: '
 "${nix[@]}" eval --json --no-write-lock-file --override-input nix-tops "path:$tmp/q/stub-kit" \
   "path:$tmp/q#checks.x86_64-linux" --apply builtins.attrNames 2>/dev/null
+
+# section 4 of the spec carries this flake word for word
+python3 - "$here/flake.nix" "$here/../../NIX_TOPS.md" <<'PY'
+import sys,re
+f=open(sys.argv[1]).read(); s=open(sys.argv[2]).read()
+m=re.search(r"## 4\. Quick start.*?```nix\n(.*?)```", s, re.S)
+assert m and m.group(1)==f, "section 4 flake block differs from examples/quickstart/flake.nix"
+print("section 4 flake block equals flake.nix")
+PY
