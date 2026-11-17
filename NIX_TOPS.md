@@ -721,7 +721,7 @@ Manager or nix-darwin configuration), `package` (an exported package), `derivati
 | N-34 | Options that take a secret file (`passwordFile`, `environmentFile`, `keyFile`, `tokenFile`, `credentialsFile`, `hashedPasswordFile`, and the like) get a runtime path string: `/run/secrets/…`, `config.sops.secrets.<name>.path`, `config.age.secrets.<name>.path`. Never a Nix path literal (`./secret.env` copies the file into the store) and never `pkgs.writeText` | R | ev: options tree (value is a string outside `/nix/store`), an: syntax | §10 | module, configuration | ✓ |
 | N-35 | No plaintext `password` or `initialPassword` for users; use `hashedPasswordFile`. A `hashedPassword` literal is an Ack: the hash is world-readable in the store | R | ev: options tree | §10 | configuration | ✓ |
 | N-36 | No sandbox escapes: `__noChroot`, `__impure`, `nix.settings.sandbox = false`, `--option sandbox false` | R | ev: derivation **[verify]**, an: syntax | | source | ✓ |
-| N-37 | `networking.firewall.enable = false`, and port ranges wider than the services need, carry an ack | A | ev | | module, configuration | |
+| N-37 | `networking.firewall.enable = false`, and port ranges wider than the services need, carry an ack | A | ev: options tree | | module, configuration | |
 | N-38 | Known vulnerabilities in runtime closures are acknowledged or fixed | A | tl: `vulnix`, tier 2 | | package, configuration | |
 
 **Tests, budgets and tools**

@@ -71,7 +71,7 @@ class Catalog(Scratch):
 
     def test_planted_check_mark_flip_fails(self):
         # N-37 is unjudged: mark it judged, and the counts in the text no longer match.
-        self.edit("NIX_TOPS.md", "| A | ev | | module, configuration | |\n| N-38", "| A | ev | | module, configuration | ✓ |\n| N-38")
+        self.edit("NIX_TOPS.md", "| A | ev: options tree | | module, configuration | |\n| N-38", "| A | ev: options tree | | module, configuration | ✓ |\n| N-38")
         errs = sc.check_catalog(self.root)
         self.assertTrue(any("table marks" in e for e in errs), errs)
 
