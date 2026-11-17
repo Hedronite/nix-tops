@@ -96,6 +96,8 @@ def splice(text, block, name):
 def run(root, mode, allow_unmarked=False):
     """Return (exit status, output text)."""
     root = Path(root)
+    if not (root / SPEC).is_file():
+        raise GenError(f"{SPEC}: not found")
     rules = parse_rules((root / SPEC).read_text(encoding="utf-8"))
     out, status = [], 0
     for rel, style in TARGETS:
