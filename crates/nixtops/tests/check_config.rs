@@ -2,27 +2,48 @@
 //! exits 2 and names its key; a host below the daemon floor exits 3.
 
 mod common;
-use common::{fake_nix, stderr, stdout};
-use std::{
-    fs,
-    path::Path,
-    process::{Command, Output},
-};
+use common::fake_nix;
+use std::{fs, path::Path};
 use tempfile::tempdir;
+
+/// What a command printed, shaped like a process output so the tests read the same.
+struct Status(u8);
+impl Status {
+    fn code(&self) -> Option<i32> {
+        Some(i32::from(self.0))
+    }
+}
+struct Res {
+    status: Status,
+    stdout: String,
+    stderr: String,
+}
+fn from_output(o: nixtops::exit::Output) -> Res {
+    Res {
+        status: Status(o.exit.code()),
+        stdout: o.stdout,
+        stderr: o.stderr,
+    }
+}
+fn stdout(r: &Res) -> String {
+    r.stdout.clone()
+}
+fn stderr(r: &Res) -> String {
+    r.stderr.clone()
+}
 
 const GOOD: &str = "protocol = \"0.2.0\"\nfacets = [\"dev-flake\"]\nenforce = \"hard\"\n\n[toolchain]\nsystems = [\"x86_64-linux\"]\n";
 
-fn check(dir: &Path, nix_line: &str) -> Output {
+fn check(dir: &Path, nix_line: &str) -> Res {
     let nix = fake_nix(dir, nix_line);
-    Command::new(env!("CARGO_BIN_EXE_nixtops"))
-        .arg("check")
-        .current_dir(dir)
-        .env("NIXTOPS_NIX", nix)
-        .output()
-        .expect("nixtops runs")
+    from_output(nixtops::cmd::check::check_at(
+        &dir.join("nix-tops.toml"),
+        &nixtops::config::semantic::today_utc(),
+        nix.to_str().expect("utf8"),
+    ))
 }
 
-fn with(toml: &str) -> (tempfile::TempDir, Output) {
+fn with(toml: &str) -> (tempfile::TempDir, Res) {
     let dir = tempdir().expect("tempdir");
     fs::write(dir.path().join("nix-tops.toml"), toml).expect("write");
     let out = check(dir.path(), "nix (Nix) 2.35.2");

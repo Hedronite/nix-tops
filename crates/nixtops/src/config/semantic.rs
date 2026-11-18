@@ -66,11 +66,15 @@ fn facets(doc: &Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn enforce_problems(doc: &Value, ctx: &Context<'_>) -> Vec<Problem> {
-    let enforce = doc
-        .get("enforce")
+/// The enforcement mode; `ratchet` when the key is absent (section 6.8).
+pub fn enforce_of(doc: &Value) -> &str {
+    doc.get("enforce")
         .and_then(Value::as_str)
-        .unwrap_or("ratchet");
+        .unwrap_or("ratchet")
+}
+
+fn enforce_problems(doc: &Value, ctx: &Context<'_>) -> Vec<Problem> {
+    let enforce = enforce_of(doc);
     let mut out = Vec::new();
     if enforce == "advisory" {
         out.push(Problem::new(

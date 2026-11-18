@@ -5,7 +5,6 @@ mod common;
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::Command,
 };
 use tempfile::tempdir;
 
@@ -34,12 +33,12 @@ fn init_matches_the_goldens() {
     let update = std::env::var_os("NIXTOPS_UPDATE_GOLDENS").is_some();
     for facet in FACETS {
         let dir = tempdir().expect("tempdir");
-        let out = Command::new(env!("CARGO_BIN_EXE_nixtops"))
-            .args(["init", "--facet", facet])
-            .current_dir(dir.path())
-            .output()
-            .expect("runs");
-        assert_eq!(out.status.code(), Some(0), "{facet}");
+        let args = nixtops::cmd::init::Args {
+            facets: vec![facet.to_string()],
+            force: false,
+        };
+        let out = nixtops::cmd::init::init_in(dir.path(), &args);
+        assert_eq!(out.exit.code(), 0, "{facet}");
         for file in FILES {
             let got = fs::read_to_string(dir.path().join(file)).expect("written");
             let want_path = golden_dir(facet).join(file);
