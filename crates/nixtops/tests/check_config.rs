@@ -177,3 +177,19 @@ fn the_schema_in_the_binary_is_the_file_in_the_repo() {
         fs::read_to_string(common::repo_root().join("schema/nix-tops.schema.json")).expect("read");
     assert_eq!(nixtops::config::schema::CONFIG_SCHEMA, on_disk);
 }
+
+#[test]
+fn evaluate_returns_the_verdict_without_printing_or_exiting() {
+    use nixtops::{cmd::check::evaluate, exit::Exit};
+    let dir = tempdir().expect("tempdir");
+    let nix = fake_nix(dir.path(), "nix (Nix) 2.35.2");
+    let config = dir.path().join("nix-tops.toml");
+    fs::write(&config, format!("bogus = 1\n{GOOD}")).expect("write");
+    let bad = evaluate(&config, "2026-11-18", nix.to_str().expect("utf8"));
+    assert_eq!(bad.exit, Exit::ConfigInvalid);
+    assert_eq!(bad.problems.len(), 1);
+    assert_eq!(bad.problems[0].key, "bogus");
+    fs::write(&config, GOOD).expect("write");
+    let good = evaluate(&config, "2026-11-18", nix.to_str().expect("utf8"));
+    assert_eq!((good.exit, good.problems.len()), (Exit::Pass, 0));
+}
