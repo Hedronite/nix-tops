@@ -1,0 +1,17 @@
+flake github:Hedronite/python-gate/2cb1775fa024551c761f6ba8568ea62039b0ff87?narHash=sha256-Kl0g51BJ/CAl3MzBS2k%2BG%2B2f3WmzHCNSCelMKwUiRTM%3D
+facets dev-flake, package-set
+systems aarch64-darwin, aarch64-linux, x86_64-linux
+evaluated     app             apps.aarch64-darwin.default
+evaluated     app             apps.aarch64-linux.default
+evaluated     app             apps.x86_64-linux.default
+evaluated     check           checks.aarch64-darwin.python-gate-runs
+evaluated     check           checks.aarch64-linux.python-gate-runs
+evaluated     check           checks.x86_64-linux.python-gate-runs
+evaluated     dev-shell       devShells.aarch64-darwin.default
+evaluated     dev-shell       devShells.aarch64-linux.default
+evaluated     dev-shell       devShells.x86_64-linux.default
+evaluated     package         packages.aarch64-darwin.default
+evaluated     package         packages.aarch64-linux.default
+evaluated     package         packages.x86_64-linux.default
+instantiated  template        templates.default
+13 outputs, 0 errors

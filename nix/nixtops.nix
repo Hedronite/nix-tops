@@ -4,6 +4,7 @@
   lib,
   pkgs,
   rustPlatform,
+  nixpkgsInput,
 }:
 let
   kit = import ./tools.nix { inherit pkgs; };
@@ -34,6 +35,9 @@ rustPlatform.buildRustPackage {
 
   NIXTOPS_TOOLS = toolTable;
   NIXTOPS_JUDGE = lib.getExe kit.judge;
+  NIXTOPS_EVAL_JOBS = lib.getExe kit.tools.nix-eval-jobs;
+  # The kit's own lock, as a locked reference: overlays and modules are checked against it.
+  NIXTOPS_NIXPKGS = "github:NixOS/nixpkgs/${nixpkgsInput.rev}?narHash=${nixpkgsInput.narHash}";
 
   meta = {
     description = "The Nix-TOPS runner";

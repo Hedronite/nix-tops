@@ -3,13 +3,7 @@
 mod common;
 use common::{nixtops, stderr};
 
-const UNBUILT: [&[&str]; 5] = [
-    &["gate"],
-    &["baseline"],
-    &["laws"],
-    &["outputs"],
-    &["report"],
-];
+const UNBUILT: [&[&str]; 4] = [&["gate"], &["baseline"], &["laws"], &["report"]];
 
 #[test]
 fn an_unbuilt_command_exits_4_and_names_itself() {
@@ -48,7 +42,6 @@ fn flags_of_the_table_parse() {
         &["laws", "list"],
         &["laws", "run"],
         &["laws", "explain", "N-04"],
-        &["outputs", "--json"],
         &["report", "--format", "json"],
     ];
     for args in gate {
