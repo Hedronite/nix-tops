@@ -84,6 +84,8 @@ pub struct Record {
     pub name: Option<String>,
     pub meta: Option<Value>,
     pub error: Option<String>,
+    /// Why the level is what it is, where it is lower than the kind would reach.
+    pub note: Option<String>,
 }
 
 impl Record {
@@ -98,6 +100,7 @@ impl Record {
             name: None,
             meta: None,
             error: None,
+            note: None,
         }
     }
 
@@ -118,6 +121,13 @@ impl Record {
 
     pub fn with_meta(self, meta: Option<Value>) -> Self {
         Self { meta, ..self }
+    }
+
+    pub fn with_note(self, note: &str) -> Self {
+        Self {
+            note: Some(note.to_string()),
+            ..self
+        }
     }
 
     pub fn is_error(&self) -> bool {

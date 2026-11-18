@@ -87,18 +87,25 @@ pub fn overlay(url: &str, pins: &str, system: &str, path: &[&str]) -> String {
     )
 }
 
-/// A module evaluated on its own with the pinned nixpkgs' module system; its options must resolve.
-pub fn module(url: &str, pins: &str, system: &str, path: &[&str]) -> String {
-    let (value, np, sys) = (at(url, path), nixpkgs(pins), quote(system));
-    let args = format!(
-        "{{ pkgs = np.legacyPackages.${{{sys}}}; modulesPath = \"${{np.outPath}}/nixos/modules\"; }}"
-    );
-    let eval = format!(
-        "np.lib.evalModules {{ modules = [ m {{ _module.check = false; }} ]; specialArgs = {args}; }}"
-    );
+/// A NixOS module evaluated in a minimal NixOS configuration of the pinned nixpkgs, with the
+/// module system's option check on: a module that sets an option nobody declares fails here. The
+/// configuration is `x86_64-linux` (NixOS is Linux; nothing is built), and its build root is forced.
+pub fn nixos_module(url: &str, pins: &str, path: &[&str]) -> String {
+    let (value, np) = (at(url, path), nixpkgs(pins));
+    let base = "{ nixpkgs.hostPlatform = \"x86_64-linux\"; system.stateVersion = \"25.11\"; \
+        boot.loader.grub.enable = false; \
+        fileSystems.\"/\" = { device = \"none\"; fsType = \"tmpfs\"; }; }";
+    let eval = format!("np.lib.nixosSystem {{ modules = [ m {base} ]; }}");
     format!(
-        "let np = {np}; m = {value}; e = {eval}; in {{ options = builtins.length (builtins.attrNames e.options); }}"
+        "let np = {np}; m = {value}; e = {eval}; in {{ drvPath = e.config.system.build.toplevel.drvPath; }}"
     )
+}
+
+/// What a module export is, forced to a value; used where the kit's lock has no module system for
+/// it (Home Manager and nix-darwin modules).
+pub fn module_value(url: &str, path: &[&str]) -> String {
+    let value = at(url, path);
+    format!("let m = {value}; in {{ type = builtins.typeOf m; }}")
 }
 
 /// A configuration's build root: the derivation of `leaf` (for example `config.system.build.toplevel`).
@@ -165,12 +172,12 @@ mod tests {
                 && o.contains("\"x86_64-linux\"")
                 && o.contains("np:ref")
         );
-        let m = module("u", "np:ref", "aarch64-linux", &["nixosModules", "m"]);
-        assert!(
-            m.contains("np.lib.evalModules")
-                && m.contains("_module.check = false")
-                && m.contains("\"aarch64-linux\"")
-        );
+        let m = nixos_module("u", "np:ref", &["nixosModules", "m"]);
+        assert!(m.contains("np.lib.nixosSystem") && m.contains("np:ref"));
+        assert!(m.contains("hostPlatform = \"x86_64-linux\""));
+        assert!(!m.contains("_module.check = false"));
+        assert!(m.contains("config.system.build.toplevel.drvPath"));
+        assert!(module_value("u", &["homeManagerModules", "m"]).contains("builtins.typeOf m"));
         let c = configuration(
             "u",
             &["nixosConfigurations", "h"],

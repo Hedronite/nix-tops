@@ -9,7 +9,7 @@ The kit's own command, run over `python-gate` at `2cb1775` and `rust-tops` at `7
 | `python-gate` (`2cb1775`) | 13 | 0 | yes, byte for byte (JSON and text) |
 | `rust-tops` (`77056c9`) | 35 | 6, all `x86_64-darwin` | yes, byte for byte |
 
-`python-gate`: 3 apps, 3 checks, 3 dev shells, 3 packages (one each on `aarch64-darwin`, `aarch64-linux`, `x86_64-linux`) and the `default` template. Facets `dev-flake` and `package-set`.
+`python-gate`: 3 apps (`evaluated`), 3 checks, 3 dev shells, 3 packages (one each on `aarch64-darwin`, `aarch64-linux`, `x86_64-linux`) and the `default` template. Facets `dev-flake` and `package-set`.
 
 `rust-tops`: 29 outputs evaluate or instantiate; 6 fail, in one run, none of them stopping the walk:
 
@@ -25,8 +25,8 @@ Compared with `docs/evidence/2026-11-16-gate3-trial/`: Determinate's `flake chec
 ## What the inventory does and does not check
 
 - Derivation outputs (packages, checks, dev shells) come from `nix-eval-jobs`: one line per attribute, an `error` key on a failed one. A failure of the whole set has no line; the process exits non-zero and the runner records the set.
-- Apps are evaluated (`type` is `app`, `program` is a string). Overlays are applied to the kit's locked nixpkgs and the result must evaluate; modules are evaluated with the module system of that nixpkgs; templates are copied to a scratch directory and their flake must evaluate there; configurations give their build root's `.drv`. `legacyPackages`, `lib` and names the runner does not know are listed, not evaluated. Coverage of every output is `not-evaluated` in this milestone.
-- The apps check does not build the program, so "`program` resolves to a file in the built output" (section 6.1) waits for the gate step that builds.
+- Apps are evaluated (`type` is `app`, `program` is a string) and stay at `evaluated`: section 6.1's `instantiated` means `program` resolves to a file in the built output, which needs a build, so no app is `instantiated` in this version. Overlays are applied to the kit's locked nixpkgs and the result must evaluate (`instantiated`). A NixOS module is evaluated in a minimal NixOS configuration (`x86_64-linux`, nothing built) from the kit's nixpkgs with the module system's option check on, so a module that sets an option nobody declares is an error, and only a module that evaluates there is `instantiated`. Home Manager and nix-darwin modules stay `evaluated` with a `note`: the kit's lock has neither, and M1 adds no flake input. Templates are copied to a scratch directory and their flake must evaluate there; configurations give their build root's `.drv`. `legacyPackages`, `lib` and names the runner does not know are listed, not evaluated. Coverage of every output is `not-evaluated` in this milestone. A level may understate what an output reached, never overstate it.
+- A listing error is kept per output: an output whose members cannot be listed appears as an error record and in the structure with its error, so its systems are not silently dropped.
 - Template evaluation resolves the template's own inputs, which are not locked until a user instantiates it; `python-gate`'s template passed with network access.
 
 ## One difference found and fixed on the way

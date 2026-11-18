@@ -132,7 +132,9 @@ fn app(session: &Session, url: &str, path: &[&str], system: &str) -> Record {
         }
     });
     match checked {
-        Ok(()) => Record::new(&attr, Kind::App, Some(system), Level::Instantiated),
+        // Instantiated would mean `program` resolves to a file in the built output, which needs a
+        // build; in this version an app that checks out is evaluated.
+        Ok(()) => Record::new(&attr, Kind::App, Some(system), Level::Evaluated),
         Err(error) => Record::failed(&attr, Kind::App, Some(system), error),
     }
 }
@@ -183,13 +185,24 @@ fn overlay(session: &Session, url: &str, name: &str, system: &str) -> Record {
     }
 }
 
-fn module(session: &Session, url: &str, top: &str, name: &str, system: &str) -> Record {
+/// Why a Home Manager or nix-darwin module stays at `evaluated`: the kit's lock has neither.
+const NO_MODULE_SYSTEM: &str =
+    "the kit's lock has no Home Manager or nix-darwin; the module is evaluated, not instantiated";
+
+/// A NixOS module is instantiated in a minimal NixOS configuration with the option check on.
+/// Other module kinds are evaluated as values only.
+fn module(session: &Session, url: &str, top: &str, name: &str) -> Record {
     let path = [top, name];
     let attr = path.join(".");
-    match eval_json(
-        session,
-        &expr::module(url, session.nixpkgs(), system, &path),
-    ) {
+    if top != "nixosModules" {
+        return match eval_json(session, &expr::module_value(url, &path)) {
+            Ok(_) => {
+                Record::new(&attr, Kind::Module, None, Level::Evaluated).with_note(NO_MODULE_SYSTEM)
+            }
+            Err(error) => Record::failed(&attr, Kind::Module, None, error),
+        };
+    }
+    match eval_json(session, &expr::nixos_module(url, session.nixpkgs(), &path)) {
         Ok(_) => Record::new(&attr, Kind::Module, None, Level::Instantiated),
         Err(error) => Record::failed(&attr, Kind::Module, None, error),
     }
@@ -267,7 +280,7 @@ fn flat_member(
 ) -> Record {
     match kind {
         Kind::Overlay => overlay(session, url, name, system),
-        Kind::Module => module(session, url, top, name, system),
+        Kind::Module => module(session, url, top, name),
         Kind::Template => template(session, url, name),
         _ => configuration(session, url, top, name),
     }

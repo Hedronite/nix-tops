@@ -27,7 +27,7 @@ fn script(dir: &Path, name: &str, arms: &[Arm]) -> PathBuf {
     path
 }
 
-const NAMES: &str = r#"["apps","checks","devShells","fooBar","formatter","homeConfigurations","legacyPackages","lib","nixosConfigurations","nixosModules","overlays","packages","templates"]"#;
+const NAMES: &str = r#"["apps","checks","devShells","fooBar","formatter","homeConfigurations","homeManagerModules","legacyPackages","lib","nixosConfigurations","nixosModules","overlays","packages","templates"]"#;
 
 fn judge_arms<'a>(template_dir: &'a str) -> Vec<Arm<'a>> {
     vec![
@@ -51,7 +51,8 @@ fn judge_arms<'a>(template_dir: &'a str) -> Vec<Arm<'a>> {
         (r#"[ "formatter" ]"#, r#"["x86_64-linux"]"#, "", 0),
         (r#"[ "legacyPackages" ]"#, r#"["x86_64-linux"]"#, "", 0),
         (r#"[ "overlays" ]"#, r#"["bad","default"]"#, "", 0),
-        (r#"[ "nixosModules" ]"#, r#"["m"]"#, "", 0),
+        (r#"[ "nixosModules" ]"#, r#"["bad","m"]"#, "", 0),
+        (r#"[ "homeManagerModules" ]"#, r#"["hm"]"#, "", 0),
         (r#"[ "templates" ]"#, r#"["t"]"#, "", 0),
         (r#"[ "nixosConfigurations" ]"#, r#"["h"]"#, "", 0),
         (r#"[ "homeConfigurations" ]"#, r#"["u"]"#, "", 0),
@@ -92,7 +93,24 @@ fn judge_arms<'a>(template_dir: &'a str) -> Vec<Arm<'a>> {
             1,
         ),
         (r#"[ "overlays" "default" ]"#, r#"{"attrs":3}"#, "", 0),
-        (r#"[ "nixosModules" "m" ]"#, r#"{"options":2}"#, "", 0),
+        (
+            r#"[ "nixosModules" "bad" ]"#,
+            "",
+            "error: The option `nonexistent.option' does not exist.",
+            1,
+        ),
+        (
+            r#"[ "nixosModules" "m" ]"#,
+            r#"{"drvPath":"/nix/store/n.drv"}"#,
+            "",
+            0,
+        ),
+        (
+            r#"[ "homeManagerModules" "hm" ]"#,
+            r#"{"type":"lambda"}"#,
+            "",
+            0,
+        ),
         ("toString t.path", template_dir, "", 0),
         ("c.activationPackage.drvPath", "", "error: no activation", 1),
         (
@@ -185,9 +203,10 @@ fn every_output_kind_gets_a_record_with_its_level() {
     assert_eq!(level("packages.x86_64-linux.a"), "evaluated");
     assert_eq!(level("checks.x86_64-linux.c"), "evaluated");
     assert_eq!(level("formatter.x86_64-linux"), "evaluated");
-    assert_eq!(level("apps.x86_64-linux.default"), "instantiated");
+    assert_eq!(level("apps.x86_64-linux.default"), "evaluated");
     assert_eq!(level("overlays.default"), "instantiated");
     assert_eq!(level("nixosModules.m"), "instantiated");
+    assert_eq!(level("homeManagerModules.hm"), "evaluated");
     assert_eq!(level("templates.t"), "instantiated");
     assert_eq!(level("nixosConfigurations.h"), "evaluated");
     assert_eq!(level("legacyPackages.x86_64-linux"), "listed");
@@ -212,9 +231,10 @@ fn errors_are_kept_per_output_and_the_walk_goes_on() {
     assert!(
         error("apps.x86_64-linux.broken").starts_with("not an app: type is Some(\"derivation\")")
     );
+    assert!(error("nixosModules.bad").contains("nonexistent.option"));
     assert!(error("homeConfigurations.u").contains("no activation"));
     assert_eq!(find(&r, "packages.x86_64-linux.b")["level"], "evaluated");
-    assert_eq!(r["summary"]["errors"], 6);
+    assert_eq!(r["summary"]["errors"], 7);
     assert_eq!(
         r["summary"]["outputs"],
         r["outputs"].as_array().unwrap().len()
@@ -309,7 +329,7 @@ fn the_text_form_has_a_header_a_row_per_output_and_a_count() {
         "{}",
         out.stdout
     );
-    assert!(lines.last().unwrap().ends_with(" outputs, 6 errors"));
+    assert!(lines.last().unwrap().ends_with(" outputs, 7 errors"));
 }
 
 #[test]
@@ -543,4 +563,46 @@ fn a_listing_error_stays_on_the_structure_and_in_the_report() {
     );
     assert_eq!(find(&report, "packages")["level"], "error");
     assert_eq!(report["summary"]["errors"], 1);
+}
+
+#[test]
+fn an_app_is_never_instantiated_in_this_version() {
+    let r = run_json(rig().tools);
+    let apps: Vec<&Value> = r["outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|o| o["kind"] == "app")
+        .collect();
+    assert!(apps.len() >= 3);
+    assert!(apps.iter().all(|o| o["level"] != "instantiated"));
+    assert_eq!(find(&r, "apps.x86_64-linux.default")["level"], "evaluated");
+}
+
+#[test]
+fn a_module_with_a_bad_option_does_not_reach_instantiated() {
+    let r = run_json(rig().tools);
+    let bad = find(&r, "nixosModules.bad");
+    assert_eq!(bad["level"], "error");
+    assert!(
+        bad["error"]
+            .as_str()
+            .unwrap()
+            .contains("nonexistent.option")
+    );
+    assert_eq!(find(&r, "nixosModules.m")["level"], "instantiated");
+}
+
+#[test]
+fn modules_without_a_module_system_in_the_lock_stay_evaluated_with_a_reason() {
+    let r = run_json(rig().tools);
+    let hm = find(&r, "homeManagerModules.hm");
+    assert_eq!(hm["level"], "evaluated");
+    assert!(
+        hm["note"]
+            .as_str()
+            .unwrap()
+            .contains("no Home Manager or nix-darwin")
+    );
+    assert_eq!(find(&r, "nixosModules.m")["note"], Value::Null);
 }
