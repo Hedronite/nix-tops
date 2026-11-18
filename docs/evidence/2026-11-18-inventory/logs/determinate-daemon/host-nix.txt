@@ -1,1 +1,0 @@
-nix (Determinate Nix 3.22.3) 2.35.2
