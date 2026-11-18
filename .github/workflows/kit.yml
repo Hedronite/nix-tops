@@ -2,6 +2,8 @@ name: kit
 
 # Builds the kit's own flake and runs the gate-3 eval options over it, on three legs: x86_64-linux
 # with the sandbox on, aarch64-darwin on macos-15, and a Determinate Nix leg.
+# Every nix command passes --no-accept-flake-config, so a flake cannot change gate 3's eval
+# options (--option abort-on-warn true, allow-import-from-derivation false).
 # Never use pull_request_target here: this workflow runs code from the PR.
 on:
   pull_request:
@@ -15,11 +17,6 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  # Gate 3's eval options (protocol section 3.1). Every nix command also passes
-  # --no-accept-flake-config, so a flake cannot change these settings.
-  EVAL_OPTIONS: --option abort-on-warn true --option allow-import-from-derivation false
 
 jobs:
   linux:
@@ -36,7 +33,7 @@ jobs:
             sandbox = true
             experimental-features = nix-command flakes
       - name: Flake check, no build, every system
-        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config $EVAL_OPTIONS
+        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config --option abort-on-warn true --option allow-import-from-derivation false
       - name: Build the runner (tests run in the build)
         run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
       - name: Version and doctor
@@ -57,7 +54,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - name: Flake check, no build, every system
-        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config $EVAL_OPTIONS
+        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config --option abort-on-warn true --option allow-import-from-derivation false
       - name: Build the runner (tests run in the build)
         run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
       - name: Version and doctor
@@ -75,7 +72,7 @@ jobs:
           persist-credentials: false
       - uses: DeterminateSystems/determinate-nix-action@16f94ba7aae399b9f9077c254b6719ec6de7e3e3 # v3.24.2
       - name: Flake check, no build, every system (Determinate-only settings off)
-        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config $EVAL_OPTIONS --option lazy-trees false --option eval-cores 1
+        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config --option abort-on-warn true --option allow-import-from-derivation false --option lazy-trees false --option eval-cores 1
       - name: Build the runner
         run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
       - name: Version and doctor
