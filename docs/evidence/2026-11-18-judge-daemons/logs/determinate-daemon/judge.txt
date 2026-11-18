@@ -1,0 +1,8 @@
+judge: /nix/store/p959r3d926iaqiyjpd0s3mbzppcxfmck-nix-2.35.6/bin/nix
+warning: unknown setting 'eval-cores'
+warning: unknown setting 'lazy-trees'
+nix (Nix) 2.35.6
+host nix: nix (Determinate Nix 3.22.3) 2.35.2
+warning: unknown setting 'eval-cores'
+warning: unknown setting 'lazy-trees'
+daemon: {"trusted":false,"url":"daemon","version":"2.35.2"}
