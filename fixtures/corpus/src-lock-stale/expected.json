@@ -1,0 +1,12 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "fail"
+  },
+  "named": "N-05",
+  "scratch": true,
+  "note": "flake.nix declares an input the committed lock lacks; with --no-update-lock-file the lock is not current.",
+  "raw": {
+    "exit": 1
+  }
+}

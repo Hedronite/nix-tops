@@ -1,0 +1,12 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "fail"
+  },
+  "named": "N-17",
+  "note": "builtins.warn on evaluation; abort-on-warn makes it an error (warning source 1).",
+  "raw": {
+    "exit": 1
+  }
+}

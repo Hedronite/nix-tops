@@ -1,0 +1,11 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass"
+  },
+  "scratch": true,
+  "note": "An untracked .nix file under the ignored .direnv directory is exempt (N-04), so the source layer passes.",
+  "raw": {
+    "exit": 0
+  }
+}

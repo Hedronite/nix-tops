@@ -1,0 +1,11 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "note": "Packages with meta.description, meta.license, meta.mainProgram and one overlay, on all three systems.",
+  "raw": {
+    "exit": 0
+  }
+}
