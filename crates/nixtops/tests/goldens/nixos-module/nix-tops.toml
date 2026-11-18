@@ -1,0 +1,17 @@
+protocol = "0.2.0"
+facets = ["nixos-module"]
+enforce = "ratchet"
+baseline = ".nix-tops/baseline.json"
+nixpkgs_input = "nixpkgs"
+
+[toolchain]
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]
+
+[eval]
+all_systems = true
+abort_on_warn = true
+allow_ifd = false
+
+[layers]
+rebuild = { enabled = false }
+vulnix = { enabled = false }
