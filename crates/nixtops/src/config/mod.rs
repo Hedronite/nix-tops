@@ -58,3 +58,25 @@ pub fn load(text: &str) -> Result<Value, Vec<Problem>> {
         Err(found)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn toml_becomes_json_with_dates_as_strings() {
+        let doc =
+            parse("n = 3\nf = 1.5\nb = true\ns = \"x\"\nd = 2026-12-01\na = [1, 2]\n[t]\nk = 1\n")
+                .expect("parses");
+        assert_eq!(
+            doc,
+            json!({"n":3,"f":1.5,"b":true,"s":"x","d":"2026-12-01","a":[1,2],"t":{"k":1}})
+        );
+    }
+
+    #[test]
+    fn a_non_finite_float_becomes_null_not_a_panic() {
+        assert_eq!(parse("f = nan\n").expect("parses"), json!({"f":null}));
+    }
+}

@@ -66,14 +66,14 @@ fn facets(doc: &Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
-pub fn check(doc: &Value, ctx: &Context<'_>) -> Findings {
-    let mut out = Findings::default();
+fn enforce_problems(doc: &Value, ctx: &Context<'_>) -> Vec<Problem> {
     let enforce = doc
         .get("enforce")
         .and_then(Value::as_str)
         .unwrap_or("ratchet");
+    let mut out = Vec::new();
     if enforce == "advisory" {
-        out.problems.push(Problem::new(
+        out.push(Problem::new(
             "enforce".into(),
             format!(
                 "advisory needs a dated exemption, and protocol {} has no exemption key yet; use hard or ratchet",
@@ -82,51 +82,78 @@ pub fn check(doc: &Value, ctx: &Context<'_>) -> Findings {
         ));
     }
     if enforce == "ratchet" && !ctx.baseline_exists {
-        out.problems.push(Problem::new(
+        out.push(Problem::new(
             "baseline".into(),
-            format!("{} does not exist, and enforce = ratchet needs it (run nixtops baseline after a passing gate)", baseline_path(doc)),
+            format!(
+                "{} does not exist, and enforce = ratchet needs it (run nixtops baseline after a passing gate)",
+                baseline_path(doc)
+            ),
         ));
     }
-    for facet in facets(doc) {
-        out.notes.push(match profiles::status(&facet) {
+    out
+}
+
+fn facet_notes(doc: &Value) -> Vec<String> {
+    facets(doc)
+        .into_iter()
+        .map(|facet| match profiles::status(&facet) {
             Status::Launch => format!("facet {facet}: profile found"),
             Status::Unproven => {
                 format!("facet {facet}: specified, unproven (profile found; no adopter has run it)")
             }
             Status::NoProfile => format!("facet {facet}: no profile"),
-        });
+        })
+        .collect()
+}
+
+fn ledger_problem(i: usize, entry: &Value, today: &str) -> Option<Problem> {
+    let until = entry.get("until").and_then(Value::as_str).unwrap_or("");
+    let key = format!("warnings.allow[{i}].until");
+    if !valid_date(until) {
+        return Some(Problem::new(key, format!("{until} is not a calendar date")));
     }
+    (until < today).then(|| {
+        Problem::new(
+            key,
+            format!("expired on {until} (today is {today}); an expired entry fails the gate"),
+        )
+    })
+}
+
+fn ledger_problems(doc: &Value, today: &str) -> Vec<Problem> {
     let entries = doc.pointer("/warnings/allow").and_then(Value::as_array);
-    for (i, entry) in entries.into_iter().flatten().enumerate() {
-        let until = entry.get("until").and_then(Value::as_str).unwrap_or("");
-        let key = format!("warnings.allow[{i}].until");
-        if !valid_date(until) {
-            out.problems
-                .push(Problem::new(key, format!("{until} is not a calendar date")));
-        } else if until < ctx.today {
-            out.problems.push(Problem::new(
-                key,
-                format!(
-                    "expired on {until} (today is {}); an expired entry fails the gate",
-                    ctx.today
-                ),
-            ));
-        }
-    }
-    match ctx.lock.map(kit_follows_nixpkgs) {
-        Some(Some(true)) => out.problems.push(Problem::new(
+    entries
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .filter_map(|(i, entry)| ledger_problem(i, entry, today))
+        .collect()
+}
+
+/// A problem when the kit input follows nixpkgs, otherwise a note.
+fn lock_finding(lock: Option<&Value>) -> Result<String, Problem> {
+    match lock.map(kit_follows_nixpkgs) {
+        Some(Some(true)) => Err(Problem::new(
             "inputs.nix-tops.inputs.nixpkgs".into(),
             "the nix-tops input follows nixpkgs; its tools stay on the kit's pin (N-43)".into(),
         )),
-        Some(Some(false)) => out
-            .notes
-            .push("nix-tops input: does not follow nixpkgs".into()),
-        Some(None) => out
-            .notes
-            .push("no nix-tops input in flake.lock (the kit itself, or not yet added)".into()),
-        None => out
-            .notes
-            .push("no flake.lock found; the nix-tops input was not checked".into()),
+        Some(Some(false)) => Ok("nix-tops input: does not follow nixpkgs".into()),
+        Some(None) => {
+            Ok("no nix-tops input in flake.lock (the kit itself, or not yet added)".into())
+        }
+        None => Ok("no flake.lock found; the nix-tops input was not checked".into()),
+    }
+}
+
+pub fn check(doc: &Value, ctx: &Context<'_>) -> Findings {
+    let mut out = Findings {
+        problems: enforce_problems(doc, ctx),
+        notes: facet_notes(doc),
+    };
+    out.problems.extend(ledger_problems(doc, ctx.today));
+    match lock_finding(ctx.lock) {
+        Ok(note) => out.notes.push(note),
+        Err(problem) => out.problems.push(problem),
     }
     out
 }

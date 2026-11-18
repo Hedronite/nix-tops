@@ -54,34 +54,32 @@ fn dotted(pointer: &str) -> String {
     }
 }
 
+fn join_key(path: &str, name: &str) -> String {
+    if path == "(top level)" {
+        name.to_string()
+    } else {
+        format!("{path}.{name}")
+    }
+}
+
 fn problems_of(error: &ValidationError<'_>, into: &mut Vec<Problem>) {
     let path = dotted(&error.instance_path().to_string());
     match error.kind() {
-        ValidationErrorKind::AdditionalProperties { unexpected } => {
-            for name in unexpected {
-                let key = if path == "(top level)" {
-                    name.clone()
-                } else {
-                    format!("{path}.{name}")
-                };
-                into.push(Problem::new(key, "is not a key of the schema".into()));
-            }
-        }
+        ValidationErrorKind::AdditionalProperties { unexpected } => into.extend(
+            unexpected
+                .iter()
+                .map(|n| Problem::new(join_key(&path, n), "is not a key of the schema".into())),
+        ),
         // A oneOf over the two shapes (a configuration, a profile). A file that is a
         // configuration is judged by its own branch, the first.
         ValidationErrorKind::OneOfNotValid { context } => match context.first() {
             Some(branch) => branch.iter().for_each(|e| problems_of(e, into)),
             None => into.push(Problem::new(path, error.to_string())),
         },
-        ValidationErrorKind::Required { property } => {
-            let name = property.as_str().unwrap_or("?");
-            let key = if path == "(top level)" {
-                name.to_string()
-            } else {
-                format!("{path}.{name}")
-            };
-            into.push(Problem::new(key, "is required".into()));
-        }
+        ValidationErrorKind::Required { property } => into.push(Problem::new(
+            join_key(&path, property.as_str().unwrap_or("?")),
+            "is required".into(),
+        )),
         _ => into.push(Problem::new(path, error.to_string())),
     }
 }
