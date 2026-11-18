@@ -7,6 +7,10 @@ pub const PROTOCOL: &str = env!("NIXTOPS_PROTOCOL");
 pub const PACKAGE: &str = env!("CARGO_PKG_VERSION");
 pub const TOOLS: &str = env!("NIXTOPS_TOOLS");
 pub const JUDGE_PATH: &str = env!("NIXTOPS_JUDGE");
+/// `nix-eval-jobs` from the kit's lock, built against the same Nix as the judge.
+pub const EVAL_JOBS_PATH: &str = env!("NIXTOPS_EVAL_JOBS");
+/// The kit's locked nixpkgs as a flake reference with its hash, for overlays and modules.
+pub const NIXPKGS_REF: &str = env!("NIXTOPS_NIXPKGS");
 
 /// Tool name for the pinned CppNix judge in the tool table.
 pub const JUDGE_TOOL: &str = "nix";

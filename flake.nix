@@ -16,7 +16,7 @@
     in
     {
       packages = forAllSystems (pkgs: rec {
-        nixtops = pkgs.callPackage ./nix/nixtops.nix { };
+        nixtops = pkgs.callPackage ./nix/nixtops.nix { nixpkgsInput = nixpkgs; };
         default = nixtops;
       });
 

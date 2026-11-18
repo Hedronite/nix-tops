@@ -17,7 +17,12 @@ fn main() {
     let schema = root.join("schema/nix-tops.schema.json");
     println!("cargo:rerun-if-changed={}", schema.display());
     println!("cargo:rustc-env=NIXTOPS_PROTOCOL={}", protocol(&schema));
-    for name in ["NIXTOPS_TOOLS", "NIXTOPS_JUDGE"] {
+    for name in [
+        "NIXTOPS_TOOLS",
+        "NIXTOPS_JUDGE",
+        "NIXTOPS_EVAL_JOBS",
+        "NIXTOPS_NIXPKGS",
+    ] {
         println!("cargo:rerun-if-env-changed={name}");
         println!(
             "cargo:rustc-env={name}={}",
