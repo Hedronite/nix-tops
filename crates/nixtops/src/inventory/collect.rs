@@ -344,7 +344,7 @@ pub fn collect(session: &Session, flake_ref: &str) -> Result<Inventory, String> 
         match members {
             Ok(found) => structure.insert(name, found.clone()),
             Err(error) => {
-                structure.insert(name, Vec::new());
+                structure.insert_error(name, error.clone());
                 records.push(container_error(name, error.clone()));
             }
         }

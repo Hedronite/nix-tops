@@ -29,12 +29,17 @@ pub fn exported_systems(structure: &Structure) -> BTreeSet<String> {
 }
 
 /// The structure of `flake_ref` without evaluating any derivation: which outputs exist and which
-/// systems they export. An output whose members cannot be listed is left empty.
+/// systems they export. An output whose members cannot be listed is kept with no members and its
+/// error in `Structure::errors`; the caller decides what that means (the systems of that output
+/// are missing from [`exported_systems`]).
 pub fn structure_of(session: &Session, flake_ref: &str) -> Result<Structure, String> {
     let url = locked_url(session, flake_ref)?;
     let mut structure = Structure::default();
     for (name, members) in read_structure(session, &url)? {
-        structure.insert(&name, members.unwrap_or_default());
+        match members {
+            Ok(found) => structure.insert(&name, found),
+            Err(error) => structure.insert_error(&name, error),
+        }
     }
     Ok(structure)
 }

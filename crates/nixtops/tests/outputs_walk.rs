@@ -498,3 +498,49 @@ fn eval_jobs_gets_flakes_enabled_by_option_and_gate_three_options() {
         "--flake ref#packages.x --meta --workers 1 --option extra-experimental-features nix-command flakes --option abort-on-warn true --option allow-import-from-derivation false"
     );
 }
+
+#[test]
+fn a_listing_error_stays_on_the_structure_and_in_the_report() {
+    let dir = tempfile::tempdir().unwrap();
+    let arms: Vec<Arm> = vec![
+        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
+        ("removeAttrs", r#"["devShells","packages"]"#, "", 0),
+        (
+            r#"[ "packages" ]"#,
+            "",
+            "error: cannot list packages\nunpacking 'x'",
+            1,
+        ),
+        (r#"[ "devShells" ]"#, r#"["x86_64-linux"]"#, "", 0),
+        ("fake:locked#devShells.x86_64-linux", "", "", 0),
+    ];
+    let judge = script(dir.path(), "judge", &arms);
+    let nej = script(
+        dir.path(),
+        "nej",
+        &[(
+            "devShells.x86_64-linux",
+            r#"{"attr":"default","attrPath":["default"],"drvPath":"/d","name":"s"}"#,
+            "",
+            0,
+        )],
+    );
+    let tools = Tools {
+        judge,
+        eval_jobs: nej,
+        nixpkgs: "n".into(),
+    };
+    let session = Session::new(tools.clone()).unwrap();
+    let structure = inventory::structure_of(&session, ".").unwrap();
+    assert_eq!(structure.errors.len(), 1);
+    assert_eq!(structure.errors["packages"], "error: cannot list packages");
+    assert!(structure.members["packages"].is_empty());
+    assert_eq!(structure.members["devShells"], ["x86_64-linux"]);
+    let report = run_json(tools);
+    assert_eq!(
+        find(&report, "packages")["error"],
+        "error: cannot list packages"
+    );
+    assert_eq!(find(&report, "packages")["level"], "error");
+    assert_eq!(report["summary"]["errors"], 1);
+}

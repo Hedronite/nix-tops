@@ -90,14 +90,26 @@ const FACET_OF: [(&str, Facet); 10] = [
 
 /// Top-level output name to its members: the systems for a per-system output, the attribute
 /// names for a flat one, and nothing for `lib` and for names the runner does not know.
+///
+/// An output whose members could not be listed has no members and an entry in `errors`. Its
+/// systems are then missing from [`Structure::systems`], so a caller that compares systems must
+/// check `errors` first and fail naming the output, not report a mismatch.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Structure {
     pub members: BTreeMap<String, Vec<String>>,
+    /// Output name to the error listing its members gave.
+    pub errors: BTreeMap<String, String>,
 }
 
 impl Structure {
     pub fn insert(&mut self, name: &str, members: Vec<String>) {
         self.members.insert(name.to_string(), members);
+    }
+
+    /// Records an output that exists and whose members could not be listed.
+    pub fn insert_error(&mut self, name: &str, error: String) {
+        self.insert(name, Vec::new());
+        self.errors.insert(name.to_string(), error);
     }
 
     /// The facets the outputs show.
@@ -191,6 +203,20 @@ mod tests {
         assert_eq!(
             s.systems().into_iter().collect::<Vec<_>>(),
             ["aarch64-darwin", "x86_64-linux"]
+        );
+    }
+
+    #[test]
+    fn a_listing_error_keeps_the_output_and_its_error_and_no_members() {
+        let mut s = structure(&[("packages", &["x86_64-linux"])]);
+        s.insert_error("devShells", "boom".to_string());
+        assert!(s.members["devShells"].is_empty());
+        assert_eq!(s.errors.get("devShells").map(String::as_str), Some("boom"));
+        assert!(!s.errors.contains_key("packages"));
+        assert!(s.facets().contains(&Facet::DevFlake));
+        assert_eq!(
+            s.systems().into_iter().collect::<Vec<_>>(),
+            ["x86_64-linux"]
         );
     }
 
