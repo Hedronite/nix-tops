@@ -231,3 +231,22 @@ fn the_real_git_sees_a_committed_baseline_as_clean_and_an_edited_one_as_dirty() 
         "dirty"
     );
 }
+
+#[test]
+fn ratchet_without_a_baseline_file_fails_on_the_file_and_never_asks_git() {
+    let (dir, nix) = setup(&ratchet());
+    let panics =
+        |_: &[&str]| -> Option<GitRun> { panic!("git is asked only when the baseline exists") };
+    let outputs = || Ok(flake());
+    let probes = Probes {
+        outputs: &outputs,
+        git: &panics,
+    };
+    let v = evaluate_with(
+        &dir.path().join("nix-tops.toml"),
+        "2026-11-18",
+        &nix,
+        Some(&probes),
+    );
+    assert_eq!((v.exit, keys(&v)), (Exit::ConfigInvalid, vec!["baseline"]));
+}

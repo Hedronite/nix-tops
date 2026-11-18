@@ -24,11 +24,19 @@ pub enum Read {
 
 /// The structure of the flake in `dir`, read with the kit's pinned judge.
 pub fn read(dir: &Path) -> Read {
-    let Some(tools) = Tools::from_parts(
-        build_info::JUDGE_PATH,
-        build_info::EVAL_JOBS_PATH,
-        build_info::NIXPKGS_REF,
-    ) else {
+    read_with(
+        Tools::from_parts(
+            build_info::JUDGE_PATH,
+            build_info::EVAL_JOBS_PATH,
+            build_info::NIXPKGS_REF,
+        ),
+        dir,
+    )
+}
+
+/// As [`read`], with the tools chosen by the caller (`None` is a build with no pinned judge).
+pub fn read_with(tools: Option<Tools>, dir: &Path) -> Read {
+    let Some(tools) = tools else {
         return Read::NoJudge;
     };
     let session = match Session::new(tools) {
@@ -39,6 +47,15 @@ pub fn read(dir: &Path) -> Read {
     match inventory::structure_of(&session, flake) {
         Ok(structure) => Read::Found(structure),
         Err(error) => Read::Failed(first_line(&error).to_string()),
+    }
+}
+
+/// A read as the structure or the sentence that says why there is none.
+pub fn found(read: Read) -> Result<Structure, String> {
+    match read {
+        Read::Found(structure) => Ok(structure),
+        Read::NoJudge => Err("this build has no pinned judge (built outside the kit's flake), so the outputs cannot be read".into()),
+        Read::Failed(message) => Err(format!("cannot read the flake's outputs: {message}")),
     }
 }
 

@@ -4,12 +4,13 @@
 //! pinned judge falls back to `--facet` and the kit's three systems.
 
 use crate::{
+    build_info,
     config::{
         outputs::{self, Read},
         render,
     },
     exit::{Exit, Output},
-    inventory::{self, Structure},
+    inventory::{self, Structure, Tools},
     profiles,
 };
 use clap::Args as ClapArgs;
@@ -177,6 +178,18 @@ fn write_all(writes: &[(PathBuf, String)]) -> Option<Output> {
     None
 }
 
+/// The facets and systems to write, from whatever reading the outputs gave.
+fn choose(args: &Args, read: Read) -> Result<(Vec<String>, Vec<String>), Output> {
+    match read {
+        Read::Found(structure) => from_inventory(args, &structure),
+        Read::NoJudge => without_inventory(args),
+        Read::Failed(error) => Err(Output::fail(
+            Exit::Environment,
+            format!("nixtops init: cannot read the flake's outputs: {error}\n"),
+        )),
+    }
+}
+
 /// Write into `dir`. `inventory` reads the flake's outputs; it is called only after the cheap
 /// checks pass. Pure of the process's working directory so tests can use a temp dir.
 pub fn init_with(dir: &Path, args: &Args, inventory: &dyn Fn() -> Read) -> Output {
@@ -191,15 +204,7 @@ pub fn init_with(dir: &Path, args: &Args, inventory: &dyn Fn() -> Read) -> Outpu
     {
         return refusal;
     }
-    let chosen = match inventory() {
-        Read::Found(structure) => from_inventory(args, &structure),
-        Read::NoJudge => without_inventory(args),
-        Read::Failed(error) => Err(Output::fail(
-            Exit::Environment,
-            format!("nixtops init: cannot read the flake's outputs: {error}\n"),
-        )),
-    };
-    let (facets, systems) = match chosen {
+    let (facets, systems) = match choose(args, inventory()) {
         Ok(chosen) => chosen,
         Err(output) => return output,
     };
@@ -227,6 +232,16 @@ pub fn init_in(dir: &Path, args: &Args) -> Output {
     init_with(dir, args, &|| Read::NoJudge)
 }
 
+/// `nixtops init` in `dir` with the tools chosen by the caller.
+pub fn run_in(dir: &Path, args: &Args, tools: Option<Tools>) -> Output {
+    init_with(dir, args, &|| outputs::read_with(tools.clone(), dir))
+}
+
 pub fn run(args: &Args) -> Output {
-    init_with(Path::new("."), args, &|| outputs::read(Path::new(".")))
+    let tools = Tools::from_parts(
+        build_info::JUDGE_PATH,
+        build_info::EVAL_JOBS_PATH,
+        build_info::NIXPKGS_REF,
+    );
+    run_in(Path::new("."), args, tools)
 }

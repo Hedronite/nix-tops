@@ -147,3 +147,21 @@ fn a_repeated_facet_is_written_once() {
     let toml = fs::read_to_string(dir.path().join("nix-tops.toml")).expect("written");
     assert!(toml.contains("facets = [\"dev-flake\"]"));
 }
+
+#[test]
+fn facets_without_systems_or_systems_without_facets_are_each_refused() {
+    let dir = tempdir().expect("tempdir");
+    let mut only_facet = Structure::default();
+    only_facet.insert("lib", vec![]);
+    let out = init_with(dir.path(), &args(&[], false), &|| {
+        Read::Found(only_facet.clone())
+    });
+    assert_eq!(out.exit.code(), 2, "a facet and no system");
+    let mut only_system = Structure::default();
+    only_system.insert("checks", vec!["x86_64-linux".into()]);
+    let out = init_with(dir.path(), &args(&[], false), &|| {
+        Read::Found(only_system.clone())
+    });
+    assert_eq!(out.exit.code(), 2, "a system and no facet");
+    assert_eq!(fs::read_dir(dir.path()).expect("ls").count(), 0);
+}

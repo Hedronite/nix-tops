@@ -3,6 +3,7 @@
 //! failure (each names its key), 3 when only the daemon is below the floor.
 
 use crate::{
+    build_info,
     config::{
         self, Outcome, Problem,
         baseline::{self, Git},
@@ -10,7 +11,7 @@ use crate::{
     },
     exit::{Exit, Output},
     host::{self, Floor},
-    inventory::Structure,
+    inventory::{Structure, Tools},
     probe,
 };
 use clap::Args as ClapArgs;
@@ -211,28 +212,23 @@ pub fn check_at(config: &Path, today: &str, nix: &str) -> Output {
     evaluate(config, today, nix).render()
 }
 
-pub fn run(args: &Args) -> Output {
+/// `nixtops check` with the tools chosen by the caller and the date and nix binary given.
+pub fn run_with(args: &Args, today: &str, nix: &str, tools: Option<Tools>) -> Output {
     let dir = args.config.parent().unwrap_or(Path::new("."));
     let git = baseline::real_git(dir);
-    let outputs = || {
-        match outputs::read(dir) {
-        outputs::Read::Found(structure) => Ok(structure),
-        outputs::Read::NoJudge => Err(
-            "this build has no pinned judge (built outside the kit's flake), so the outputs cannot be read"
-                .to_string(),
-        ),
-        outputs::Read::Failed(message) => Err(format!("cannot read the flake's outputs: {message}")),
-    }
-    };
+    let outputs = || outputs::found(outputs::read_with(tools.clone(), dir));
     let probes = Probes {
         outputs: &outputs,
         git: &git,
     };
-    evaluate_with(
-        &args.config,
-        &semantic::today_utc(),
-        &probe::nix_bin(),
-        Some(&probes),
-    )
-    .render()
+    evaluate_with(&args.config, today, nix, Some(&probes)).render()
+}
+
+pub fn run(args: &Args) -> Output {
+    let tools = Tools::from_parts(
+        build_info::JUDGE_PATH,
+        build_info::EVAL_JOBS_PATH,
+        build_info::NIXPKGS_REF,
+    );
+    run_with(args, &semantic::today_utc(), &probe::nix_bin(), tools)
 }
