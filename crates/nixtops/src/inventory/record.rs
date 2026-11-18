@@ -24,23 +24,29 @@ pub enum Kind {
     Unknown,
 }
 
+/// Every kind with the name used in JSON and in the text table.
+const KIND_NAMES: [(Kind, &str); 12] = [
+    (Kind::Package, "package"),
+    (Kind::Check, "check"),
+    (Kind::DevShell, "dev-shell"),
+    (Kind::App, "app"),
+    (Kind::Formatter, "formatter"),
+    (Kind::LegacyPackages, "legacy-packages"),
+    (Kind::Overlay, "overlay"),
+    (Kind::Template, "template"),
+    (Kind::Module, "module"),
+    (Kind::Lib, "lib"),
+    (Kind::Configuration, "configuration"),
+    (Kind::Unknown, "unknown"),
+];
+
 impl Kind {
     /// The kebab-case name used in JSON and in the text table.
     pub fn name(self) -> &'static str {
-        match self {
-            Kind::Package => "package",
-            Kind::Check => "check",
-            Kind::DevShell => "dev-shell",
-            Kind::App => "app",
-            Kind::Formatter => "formatter",
-            Kind::LegacyPackages => "legacy-packages",
-            Kind::Overlay => "overlay",
-            Kind::Template => "template",
-            Kind::Module => "module",
-            Kind::Lib => "lib",
-            Kind::Configuration => "configuration",
-            Kind::Unknown => "unknown",
-        }
+        KIND_NAMES
+            .iter()
+            .find(|(kind, _)| *kind == self)
+            .map_or("unknown", |(_, name)| name)
     }
 }
 

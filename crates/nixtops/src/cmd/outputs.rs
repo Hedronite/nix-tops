@@ -3,6 +3,7 @@
 //! command exits 0 when the inventory is complete.
 
 use crate::{
+    build_info,
     exit::{Exit, Output},
     inventory::{self, Inventory, Record, Session, Tools},
 };
@@ -123,7 +124,11 @@ pub fn run_with(tools: Tools, args: &Args) -> Output {
 }
 
 pub fn run(args: &Args) -> Output {
-    match Tools::pinned() {
+    match Tools::from_parts(
+        build_info::JUDGE_PATH,
+        build_info::EVAL_JOBS_PATH,
+        build_info::NIXPKGS_REF,
+    ) {
         Some(tools) => run_with(tools, args),
         None => Output::fail(
             Exit::Environment,

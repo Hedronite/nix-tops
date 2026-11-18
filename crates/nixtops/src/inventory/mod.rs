@@ -11,7 +11,7 @@ mod record;
 mod structure;
 mod tools;
 
-pub use collect::{Inventory, collect, locked_url, read_structure};
+pub use collect::{Inventory, Listed, collect, locked_url, read_structure};
 pub use record::{COVERAGE, Kind, Level, Record};
 pub use structure::{Facet, Shape, Structure, shape_of};
 pub use tools::{Run, Session, Tools};

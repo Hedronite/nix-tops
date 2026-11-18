@@ -2,7 +2,6 @@
 //! `nix-eval-jobs`, both with gate 3's options, each run with an empty evaluation cache so an
 //! earlier failure is never replayed from it.
 
-use crate::build_info;
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -28,18 +27,16 @@ pub struct Tools {
 }
 
 impl Tools {
-    /// The tools of this build, or `None` when it was built outside the kit's flake.
-    pub fn pinned() -> Option<Self> {
-        let all = [
-            build_info::JUDGE_PATH,
-            build_info::EVAL_JOBS_PATH,
-            build_info::NIXPKGS_REF,
-        ];
-        let pinned = all.iter().all(|value| !value.is_empty());
-        pinned.then(|| Self {
-            judge: PathBuf::from(build_info::JUDGE_PATH),
-            eval_jobs: PathBuf::from(build_info::EVAL_JOBS_PATH),
-            nixpkgs: build_info::NIXPKGS_REF.to_string(),
+    /// The tools named by `judge`, `eval_jobs` and `nixpkgs`, or `None` when any is empty (a
+    /// build outside the kit's flake has none of them).
+    pub fn from_parts(judge: &str, eval_jobs: &str, nixpkgs: &str) -> Option<Self> {
+        let complete = ![judge, eval_jobs, nixpkgs]
+            .iter()
+            .any(|value| value.is_empty());
+        complete.then(|| Self {
+            judge: PathBuf::from(judge),
+            eval_jobs: PathBuf::from(eval_jobs),
+            nixpkgs: nixpkgs.to_string(),
         })
     }
 }
@@ -138,6 +135,18 @@ impl Drop for Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tools_need_all_three_parts() {
+        let t = Tools::from_parts("/j", "/e", "ref").unwrap();
+        assert_eq!(
+            (t.judge, t.eval_jobs, t.nixpkgs),
+            (PathBuf::from("/j"), PathBuf::from("/e"), "ref".to_string())
+        );
+        assert!(Tools::from_parts("", "/e", "ref").is_none());
+        assert!(Tools::from_parts("/j", "", "ref").is_none());
+        assert!(Tools::from_parts("/j", "/e", "").is_none());
+    }
 
     #[test]
     fn unique_dirs_differ() {

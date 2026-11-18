@@ -57,13 +57,19 @@ fn judge_arms<'a>(template_dir: &'a str) -> Vec<Arm<'a>> {
         (r#"[ "homeConfigurations" ]"#, r#"["u"]"#, "", 0),
         (
             r#"[ "apps" "x86_64-linux" ]"#,
-            r#"["broken","default"]"#,
+            r#"["broken","default","noprog"]"#,
             "",
             0,
         ),
         (
             r#"[ "apps" "x86_64-linux" "default" ]"#,
             r#"{"type":"app","program":"/p"}"#,
+            "",
+            0,
+        ),
+        (
+            r#"[ "apps" "x86_64-linux" "noprog" ]"#,
+            r#"{"type":"app"}"#,
             "",
             0,
         ),
@@ -200,11 +206,15 @@ fn errors_are_kept_per_output_and_the_walk_goes_on() {
     );
     assert_eq!(error("overlays.bad"), "error: overlay bad");
     assert!(
+        error("apps.x86_64-linux.noprog")
+            .starts_with("not an app: type is Some(\"app\") and program is false")
+    );
+    assert!(
         error("apps.x86_64-linux.broken").starts_with("not an app: type is Some(\"derivation\")")
     );
     assert!(error("homeConfigurations.u").contains("no activation"));
     assert_eq!(find(&r, "packages.x86_64-linux.b")["level"], "evaluated");
-    assert_eq!(r["summary"]["errors"], 5);
+    assert_eq!(r["summary"]["errors"], 6);
     assert_eq!(
         r["summary"]["outputs"],
         r["outputs"].as_array().unwrap().len()
@@ -299,7 +309,7 @@ fn the_text_form_has_a_header_a_row_per_output_and_a_count() {
         "{}",
         out.stdout
     );
-    assert!(lines.last().unwrap().ends_with(" outputs, 5 errors"));
+    assert!(lines.last().unwrap().ends_with(" outputs, 6 errors"));
 }
 
 #[test]

@@ -17,22 +17,16 @@ const METADATA: [&str; 12] = [
     "sourceInfo",
 ];
 
-/// A Nix string literal for `text`.
+/// A Nix string literal for `text`. The backslash goes first so the others are not escaped twice.
 pub fn quote(text: &str) -> String {
-    let mut out = String::from("\"");
-    for c in text.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            '$' => out.push_str("\\$"),
-            other => out.push(other),
-        }
-    }
-    out.push('"');
-    out
+    let escaped = text
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('$', "\\$")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t");
+    format!("\"{escaped}\"")
 }
 
 fn list(items: &[&str]) -> String {

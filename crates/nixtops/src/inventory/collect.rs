@@ -60,12 +60,11 @@ pub fn locked_url(session: &Session, flake_ref: &str) -> Result<String, String> 
     text(&json, "url").ok_or_else(|| "nix flake metadata gave no url".to_string())
 }
 
-/// The top-level output names and, for each, its members. A name whose members cannot be
-/// listed is returned with the error and no members.
-pub fn read_structure(
-    session: &Session,
-    url: &str,
-) -> Result<Vec<(String, Result<Vec<String>, String>)>, String> {
+/// An output name with its members, or the error listing them gave.
+pub type Listed = Vec<(String, Result<Vec<String>, String>)>;
+
+/// The top-level output names and, for each, its members.
+pub fn read_structure(session: &Session, url: &str) -> Result<Listed, String> {
     let top = eval_json(session, &expr::output_names(url))?;
     let listed = names(top).into_iter().map(|name| {
         let members = member_names(session, url, &name);
