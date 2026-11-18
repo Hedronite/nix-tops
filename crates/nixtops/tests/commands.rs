@@ -3,15 +3,12 @@
 mod common;
 use common::{nixtops, stderr};
 
-const UNBUILT: [&[&str]; 8] = [
-    &["init"],
-    &["check"],
+const UNBUILT: [&[&str]; 5] = [
     &["gate"],
     &["baseline"],
     &["laws"],
     &["outputs"],
     &["report"],
-    &["init", "--facet", "dev-flake", "--force"],
 ];
 
 #[test]
