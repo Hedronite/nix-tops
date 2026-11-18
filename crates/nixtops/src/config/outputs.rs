@@ -69,7 +69,7 @@ fn first_line(text: &str) -> &str {
     };
     lines()
         .filter(said)
-        .last()
+        .next_back()
         .or_else(|| lines().next())
         .unwrap_or("")
 }
