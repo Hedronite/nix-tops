@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "named": "D-03",
+  "note": "apps.<system>.default has no meta: CppNix prints D-03, Determinate prints nothing (raw run, both daemons). Classified report; exit 0 on both.",
+  "raw": {
+    "exit": 0
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "named": "D-01|D-02",
+  "note": "Output fooBar is unknown to the evaluator: CppNix prints D-01 ('unknown flake output'), Determinate prints D-02 ('The following flake outputs are unchecked: fooBar, lib.'). Both are classified report; exit 0.",
+  "raw": {
+    "exit": 0
+  }
+}

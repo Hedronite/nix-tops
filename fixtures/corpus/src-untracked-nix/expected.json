@@ -1,0 +1,12 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "fail"
+  },
+  "named": "N-04",
+  "scratch": true,
+  "note": "flake.nix imports ./extra.nix; the file exists and is untracked. git status shows it as ??.",
+  "raw": {
+    "exit": 1
+  }
+}
