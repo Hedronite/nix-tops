@@ -19,23 +19,25 @@
       "attr": "apps.aarch64-darwin.cargo-tops",
       "kind": "app",
       "system": "aarch64-darwin",
-      "level": "instantiated",
+      "level": "evaluated",
       "coverage": "not-evaluated",
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "apps.aarch64-linux.cargo-tops",
       "kind": "app",
       "system": "aarch64-linux",
-      "level": "instantiated",
+      "level": "evaluated",
       "coverage": "not-evaluated",
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "apps.x86_64-darwin.cargo-tops",
@@ -46,18 +48,20 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": "evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\nerror:\n       … while evaluating attribute 'program'\n         at «string»:1:259:\n            1| let a = (builtins.foldl' (a: n: a.${n}) (builtins.getFlake \"github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D\") [ \"apps\" \"x86_64-darwin\" \"cargo-tops\" ]); in { type = a.type; program = a.program; }\n             |                                                                                                                                                                                                                                                                   ^\n\n       … while evaluating the attribute 'program'\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:57:11:\n           56|           type = \"app\";\n           57|           program = lib.getExe self.packages.${system}.cargo-tops;\n             |           ^\n           58|         };\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set"
+      "error": "evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\nerror:\n       … while evaluating attribute 'program'\n         at «string»:1:259:\n            1| let a = (builtins.foldl' (a: n: a.${n}) (builtins.getFlake \"github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D\") [ \"apps\" \"x86_64-darwin\" \"cargo-tops\" ]); in { type = a.type; program = a.program; }\n             |                                                                                                                                                                                                                                                                   ^\n\n       … while evaluating the attribute 'program'\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:57:11:\n           56|           type = \"app\";\n           57|           program = lib.getExe self.packages.${system}.cargo-tops;\n             |           ^\n           58|         };\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
     },
     {
       "attr": "apps.x86_64-linux.cargo-tops",
       "kind": "app",
       "system": "x86_64-linux",
-      "level": "instantiated",
+      "level": "evaluated",
       "coverage": "not-evaluated",
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-darwin.cargo-tops",
@@ -96,7 +100,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-darwin.law-catalog-names",
@@ -110,7 +115,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-darwin.rust-tops-laws",
@@ -148,7 +154,8 @@
           }
         ]
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-linux.bend-proof",
@@ -162,7 +169,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-linux.cargo-tops",
@@ -201,7 +209,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-linux.law-catalog-names",
@@ -215,7 +224,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-linux.rust-tops-laws",
@@ -253,7 +263,8 @@
           }
         ]
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.x86_64-darwin.cargo-tops",
@@ -264,7 +275,8 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set"
+      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
     },
     {
       "attr": "checks.x86_64-darwin.law-catalog-names",
@@ -275,7 +287,8 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set"
+      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
     },
     {
       "attr": "checks.x86_64-darwin.rust-tops-laws",
@@ -286,7 +299,8 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set"
+      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
     },
     {
       "attr": "checks.x86_64-linux.bend-proof",
@@ -300,7 +314,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.x86_64-linux.cargo-tops",
@@ -339,7 +354,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.x86_64-linux.law-catalog-names",
@@ -353,7 +369,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.x86_64-linux.rust-tops-laws",
@@ -391,7 +408,8 @@
           }
         ]
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "devShells.aarch64-darwin.default",
@@ -405,7 +423,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "devShells.aarch64-linux.default",
@@ -419,7 +438,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "devShells.x86_64-darwin.default",
@@ -430,7 +450,8 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": "error:\n       … while calling the 'warn' builtin\n         at «github:NixOS/nixpkgs/7486293a941f7b0ec123f0c431517027f705f60f?narHash=sha256-WQhNWIW3PPijuZexyl5Zf0tJuQ7sKt5C9WPXVO4pMuM%3D»/pkgs/top-level/default.nix:33:5:\n           32|   x86_64DarwinDeprecationWarning =\n           33|     pristineLib.warn\n             |     ^\n           34|       \"Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\"\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set"
+      "error": "error:\n       … while calling the 'warn' builtin\n         at «github:NixOS/nixpkgs/7486293a941f7b0ec123f0c431517027f705f60f?narHash=sha256-WQhNWIW3PPijuZexyl5Zf0tJuQ7sKt5C9WPXVO4pMuM%3D»/pkgs/top-level/default.nix:33:5:\n           32|   x86_64DarwinDeprecationWarning =\n           33|     pristineLib.warn\n             |     ^\n           34|       \"Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\"\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
     },
     {
       "attr": "devShells.x86_64-linux.default",
@@ -444,7 +465,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "overlays.default",
@@ -455,7 +477,8 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-darwin.cargo-tops",
@@ -494,7 +517,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-darwin.default",
@@ -533,7 +557,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-darwin.rust-tops-laws",
@@ -571,7 +596,8 @@
           }
         ]
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-linux.cargo-tops",
@@ -610,7 +636,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-linux.default",
@@ -649,7 +676,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-linux.rust-tops-bend",
@@ -666,7 +694,8 @@
         "homepage": "https://github.com/bendlang/bend",
         "mainProgram": "bend"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-linux.rust-tops-laws",
@@ -704,7 +733,8 @@
           }
         ]
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.x86_64-darwin",
@@ -715,7 +745,8 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": "evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\nerror:\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       … while evaluating a branch condition\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1492:29:\n         1491|   */\n         1492|   optionalAttrs = cond: as: if cond then as else { };\n             |                             ^\n         1493|\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set\nerror: worker error: error:\n              … in the right operand of the update (//) operator\n                at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n                  48|         }\n                  49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n                    |            ^\n                  50|           inherit (pkgs) rust-tops-bend;\n\n              … while evaluating a branch condition\n                at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1492:29:\n                1491|   */\n                1492|   optionalAttrs = cond: as: if cond then as else { };\n                    |                             ^\n                1493|\n\n              (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n              error: aborting to reveal stack trace of warning, as abort-on-warn is set"
+      "error": "evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\nerror:\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       … while evaluating a branch condition\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1492:29:\n         1491|   */\n         1492|   optionalAttrs = cond: as: if cond then as else { };\n             |                             ^\n         1493|\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set\nerror: worker error: error:\n              … in the right operand of the update (//) operator\n                at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n                  48|         }\n                  49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n                    |            ^\n                  50|           inherit (pkgs) rust-tops-bend;\n\n              … while evaluating a branch condition\n                at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1492:29:\n                1491|   */\n                1492|   optionalAttrs = cond: as: if cond then as else { };\n                    |                             ^\n                1493|\n\n              (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n              error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
     },
     {
       "attr": "packages.x86_64-linux.cargo-tops",
@@ -754,7 +785,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.x86_64-linux.default",
@@ -793,7 +825,8 @@
         ],
         "mainProgram": "cargo-tops"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.x86_64-linux.rust-tops-bend",
@@ -810,7 +843,8 @@
         "homepage": "https://github.com/bendlang/bend",
         "mainProgram": "bend"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.x86_64-linux.rust-tops-laws",
@@ -848,7 +882,8 @@
           }
         ]
       },
-      "error": null
+      "error": null,
+      "note": null
     }
   ]
 }

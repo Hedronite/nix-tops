@@ -1,10 +1,10 @@
 flake github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D
 facets dev-flake, package-set
 systems aarch64-darwin, aarch64-linux, x86_64-darwin, x86_64-linux
-instantiated  app             apps.aarch64-darwin.cargo-tops
-instantiated  app             apps.aarch64-linux.cargo-tops
+evaluated     app             apps.aarch64-darwin.cargo-tops
+evaluated     app             apps.aarch64-linux.cargo-tops
 error         app             apps.x86_64-darwin.cargo-tops evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05
-instantiated  app             apps.x86_64-linux.cargo-tops
+evaluated     app             apps.x86_64-linux.cargo-tops
 evaluated     check           checks.aarch64-darwin.cargo-tops
 evaluated     check           checks.aarch64-darwin.law-catalog-names
 evaluated     check           checks.aarch64-darwin.rust-tops-laws

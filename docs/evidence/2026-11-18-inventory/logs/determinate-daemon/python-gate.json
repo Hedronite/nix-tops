@@ -18,34 +18,37 @@
       "attr": "apps.aarch64-darwin.default",
       "kind": "app",
       "system": "aarch64-darwin",
-      "level": "instantiated",
+      "level": "evaluated",
       "coverage": "not-evaluated",
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "apps.aarch64-linux.default",
       "kind": "app",
       "system": "aarch64-linux",
-      "level": "instantiated",
+      "level": "evaluated",
       "coverage": "not-evaluated",
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "apps.x86_64-linux.default",
       "kind": "app",
       "system": "x86_64-linux",
-      "level": "instantiated",
+      "level": "evaluated",
       "coverage": "not-evaluated",
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-darwin.python-gate-runs",
@@ -59,7 +62,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.aarch64-linux.python-gate-runs",
@@ -73,7 +77,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "checks.x86_64-linux.python-gate-runs",
@@ -87,7 +92,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "devShells.aarch64-darwin.default",
@@ -101,7 +107,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "devShells.aarch64-linux.default",
@@ -115,7 +122,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "devShells.x86_64-linux.default",
@@ -129,7 +137,8 @@
         "available": true,
         "broken": false
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-darwin.default",
@@ -145,7 +154,8 @@
         "description": "Closed-world Python: Nix is the gate, uv owns the expression",
         "mainProgram": "python-gate"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.aarch64-linux.default",
@@ -161,7 +171,8 @@
         "description": "Closed-world Python: Nix is the gate, uv owns the expression",
         "mainProgram": "python-gate"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "packages.x86_64-linux.default",
@@ -177,7 +188,8 @@
         "description": "Closed-world Python: Nix is the gate, uv owns the expression",
         "mainProgram": "python-gate"
       },
-      "error": null
+      "error": null,
+      "note": null
     },
     {
       "attr": "templates.default",
@@ -188,7 +200,8 @@
       "drv_path": null,
       "name": null,
       "meta": null,
-      "error": null
+      "error": null,
+      "note": null
     }
   ]
 }
