@@ -117,10 +117,17 @@ impl Session {
 
     /// `nix-eval-jobs --flake <target> --meta <gate 3 options>`.
     pub fn eval_jobs(&self, target: &str) -> Run {
+        // nix-eval-jobs takes no --extra-experimental-features; the same setting goes by --option.
+        let features = [
+            "--option",
+            "extra-experimental-features",
+            "nix-command flakes",
+        ];
         let mut args: Vec<String> = ["--flake", target, "--meta", "--workers", "1"]
             .iter()
             .map(|a| a.to_string())
             .collect();
+        args.extend(features.iter().map(|a| a.to_string()));
         args.extend(EVAL_OPTIONS.iter().map(|a| a.to_string()));
         run_program(&self.tools.eval_jobs, &args, &self.dir.join("cache"))
     }

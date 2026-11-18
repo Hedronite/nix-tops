@@ -473,3 +473,28 @@ fn the_judge_gets_gate_three_options_and_an_empty_cache() {
     let cache = line.split('|').next().unwrap();
     assert!(cache.ends_with("/cache") && !Path::new(cache).join("eval-cache-v6").exists());
 }
+
+#[test]
+fn eval_jobs_gets_flakes_enabled_by_option_and_gate_three_options() {
+    let dir = tempfile::tempdir().unwrap();
+    let log = dir.path().join("log");
+    let nej = dir.path().join("nej");
+    fs::write(
+        &nej,
+        format!("#!/bin/sh\necho \"$*\" >> {}\n", log.display()),
+    )
+    .unwrap();
+    fs::set_permissions(&nej, fs::Permissions::from_mode(0o755)).unwrap();
+    let tools = Tools {
+        judge: dir.path().join("judge"),
+        eval_jobs: nej,
+        nixpkgs: "n".into(),
+    };
+    let session = Session::new(tools).unwrap();
+    assert!(session.eval_jobs("ref#packages.x").ok);
+    let line = fs::read_to_string(&log).unwrap();
+    assert_eq!(
+        line.trim(),
+        "--flake ref#packages.x --meta --workers 1 --option extra-experimental-features nix-command flakes --option abort-on-warn true --option allow-import-from-derivation false"
+    );
+}
