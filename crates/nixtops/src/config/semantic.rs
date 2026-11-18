@@ -206,10 +206,9 @@ mod tests {
     fn an_impossible_date_fails() {
         let mut d = doc();
         d["warnings"] = json!({"allow":[{"match":"x","reason":"r","until":"2026-02-31"}]});
-        assert_eq!(
-            keys(&check(&d, &ctx("2026-11-18", None, false))),
-            ["warnings.allow[0].until"]
-        );
+        let f = check(&d, &ctx("2026-11-18", None, false));
+        assert_eq!(keys(&f), ["warnings.allow[0].until"]);
+        assert!(f.problems[0].message.contains("not a calendar date"));
     }
 
     fn lock(inner: Value) -> Value {

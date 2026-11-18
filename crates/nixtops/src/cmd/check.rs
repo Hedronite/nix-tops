@@ -57,10 +57,7 @@ pub fn check_at(config: &Path, today: &str, nix: &str) -> Output {
         Ok(doc) => doc,
         Err(problems) => return Output::fail(Exit::ConfigInvalid, render(&problems)),
     };
-    let dir = config
-        .parent()
-        .filter(|p| !p.as_os_str().is_empty())
-        .unwrap_or(Path::new("."));
+    let dir = config.parent().unwrap_or(Path::new("."));
     let lock = fs::read_to_string(dir.join("flake.lock"))
         .ok()
         .and_then(|t| serde_json::from_str(&t).ok());

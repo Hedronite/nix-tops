@@ -71,10 +71,10 @@ pub fn merge_agents(existing: Option<&str>, section: &str) -> String {
     let Some(text) = existing else {
         return format!("{section}\n");
     };
-    if let (Some(a), Some(b)) = (text.find(BEGIN), text.find(END))
-        && a < b
+    if let Some(a) = text.find(BEGIN)
+        && let Some(rel) = text[a..].find(END)
     {
-        return format!("{}{}{}", &text[..a], section, &text[b + END.len()..]);
+        return format!("{}{}{}", &text[..a], section, &text[a + rel + END.len()..]);
     }
     let base = text.trim_end_matches('\n');
     if base.is_empty() {
@@ -140,6 +140,22 @@ mod tests {
         assert_eq!(
             merge_agents(Some(&out), &format!("{BEGIN}\nnew\n{END}\n")),
             out
+        );
+    }
+
+    #[test]
+    fn floors_print_without_a_fraction_when_whole() {
+        assert_eq!(number(80.0), "80");
+        assert_eq!(number(80.5), "80.5");
+    }
+
+    #[test]
+    fn an_end_marker_before_the_begin_marker_is_not_a_section() {
+        let odd = format!("{END}\nx\n");
+        let out = merge_agents(Some(&odd), &format!("{BEGIN}\nn\n{END}\n"));
+        assert!(
+            out.starts_with(&odd) && out.ends_with(&format!("{BEGIN}\nn\n{END}\n")),
+            "{out}"
         );
     }
 

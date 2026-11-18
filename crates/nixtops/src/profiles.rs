@@ -61,12 +61,10 @@ pub fn value(facet: &str) -> Option<Value> {
 
 /// The strictest enforcement of the two (`hard` over `ratchet` over `advisory`).
 fn stricter(a: &'static str, b: &str) -> &'static str {
-    let rank = |m: &str| ["advisory", "ratchet", "hard"].iter().position(|x| *x == m);
-    if rank(b) > rank(a) {
-        ["advisory", "ratchet", "hard"][rank(b).unwrap_or(0)]
-    } else {
-        a
-    }
+    ["advisory", "ratchet", "hard"]
+        .into_iter()
+        .rfind(|m| *m == a || *m == b)
+        .unwrap_or(a)
 }
 
 /// The floors of a set of facets: the highest floor, the strictest closure mode.
@@ -154,6 +152,15 @@ mod tests {
         assert_eq!(f.built, 100.0);
         assert_eq!(f.tested, 80.0);
         assert_eq!(f.closure_mode, "ratchet");
+    }
+
+    #[test]
+    fn stricter_takes_the_higher_mode_in_either_order() {
+        assert_eq!(stricter("hard", "ratchet"), "hard");
+        assert_eq!(stricter("ratchet", "hard"), "hard");
+        assert_eq!(stricter("advisory", "ratchet"), "ratchet");
+        assert_eq!(stricter("ratchet", "advisory"), "ratchet");
+        assert_eq!(stricter("ratchet", "ratchet"), "ratchet");
     }
 
     #[test]
