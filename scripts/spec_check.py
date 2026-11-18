@@ -22,6 +22,14 @@ import tempfile
 import unicodedata
 from pathlib import Path
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10: check-jsonschema already pulls in tomli
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        tomllib = None
+
 CHECK_JSONSCHEMA_VERSION = "0.38.0"
 SPEC = "NIX_TOPS.md"
 SCHEMA = "schema/nix-tops.schema.json"
@@ -129,6 +137,114 @@ def section(lines, start_pat, level):
             return begin, lines[begin:i]
     return (begin, lines[begin:]) if begin is not None else (None, [])
 
+# Section 8.2 columns after the ID: law, severity, readers, sketch, applies to, judged.
+ROW_CELLS = 7
+SEVERITY = {"R": "Refuse", "A": "Ack"}
+READER_CODES = ("ev", "tl", "an", "at", "tbd")
+EMPHASIS = re.compile(r"\*\*|__")
+
+
+def split_row(line):
+    """Cells of a table row; a pipe is a separator unless it is escaped as \\|."""
+    cells, cur, i = [], [], 0
+    line = line.strip()
+    if line.startswith("|"):
+        line = line[1:]
+    if line.endswith("|") and not line.endswith("\\|"):
+        line = line[:-1]
+    while i < len(line):
+        if line[i] == "\\" and line[i + 1:i + 2] == "|":
+            cur.append("|")
+            i += 2
+            continue
+        if line[i] == "|":
+            cells.append("".join(cur).strip())
+            cur = []
+        else:
+            cur.append(line[i])
+        i += 1
+    cells.append("".join(cur).strip())
+    return cells
+
+
+def plain(text):
+    """Markdown emphasis stripped (**bold**, __bold__), whitespace normalized; code spans stay as written."""
+    return " ".join(EMPHASIS.sub("", text).split())
+
+
+def row_fields(cells):
+    """The comparable fields of one section 8.2 row, as the law file would state them."""
+    _id, law, sev, reader, sketch, applies, judged = cells
+    clauses = [c.strip() for c in re.split(r"[,;]", INLINE_CODE.sub("", plain(reader)))]
+    codes = []
+    for c in clauses:
+        m = re.match(r"(ev|tl|an|at|tbd)\b", c)
+        if m and m.group(1) not in codes:
+            codes.append(m.group(1))
+    return {
+        "law": plain(law),
+        "severity": SEVERITY.get(sev.strip(), sev.strip()),
+        "reader": codes[0] if codes else "",
+        "reader_also": codes[1:],
+        "reader_detail": plain(reader),
+        "sketch": plain(sketch),
+        "artifacts": [a.strip() for a in applies.split(",") if a.strip()],
+        "judged": judged.strip() == "\u2713",
+    }
+
+
+def law_fields(data):
+    """The same fields from a parsed law file; absent optional fields read as empty."""
+    return {
+        "law": plain(data.get("law", "")),
+        "severity": data.get("severity", ""),
+        "reader": data.get("reader", ""),
+        "reader_also": list(data.get("reader_also", [])),
+        "reader_detail": plain(data.get("reader_detail", "")),
+        "sketch": plain(data.get("sketch", "")),
+        "artifacts": list(data.get("artifacts", [])),
+        "judged": data.get("judged"),
+    }
+
+
+def compare_law(law_id, row, data):
+    """One message per field whose file value and row value differ."""
+    errors = []
+    want, have = row_fields(row), law_fields(data)
+    # A bare reader code in the row (no detail) may leave reader_detail out of the file.
+    if want["reader_detail"] == want["reader"] and not have["reader_detail"]:
+        have["reader_detail"] = want["reader_detail"]
+    for field in ("law", "severity", "reader", "reader_also", "reader_detail", "sketch", "artifacts", "judged"):
+        if have[field] != want[field]:
+            errors.append(
+                f"laws/{law_id}.toml: {law_id} field '{field}': file has {have[field]!r}, "
+                f"{SPEC} section 8.2 row has {want[field]!r}"
+            )
+    return errors
+
+
+def compare_fields(laws, rows):
+    """Compare every law file that has a row with that row, field by field."""
+    errors = []
+    for law_id in sorted(rows):
+        path = laws / f"{law_id}.toml"
+        if not path.is_file():
+            continue
+        if len(rows[law_id]) != ROW_CELLS:
+            errors.append(f"{SPEC}: row {law_id} has {len(rows[law_id])} cells, expected {ROW_CELLS}")
+            continue
+        if tomllib is None:
+            return errors + ["laws/: cannot compare fields, no TOML parser (Python 3.11+ or tomli)"]
+        try:
+            data = tomllib.loads(path.read_text(encoding="utf-8"))
+        except tomllib.TOMLDecodeError as e:
+            errors.append(f"laws/{law_id}.toml: not valid TOML: {e}")
+            continue
+        if data.get("id") != law_id:
+            errors.append(f"laws/{law_id}.toml: field 'id': file has {data.get('id')!r}, row has {law_id!r}")
+        errors.extend(compare_law(law_id, rows[law_id], data))
+    return errors
+
 
 def check_catalog(root):
     errors = []
@@ -142,12 +258,13 @@ def check_catalog(root):
         return [f"{SPEC}: no section 8.2 heading"]
     heading = sec[0]
 
-    ids, judged = [], 0
+    ids, judged, rows = [], 0, {}
     for line in sec:
         m = LAW_ROW.match(line)
         if not m:
             continue
         ids.append(m.group(1))
+        rows[m.group(1)] = split_row(line)
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if cells[-1] == "✓":
             judged += 1
@@ -224,6 +341,7 @@ def check_catalog(root):
             errors.append(f"laws/: no file for {missing}")
         for extra in sorted(files - set(ids)):
             errors.append(f"laws/{extra}.toml: no row in section 8.2")
+        errors.extend(compare_fields(laws, rows))
     return errors
 
 
