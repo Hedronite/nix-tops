@@ -59,11 +59,19 @@ pub fn found(read: Read) -> Result<Structure, String> {
     }
 }
 
+/// The line of a Nix error that says what is wrong: the last `error:` line with text after it,
+/// else the first line with any text.
 fn first_line(text: &str) -> &str {
-    text.lines()
-        .find(|line| !line.trim().is_empty())
+    let lines = || text.lines().map(str::trim).filter(|l| !l.is_empty());
+    let said = |l: &&str| {
+        l.strip_prefix("error:")
+            .is_some_and(|rest| !rest.trim().is_empty())
+    };
+    lines()
+        .filter(said)
+        .last()
+        .or_else(|| lines().next())
         .unwrap_or("")
-        .trim()
 }
 
 fn strings(doc: &Value, pointer: &str) -> Vec<String> {
@@ -272,5 +280,14 @@ mod tests {
     fn first_line_skips_blank_lines() {
         assert_eq!(first_line("\n  \n x \ny"), "x");
         assert_eq!(first_line(""), "");
+    }
+
+    #[test]
+    fn first_line_prefers_the_last_error_line_that_has_text() {
+        let nix =
+            "error:\n       … while updating\n\n       error: lock file changes are not allowed\n";
+        assert_eq!(first_line(nix), "error: lock file changes are not allowed");
+        assert_eq!(first_line("error:\n  trace\n"), "error:");
+        assert_eq!(first_line("error: first\nerror: second"), "error: second");
     }
 }
