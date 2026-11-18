@@ -3,12 +3,13 @@
 mod common;
 use common::{nixtops, stderr};
 
-const UNBUILT: [&[&str]; 7] = [
+const UNBUILT: [&[&str]; 8] = [
     &["init"],
     &["check"],
     &["gate"],
     &["baseline"],
     &["laws"],
+    &["outputs"],
     &["report"],
     &["init", "--facet", "dev-flake", "--force"],
 ];
@@ -50,6 +51,7 @@ fn flags_of_the_table_parse() {
         &["laws", "list"],
         &["laws", "run"],
         &["laws", "explain", "N-04"],
+        &["outputs", "--json"],
         &["report", "--format", "json"],
     ];
     for args in gate {
