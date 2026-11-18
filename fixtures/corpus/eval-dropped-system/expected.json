@@ -1,0 +1,15 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "fail"
+  },
+  "named": "N-08",
+  "failing_outputs": [
+    "devShells.x86_64-darwin.default"
+  ],
+  "note": "devShells.x86_64-darwin.default throws 'has dropped support for x86_64-darwin' on the 26.11 pin; the other systems pass. nix-tops.toml lists the three valid systems because x86_64-darwin is not a valid toolchain system (NIX_TOPS.md section 2).",
+  "raw": {
+    "exit": 1
+  }
+}

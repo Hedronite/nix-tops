@@ -1,0 +1,11 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "note": "nixosModules.default; checks.<system>.module-eval forces a configuration's toplevel drvPath (eval only). No nixosConfigurations, so no nixos-host facet. Systems are linux only: a NixOS configuration does not exist on darwin.",
+  "raw": {
+    "exit": 0
+  }
+}

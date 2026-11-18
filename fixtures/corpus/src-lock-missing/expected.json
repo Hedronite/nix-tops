@@ -1,0 +1,12 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "fail"
+  },
+  "named": "N-05",
+  "scratch": true,
+  "note": "The flake has an input and no flake.lock. With --no-update-lock-file the evaluation cannot create it.",
+  "raw": {
+    "exit": 1
+  }
+}

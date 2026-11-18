@@ -1,0 +1,15 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "fail"
+  },
+  "named": "N-08",
+  "failing_outputs": [
+    "packages.x86_64-linux.default"
+  ],
+  "note": "packages.x86_64-linux.default throws; aarch64-linux and aarch64-darwin evaluate. The failing set is exactly that one output.",
+  "raw": {
+    "exit": 1
+  }
+}

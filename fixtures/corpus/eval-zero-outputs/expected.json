@@ -1,0 +1,13 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "fail"
+  },
+  "named": "zero-outputs",
+  "note": "No output evaluates. nix flake check passes it; the gate fails it (zero evaluated outputs). The raw run records nix's own exit.",
+  "raw": {
+    "exit": 0,
+    "note": "nix flake check passes a flake with no outputs; only the gate fails it"
+  }
+}

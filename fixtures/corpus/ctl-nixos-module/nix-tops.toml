@@ -1,0 +1,6 @@
+protocol = "0.2.0"
+facets = ["nixos-module"]
+enforce = "hard"
+
+[toolchain]
+systems = ["x86_64-linux", "aarch64-linux"]

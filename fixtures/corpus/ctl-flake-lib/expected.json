@@ -1,0 +1,11 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "note": "Pure lib functions, one template, a formatter per system; no packages.",
+  "raw": {
+    "exit": 0
+  }
+}
