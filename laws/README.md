@@ -6,7 +6,23 @@ One file per law of the Nix-TOPS catalog (`NIX_TOPS.md` section 8.2): `N-01.toml
 check-jsonschema --schemafile schema/law.schema.json laws/N-*.toml
 ```
 
-The catalog row in `NIX_TOPS.md` and the file for the same ID say the same thing. `spec_check.py catalog` checks one thing about the files: there is one file per row of section 8.2 and no extra file. It does not compare the fields of a file with its row; that comparison belongs to the runner.
+The catalog row in `NIX_TOPS.md` and the file for the same ID say the same thing, and `spec_check.py catalog` checks it. It checks that there is one file per row of section 8.2 and no extra file, and then compares each file with its row, field by field. A mismatch fails and names the ID, the field, the file's value and the row's value.
+
+| Field | File | Row cell of section 8.2 |
+|---|---|---|
+| `id` | `id` | the ID |
+| `law` | `law` | Law, with markdown emphasis (`**`, `__`) stripped and whitespace normalized on both sides; code spans compare as written |
+| `severity` | `severity` | Sev: `R` is `Refuse`, `A` is `Ack` |
+| `reader` | `reader` | Reader: the first reader code (`ev`, `tl`, `an`, `at`, `tbd`) |
+| `reader_also` | `reader_also` | Reader: every other code in the cell, in order, without the primary |
+| `reader_detail` | `reader_detail` | Reader: the whole cell, normalized as the law text is; a row with only a bare code may leave the file field out |
+| `sketch` | `sketch` | Sketch (an empty cell means the file has none) |
+| `artifacts` | `artifacts` | Applies to, split on commas |
+| `judged` | `judged` | v0.1: `true` exactly when the cell is the check mark |
+
+Not compared: `title`, `rationale`, `fix` and `option_names`, which have no column in section 8.2, and the schema (the `check-jsonschema` command above checks that). The check needs a TOML parser, which is the standard library on Python 3.11 and `tomli` on 3.10; it fails and says so when neither is there.
+
+The fields of a file and what they hold:
 
 | Field | Meaning |
 |---|---|
