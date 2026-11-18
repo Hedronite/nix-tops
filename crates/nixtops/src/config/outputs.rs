@@ -67,11 +67,7 @@ fn first_line(text: &str) -> &str {
         l.strip_prefix("error:")
             .is_some_and(|rest| !rest.trim().is_empty())
     };
-    lines()
-        .filter(said)
-        .next_back()
-        .or_else(|| lines().next())
-        .unwrap_or("")
+    lines().rfind(said).or_else(|| lines().next()).unwrap_or("")
 }
 
 fn strings(doc: &Value, pointer: &str) -> Vec<String> {
