@@ -1,0 +1,30 @@
+[package]
+name = "nixtops"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99.1"
+description = "The Nix-TOPS runner: gates a Nix flake against the Nix-TOPS protocol"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Hedronite/nix-tops"
+publish = false
+build = "build.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+# The milestone's dependency set. A later step that needs another crate asks for the manifest.
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+# JSON Schema draft 2020-12. default-features = false drops resolve-http (reqwest, rustls, TLS)
+# and resolve-file; schemas are embedded and registered as resources, so nothing is fetched.
+jsonschema = { version = "0.61", default-features = false }
+
+[build-dependencies]
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"

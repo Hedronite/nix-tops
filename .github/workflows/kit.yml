@@ -1,0 +1,81 @@
+name: kit
+
+# Builds the kit's own flake and runs the gate-3 eval options over it, on three legs: x86_64-linux
+# with the sandbox on, aarch64-darwin on macos-15, and a Determinate Nix leg.
+# Every nix command passes --no-accept-flake-config, so a flake cannot change gate 3's eval
+# options (--option abort-on-warn true, allow-import-from-derivation false).
+# Never use pull_request_target here: this workflow runs code from the PR.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: x86_64-linux (sandbox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
+        with:
+          extra_nix_config: |
+            sandbox = true
+            experimental-features = nix-command flakes
+      - name: Flake check, no build, every system
+        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config --option abort-on-warn true --option allow-import-from-derivation false
+      - name: Build the runner (tests run in the build)
+        run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
+      - name: Version and doctor
+        run: |
+          ./result/bin/nixtops version
+          ./result/bin/nixtops doctor
+
+  darwin:
+    name: aarch64-darwin
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Flake check, no build, every system
+        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config --option abort-on-warn true --option allow-import-from-derivation false
+      - name: Build the runner (tests run in the build)
+        run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
+      - name: Version and doctor
+        run: |
+          ./result/bin/nixtops version
+          ./result/bin/nixtops doctor
+
+  determinate:
+    name: Determinate Nix
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/determinate-nix-action@16f94ba7aae399b9f9077c254b6719ec6de7e3e3 # v3.24.2
+      - name: Flake check, no build, every system (Determinate-only settings off)
+        run: nix flake check --no-build --all-systems --no-update-lock-file --no-accept-flake-config --option abort-on-warn true --option allow-import-from-derivation false --option lazy-trees false --option eval-cores 1
+      - name: Build the runner
+        run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
+      - name: Version and doctor
+        run: |
+          ./result/bin/nixtops version
+          ./result/bin/nixtops doctor

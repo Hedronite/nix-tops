@@ -1,0 +1,11 @@
+[workspace]
+members = ["crates/nixtops"]
+resolver = "3"
+
+# Release profile of the Rust-TOPS class `binary-cli` (rust-tops.yaml, performance.release_profile).
+[profile.release]
+codegen-units = 1
+debug = 0
+lto = "thin"
+opt-level = 3
+panic = "abort"
