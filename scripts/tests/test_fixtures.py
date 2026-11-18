@@ -40,14 +40,19 @@ class Corpus(unittest.TestCase):
     def test_expected_json_shape(self):
         for n in NAMES:
             e = json.loads((CORPUS / n / "expected.json").read_text())
-            self.assertIn(e["exit"], (0, 1), n)
+            self.assertIn(e["exit"], (0, 1, 2), n)
             self.assertTrue(set(e["layers"]) <= LAYERS, n)
             self.assertTrue(set(e["layers"].values()) <= VERDICTS, n)
-            self.assertIn("source", e["layers"], n)
             self.assertIn(e["raw"]["exit"], (0, 1), n)
             self.assertTrue(e["note"], n)
-            # exit 0 means no layer failed
-            self.assertEqual(e["exit"] == 0, "fail" not in e["layers"].values(), n)
+            if e["exit"] == 2:
+                # an invalid configuration stops the gate before any layer runs
+                self.assertEqual(e["layers"], {}, n)
+                self.assertEqual(e["named"], "toolchain.systems", n)
+            else:
+                self.assertIn("source", e["layers"], n)
+                # exit 0 means no layer failed
+                self.assertEqual(e["exit"] == 0, "fail" not in e["layers"].values(), n)
 
     def test_gate_one_cases_are_scratch_cases(self):
         for n in NAMES:

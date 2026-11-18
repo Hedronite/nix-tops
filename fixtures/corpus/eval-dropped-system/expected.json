@@ -1,14 +1,11 @@
 {
-  "exit": 1,
-  "layers": {
-    "source": "pass",
-    "eval": "fail"
-  },
-  "named": "N-08",
+  "exit": 2,
+  "layers": {},
+  "named": "toolchain.systems",
   "failing_outputs": [
     "devShells.x86_64-darwin.default"
   ],
-  "note": "devShells.x86_64-darwin.default throws 'has dropped support for x86_64-darwin' on the 26.11 pin; the other systems pass. nix-tops.toml lists the three valid systems because x86_64-darwin is not a valid toolchain system (NIX_TOPS.md section 2).",
+  "note": "The flake exports devShells.x86_64-darwin, which is not a valid system (NIX_TOPS.md section 2), and nix-tops.toml lists the three valid ones, so the systems differ from the outputs: the gate's check exits 2 before any layer runs. The raw run records what the pinned nixpkgs does with that output: devShells.x86_64-darwin.default throws 'has dropped support for x86_64-darwin', raw exit 1.",
   "raw": {
     "exit": 1
   }
