@@ -98,7 +98,7 @@ gates:
 goals:
   correctness: "behavior matches specified invariants under all applicable layers"
   density: "fewest necessary production lines that preserve clarity and performance"
-  notes: "Public API is decode/encode plus Error. No builders. No trait for a single impl.\n"
+  notes: "A thin command dispatch over one module per command. No builders. No trait for a single impl.\n"
   performance: "no unexplained regression on gated hot paths; prefer algorithmic then codegen then micro"
 layers:
   -
@@ -228,10 +228,7 @@ layers:
     scope: "workspace"
     tier: 0
 performance:
-  hot_path_requirements:
-    - "decode allocates nothing on the success path"
-    - "encode writes into impl Write; callers supply the buffer"
-    - "Callgrind Ir regression on listed symbols ≤ 2%"
+  hot_path_requirements: []
   release_profile:
     codegen-units: 1
     debug: 0
@@ -239,7 +236,7 @@ performance:
     opt-level: 3
     panic: "abort"
 protocol:
-  adopted: "2026-09-24"
+  adopted: "2026-11-18"
   id: "rust-tops"
-  spec_uri: "./RUST_TOPS.md"
+  spec_uri: "https://github.com/Hedronite/rust-tops/blob/v0.4.0/RUST_TOPS.md"
   version: "1.2.0"
