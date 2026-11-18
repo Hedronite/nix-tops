@@ -132,3 +132,22 @@ fn what_init_writes_passes_check() {
         .expect("runs");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
+
+#[test]
+fn a_directory_that_cannot_be_made_or_a_file_that_cannot_be_written_exits_3() {
+    let blocked = tempdir().expect("tempdir");
+    fs::write(
+        blocked.path().join(".github"),
+        "a file where the workflow directory goes",
+    )
+    .expect("write");
+    let out = init(blocked.path(), &["--facet", "dev-flake"]);
+    assert_eq!(out.status.code(), Some(3), "{}", stderr(&out));
+    assert!(stderr(&out).contains("cannot create"));
+
+    let unwritable = tempdir().expect("tempdir");
+    fs::create_dir(unwritable.path().join("nix-tops.toml")).expect("mkdir");
+    let out = init(unwritable.path(), &["--facet", "dev-flake", "--force"]);
+    assert_eq!(out.status.code(), Some(3), "{}", stderr(&out));
+    assert!(stderr(&out).contains("cannot write"));
+}
