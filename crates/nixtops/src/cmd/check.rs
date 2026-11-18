@@ -67,10 +67,7 @@ impl Verdict {
 
     /// The text and exit code of `nixtops check`.
     pub fn render(&self) -> Output {
-        let mut stdout = self.notes.join("\n");
-        if !stdout.is_empty() {
-            stdout.push('\n');
-        }
+        let mut stdout: String = self.notes.iter().map(|n| format!("{n}\n")).collect();
         match self.exit {
             Exit::Pass => {
                 stdout.push_str("nix-tops.toml: ok\n");
