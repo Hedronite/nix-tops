@@ -347,9 +347,12 @@ fn a_reason_that_is_only_whitespace_is_no_reason_and_exit_two() {
     let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
     let result = gate::run(&rig.settings(), Some(tools), &switched());
     assert_eq!(result.exit, Exit::ConfigInvalid);
-    assert_eq!(
-        result.problems,
-        ["nix-tops.toml: layers.laws.reason: a reason that is only whitespace is no reason"]
+    // `check` refuses it (gate runs check first) and names the key.
+    assert_eq!(result.problems.len(), 1, "{:?}", result.problems);
+    assert!(
+        result.problems[0].starts_with("nix-tops.toml: layers.laws.reason:"),
+        "{:?}",
+        result.problems
     );
     let report = serde_json::to_value(&result.report).unwrap();
     assert_valid(&report);

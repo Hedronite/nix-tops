@@ -195,27 +195,6 @@ fn config_switch(doc: &Value, id: LayerId) -> Option<String> {
     off.then(|| reason.unwrap_or("switched off").to_string())
 }
 
-/// A layer switched off with a reason that is only whitespace has no reason: the schema's
-/// `minLength` lets it through, so the gate refuses it (exit 2), naming the key.
-pub fn switch_problems(doc: &Value) -> Vec<String> {
-    let off = ALL_LAYERS.iter().filter(|id| layer::can_switch_off(**id));
-    let mut problems = Vec::new();
-    for id in off {
-        let Some(entry) = doc.pointer(&format!("/layers/{}", id.as_str())) else {
-            continue;
-        };
-        let switched = entry.get("enabled").and_then(Value::as_bool) == Some(false);
-        let reason = entry.get("reason").and_then(Value::as_str).unwrap_or("");
-        if switched && reason.trim().is_empty() {
-            problems.push(format!(
-                "nix-tops.toml: layers.{}.reason: a reason that is only whitespace is no reason",
-                id.as_str()
-            ));
-        }
-    }
-    problems
-}
-
 /// What the layers produced.
 struct Collected {
     layers: Vec<Layer>,
@@ -359,12 +338,6 @@ pub fn run(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> RunResul
     let doc = std::fs::read_to_string(&config_path)
         .ok()
         .and_then(|t| config::load(&t).ok());
-    if let Some(doc) = &doc {
-        let problems = switch_problems(doc);
-        if !problems.is_empty() {
-            return stopped(settings, Some(doc), Exit::ConfigInvalid, problems);
-        }
-    }
     let (Some(doc), Some(tools)) = (doc, tools) else {
         return stopped(
             settings,
@@ -444,28 +417,6 @@ mod tests {
         assert_eq!(config_switch(&doc, LayerId::Coverage), None);
         assert_eq!(config_switch(&doc, LayerId::BuildTest), None);
         assert_eq!(config_switch(&json!({}), LayerId::Lint), None);
-    }
-
-    #[test]
-    fn a_reason_that_is_only_whitespace_is_no_reason() {
-        let doc = json!({"layers": {
-            "lint": {"enabled": false, "reason": "   \t"},
-            "laws": {"enabled": false, "reason": "kept"},
-            "coverage": {"enabled": false, "reason": ""},
-            "build-test": {"enabled": true, "reason": " "}
-        }});
-        assert_eq!(
-            switch_problems(&doc),
-            [
-                "nix-tops.toml: layers.lint.reason: a reason that is only whitespace is no reason",
-                "nix-tops.toml: layers.coverage.reason: a reason that is only whitespace is no reason",
-            ]
-        );
-        assert!(switch_problems(&json!({})).is_empty());
-        assert!(
-            switch_problems(&json!({"layers": {"lint": {"enabled": false, "reason": "r"}}}))
-                .is_empty()
-        );
     }
 
     #[test]
