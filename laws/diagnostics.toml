@@ -12,13 +12,14 @@
 # continuation  optional exact line that follows the first line of the same diagnostic
 # versions      implementation versions the fixture was taken on
 #
-# Fixture provenance for D-06 to D-12: measured on 2026-11-18 with the pinned judge (CppNix 2.35.6 and
+# Fixture provenance for D-06 to D-11: measured on 2026-11-18 with the pinned judge (CppNix 2.35.6 and
 #   nix-eval-jobs 2.35.4) reading the nix.conf a Determinate Nix 3.22.3 installation writes, and on
 #   Determinate Nix 3.22.3 for the dirty-tree line. D-10 was also measured on CppNix 2.35.2 as a host
 #   evaluator, so both versions are listed; only measured versions are listed. The setting names are matched exactly, one entry
 #   each, so an unknown setting with any other name stays unclassified and fails. The path in the
-#   dirty-tree lines is matched as a pattern. D-12 was measured on 2026-11-19 in CI, with the pinned
-#   judge (CppNix 2.35.6) reading the nix.conf that the Determinate Nix installer v3.24.2 writes.
+#   dirty-tree lines is matched as a pattern. D-12 was measured separately, on 2026-11-19 in CI run
+#   44559681127: the pinned judge (CppNix 2.35.6) reading the nix.conf that a Determinate Nix 3.24.2
+#   installation writes.
 #
 # Fixture provenance. Run date 2026-11-17, eval only, `--no-build --no-update-lock-file`, no `--impure`.
 #   unknown-output and app-meta: docs/evidence/2026-11-17-warning-sources/logs/<implementation>/
