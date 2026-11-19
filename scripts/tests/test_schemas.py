@@ -162,6 +162,79 @@ class GateReport(unittest.TestCase):
         self.bad(d, "lock_hash")
 
 
+CONFIG_SCHEMA = REPO / "schema" / "nix-tops.schema.json"
+OFF = {"enabled": False, "reason": "not built yet"}
+LAYER_IDS = ["lint", "build-test", "coverage", "facet-layers", "laws"]
+
+
+class ConfigLayers(unittest.TestCase):
+    """[layers] keys that switch a report layer off (section 9)."""
+
+    def run_schema(self, layers):
+        doc = {"protocol": "0.2.0", "facets": ["dev-flake"], "toolchain": {"systems": ["x86_64-linux"]},
+               "layers": layers}
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "nix-tops.json"
+            f.write_text(json.dumps(doc), encoding="utf-8")
+            return sc.validate(CMD, CONFIG_SCHEMA, f)
+
+    def ok(self, layers):
+        r = self.run_schema(layers)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def bad(self, layers, needle=""):
+        r = self.run_schema(layers)
+        self.assertNotEqual(r.returncode, 0, "expected a validation failure")
+        self.assertIn(needle, r.stdout + r.stderr)
+
+    def test_each_layer_id_switches_off_with_a_reason(self):
+        for k in LAYER_IDS:
+            self.ok({k: dict(OFF)})
+        self.ok({k: dict(OFF) for k in LAYER_IDS})
+
+    def test_reason_is_required(self):
+        for k in LAYER_IDS:
+            self.bad({k: {"enabled": False}}, "reason")
+
+    def test_empty_reason_fails(self):
+        self.bad({"laws": {"enabled": False, "reason": ""}})
+
+    def test_enabled_true_fails(self):
+        self.bad({"lint": {"enabled": True, "reason": "x"}})
+
+    def test_enabled_is_required(self):
+        self.bad({"lint": {"reason": "x"}}, "enabled")
+
+    def test_tier_is_not_allowed_on_a_switch_off(self):
+        self.bad({"coverage": {"enabled": False, "reason": "x", "tier": 1}})
+
+    def test_gates_one_and_three_cannot_be_switched_off(self):
+        self.bad({"source": dict(OFF)}, "source")
+        self.bad({"eval": dict(OFF)}, "eval")
+
+    def test_a_name_outside_the_five_fails(self):
+        self.bad({"lints": dict(OFF)})
+        self.bad({"facet_layers": dict(OFF)})
+
+    def test_sublayers_keep_their_old_shape(self):
+        self.ok({"rebuild": {"enabled": False}, "vulnix": {"enabled": False}, "vm_tests": {"enabled": True, "tier": 2}})
+
+
+class OutputLevel(GateReport):
+    def level(self, value):
+        d = self.sample()
+        d["outputs"][0]["level"] = value
+        return d
+
+    def test_instantiated_is_a_level(self):
+        self.ok(self.level("instantiated"))
+
+    def test_every_defined_level_is_accepted_and_others_fail(self):
+        for v in ["evaluated", "instantiated", "built", "tested"]:
+            self.ok(self.level(v))
+        self.bad(self.level("compiled"))
+
+
 class Shape(unittest.TestCase):
     def test_both_schemas_use_core_refs(self):
         self.assertIn("core/core.schema.json#", SCHEMA.read_text(encoding="utf-8"))

@@ -12,6 +12,13 @@
 # continuation  optional exact line that follows the first line of the same diagnostic
 # versions      implementation versions the fixture was taken on
 #
+# Fixture provenance for D-06 to D-11: measured on 2026-11-18 with the pinned judge (CppNix 2.35.6 and
+#   nix-eval-jobs 2.35.4) reading the nix.conf a Determinate Nix 3.22.3 installation writes, and on
+#   Determinate Nix 3.22.3 for the dirty-tree line. D-10 was also measured on CppNix 2.35.2 as a host
+#   evaluator, so both versions are listed; only measured versions are listed. The setting names are matched exactly, one entry
+#   each, so an unknown setting with any other name stays unclassified and fails. The path in the
+#   dirty-tree lines is matched as a pattern.
+#
 # Fixture provenance. Run date 2026-11-17, eval only, `--no-build --no-update-lock-file`, no `--impure`.
 #   unknown-output and app-meta: docs/evidence/2026-11-17-warning-sources/logs/<implementation>/
 #     (gate 3's options, `--all-systems`), fixtures `unknown-output` and `app-no-meta`.
@@ -20,7 +27,7 @@
 #     implementations; exit 0. Gate 3 passes `--all-systems`, so the line does not appear in the gate's
 #     own run; an entry exists so a run without it is classified, not unknown.
 
-table_version = 1
+table_version = 2
 
 [[diagnostic]]
 id = "D-01"
@@ -68,3 +75,57 @@ versions = ["3.22.3"]
 match = "^warning: The check omitted these incompatible systems: .+$"
 fixture = "warning: The check omitted these incompatible systems: x86_64-linux"
 continuation = "Use '--all-systems' to check all."
+
+[[diagnostic]]
+id = "D-06"
+kind = "host-setting"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.6"]
+match = "^warning: unknown setting 'eval-cores'$"
+fixture = "warning: unknown setting 'eval-cores'"
+
+[[diagnostic]]
+id = "D-07"
+kind = "host-setting"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.6"]
+match = "^warning: unknown setting 'lazy-trees'$"
+fixture = "warning: unknown setting 'lazy-trees'"
+
+[[diagnostic]]
+id = "D-08"
+kind = "host-setting"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.6"]
+match = "^warning: unknown setting 'bash-prompt-prefix'$"
+fixture = "warning: unknown setting 'bash-prompt-prefix'"
+
+[[diagnostic]]
+id = "D-09"
+kind = "host-setting"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.6"]
+match = "^warning: unknown setting 'upgrade-nix-store-path-url'$"
+fixture = "warning: unknown setting 'upgrade-nix-store-path-url'"
+
+[[diagnostic]]
+id = "D-10"
+kind = "dirty-tree"
+implementation = "cppnix"
+effect = "report"
+versions = ["2.35.2", "2.35.6"]
+match = "^warning: Git tree '[^']+' is dirty$"
+fixture = "warning: Git tree '/home/user/flake' is dirty"
+
+[[diagnostic]]
+id = "D-11"
+kind = "dirty-tree"
+implementation = "determinate"
+effect = "report"
+versions = ["3.22.3"]
+match = "^warning: Git tree '[^']+' has uncommitted changes$"
+fixture = "warning: Git tree '/home/user/flake' has uncommitted changes"

@@ -85,7 +85,7 @@
       "required": ["attr", "level"],
       "properties": {
         "attr": { "type": "string", "minLength": 1, "description": "Flake attribute path, for example packages.x86_64-linux.foo." },
-        "level": { "enum": ["evaluated", "built", "tested"] },
+        "level": { "enum": ["evaluated", "instantiated", "built", "tested"] },
         "deferred": { "type": "boolean", "description": "Cannot be built on this host; a build-matrix leg owns it. Never counts as built." },
         "ifd_reevaluated": { "type": "boolean", "description": "Re-evaluated with import-from-derivation on, under an ack (N-07)." },
         "closure": {
