@@ -905,7 +905,7 @@ repeat the tools as separate steps, because steps that bypass `nixtops` judge no
 |---|---|
 | `init [--facet <f>]...` | Writes `nix-tops.toml` with `facets = [...]` (the facets the outputs show, narrowed by each `--facet`), the CI workflow and the `AGENTS.md` section (§4). Prints the `flake.nix` lines; never edits `flake.nix`. Refuses to overwrite without `--force` |
 | `check` | Validates `nix-tops.toml` against the JSON Schema, plus semantic checks: protocol id, each listed facet is one the outputs show (§5.4) and has a profile (or is reported as having none), `[toolchain].systems` equals the systems the outputs export, the host daemon meets the floor, `advisory` has a dated exemption, the `nix-tops` input does not follow nixpkgs, and under `ratchet` the baseline exists and is clean |
-| `gate` | Runs enabled layers at or below `--max-tier` (default 1). `--base`, `--keep-going`, `--json`, `--only <layer>`, `--system <s>`, `--dry-run` (refused in CI) |
+| `gate` | Runs enabled layers at or below `--max-tier` (default 1). `--base`, `--keep-going`, `--json`, `--only <layer>`, `--system <s>`, `--dry-run` (refused in CI), `--evaluator pinned\|host` (default `pinned`: the CppNix of the kit's lock judges; `host`: the host's own Nix judges, which is how the `determinate` job of §11 runs the gate, and the report's baseline key names that implementation) |
 | `baseline` | Writes `.nix-tops/baseline.json` after a passing run; the only writer |
 | `laws [list \| run \| explain N-NN]` | Catalog with readers; laws alone; one law explained |
 | `outputs` | Lists every output with its coverage level (§6.1) |

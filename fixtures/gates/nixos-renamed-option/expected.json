@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "Refuse"
+  },
+  "named": "config-warnings",
+  "note": "A NixOS option nixpkgs renamed: nixpkgs puts the notice in config.warnings (warning source 2), which the gate reads as data; abort-on-warn does not stop it.",
+  "exit_note": "exit counts lint, build-test, coverage, facet-layers and laws as switched off (not built in this version); until the config can switch them off they are not-run and the exit of a passing fixture is 1."
+}

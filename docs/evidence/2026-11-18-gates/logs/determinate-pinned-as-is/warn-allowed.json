@@ -1,0 +1,106 @@
+{
+  "protocol": "0.2.0",
+  "enforce": "hard",
+  "baseline_identity": {
+    "implementation": "cppnix",
+    "version": "2.35.6",
+    "system": "aarch64-darwin",
+    "lock_hash": "sha256-1/Jdj8JrlKYs4UQ3aycTzd2njPNeVWVZ0wTCVEA2kHk="
+  },
+  "facets": [
+    "package-set"
+  ],
+  "passed": false,
+  "counts": {
+    "verdicts": {
+      "ack": 1,
+      "deferred": 0,
+      "not_evaluated": 0,
+      "not_run": 5,
+      "pass": 1,
+      "refuse": 3,
+      "skip": 0,
+      "vacuous": 0
+    },
+    "failed": 6
+  },
+  "layers": [
+    {
+      "id": "source",
+      "verdict": "pass"
+    },
+    {
+      "id": "lint",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "eval",
+      "verdict": "Refuse",
+      "reason": "diagnostic: warning: unknown setting 'eval-cores' [unclassified diagnostic]\ndiagnostic: warning: unknown setting 'lazy-trees' [unclassified diagnostic]"
+    },
+    {
+      "id": "build-test",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "coverage",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "facet-layers",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "laws",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    }
+  ],
+  "laws": [],
+  "outputs": [
+    {
+      "attr": "packages.x86_64-linux.default",
+      "level": "evaluated"
+    }
+  ],
+  "warnings": [
+    {
+      "source": "builtins-warn",
+      "message": "the fixture package has been renamed",
+      "verdict": "Ack",
+      "entry": {
+        "kind": "ledger",
+        "match": "has been renamed",
+        "reason": "upstream rename; fixed in the next lock update",
+        "until": "2099-12-31",
+        "expired": false
+      }
+    },
+    {
+      "source": "diagnostic",
+      "message": "warning: unknown setting 'eval-cores' [unclassified diagnostic]",
+      "verdict": "Refuse"
+    },
+    {
+      "source": "diagnostic",
+      "message": "warning: unknown setting 'lazy-trees' [unclassified diagnostic]",
+      "verdict": "Refuse"
+    }
+  ],
+  "acks": {
+    "count": 1,
+    "entries": [
+      {
+        "kind": "ledger",
+        "match": "has been renamed",
+        "reason": "upstream rename; fixed in the next lock update",
+        "until": "2099-12-31",
+        "expired": false
+      }
+    ]
+  }
+}

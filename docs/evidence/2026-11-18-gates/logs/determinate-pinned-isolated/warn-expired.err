@@ -1,0 +1,1 @@
+nix-tops.toml: warnings.allow[0].until: expired on 2020-01-01 (today is 2026-11-19); an expired entry fails the gate

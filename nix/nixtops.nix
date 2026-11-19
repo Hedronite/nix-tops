@@ -27,11 +27,15 @@ rustPlatform.buildRustPackage {
       (root + "/schema")
       (root + "/profiles")
       (root + "/config")
+      (root + "/laws/diagnostics.toml")
       (root + "/examples/quickstart/nix-tops.toml")
     ];
   };
 
   cargoLock.lockFile = root + "/Cargo.lock";
+
+  # The gate-one tests run real git repositories in a temporary directory.
+  nativeCheckInputs = [ pkgs.git ];
 
   NIXTOPS_TOOLS = toolTable;
   NIXTOPS_JUDGE = lib.getExe kit.judge;

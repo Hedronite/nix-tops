@@ -1,0 +1,85 @@
+{
+  "protocol": "0.2.0",
+  "enforce": "hard",
+  "baseline_identity": {
+    "implementation": "determinate",
+    "version": "3.22.3",
+    "system": "aarch64-darwin",
+    "lock_hash": "sha256-LEzGUqHpWLk2MSHDNRwX3USANbKmcjFyZVklO0OsX5w="
+  },
+  "facets": [
+    "home-config"
+  ],
+  "passed": false,
+  "counts": {
+    "verdicts": {
+      "ack": 0,
+      "deferred": 0,
+      "not_evaluated": 0,
+      "not_run": 5,
+      "pass": 1,
+      "refuse": 2,
+      "skip": 0,
+      "vacuous": 0
+    },
+    "failed": 6
+  },
+  "layers": [
+    {
+      "id": "source",
+      "verdict": "pass"
+    },
+    {
+      "id": "lint",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "eval",
+      "verdict": "Refuse",
+      "reason": "config.warnings: The option `programs.carapace.ignoreCase' defined in `<unknown-file>' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'."
+    },
+    {
+      "id": "build-test",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "coverage",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "facet-layers",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "laws",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    }
+  ],
+  "laws": [],
+  "outputs": [
+    {
+      "attr": "homeConfigurations.fixture",
+      "level": "evaluated"
+    },
+    {
+      "attr": "packages.x86_64-linux.default",
+      "level": "evaluated"
+    }
+  ],
+  "warnings": [
+    {
+      "source": "config-warnings",
+      "message": "The option `programs.carapace.ignoreCase' defined in `<unknown-file>' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'.",
+      "verdict": "Refuse"
+    }
+  ],
+  "acks": {
+    "count": 0,
+    "entries": []
+  }
+}

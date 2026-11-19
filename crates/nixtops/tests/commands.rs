@@ -3,7 +3,7 @@
 mod common;
 use common::{nixtops, stderr};
 
-const UNBUILT: [&[&str]; 4] = [&["gate"], &["baseline"], &["laws"], &["report"]];
+const UNBUILT: [&[&str]; 2] = [&["baseline"], &["laws"]];
 
 #[test]
 fn an_unbuilt_command_exits_4_and_names_itself() {
@@ -21,7 +21,16 @@ fn an_unbuilt_command_exits_4_and_names_itself() {
 
 #[test]
 fn flags_of_the_table_parse() {
-    let gate: &[&[&str]] = &[
+    let unbuilt: &[&[&str]] = &[
+        &["laws", "list"],
+        &["laws", "run"],
+        &["laws", "explain", "N-04"],
+    ];
+    for args in unbuilt {
+        assert_eq!(nixtops(args).status.code(), Some(4), "{args:?}");
+    }
+    // Built commands: the flags parse (`--help` last makes clap stop after parsing them).
+    let built: &[&[&str]] = &[
         &[
             "gate",
             "--max-tier",
@@ -30,6 +39,7 @@ fn flags_of_the_table_parse() {
             "main",
             "--keep-going",
             "--json",
+            "--help",
         ],
         &[
             "gate",
@@ -38,14 +48,14 @@ fn flags_of_the_table_parse() {
             "--system",
             "x86_64-linux",
             "--dry-run",
+            "--evaluator",
+            "host",
+            "--help",
         ],
-        &["laws", "list"],
-        &["laws", "run"],
-        &["laws", "explain", "N-04"],
-        &["report", "--format", "json"],
+        &["report", "--format", "json", "--help"],
     ];
-    for args in gate {
-        assert_eq!(nixtops(args).status.code(), Some(4), "{args:?}");
+    for args in built {
+        assert_eq!(nixtops(args).status.code(), Some(0), "{args:?}");
     }
 }
 

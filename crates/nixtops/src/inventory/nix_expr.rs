@@ -1,22 +1,6 @@
 //! The Nix expressions the inventory evaluates. Strings are escaped as Nix string literals, so a
 //! flake reference or an attribute name can never end the literal.
 
-/// Top-level names of a flake value that are metadata, not outputs.
-const METADATA: [&str; 12] = [
-    "_type",
-    "inputs",
-    "outputs",
-    "lastModified",
-    "lastModifiedDate",
-    "narHash",
-    "outPath",
-    "rev",
-    "shortRev",
-    "revCount",
-    "submodules",
-    "sourceInfo",
-];
-
 /// A Nix string literal for `text`. The backslash goes first so the others are not escaped twice.
 pub fn quote(text: &str) -> String {
     let escaped = text
@@ -29,97 +13,88 @@ pub fn quote(text: &str) -> String {
     format!("\"{escaped}\"")
 }
 
-fn list(items: &[&str]) -> String {
-    let quoted: Vec<String> = items.iter().map(|item| quote(item)).collect();
-    format!("[ {} ]", quoted.join(" "))
+fn flake(reference: &str) -> String {
+    format!("(builtins.getFlake {})", quote(reference))
 }
 
-fn flake(url: &str) -> String {
-    format!("(builtins.getFlake {})", quote(url))
+/// An attribute path for `nix eval <url>#<path>`: every name quoted, `.` for the flake itself.
+pub fn attr_path(path: &[&str]) -> String {
+    if path.is_empty() {
+        return ".".to_string();
+    }
+    let quoted: Vec<String> = path
+        .iter()
+        .map(|name| format!("\"{}\"", name.replace('\\', "\\\\").replace('"', "\\\"")))
+        .collect();
+    quoted.join(".")
 }
 
-/// The value at `path` below the flake.
-pub fn at(url: &str, path: &[&str]) -> String {
+/// The installable for the value at `path` below the flake at `url`.
+pub fn installable(url: &str, path: &[&str]) -> String {
+    format!("{url}#{}", attr_path(path))
+}
+
+/// The names of an attribute set (the outputs of the flake at the root, or any set below it).
+pub fn names() -> String {
+    "builtins.attrNames".to_string()
+}
+
+/// A derivation: its `.drv` path, name and a stable subset of its meta.
+pub fn derivation() -> String {
+    let keep = "{ description = null; homepage = null; license = null; mainProgram = null; broken = null; available = null; }";
     format!(
-        "(builtins.foldl' (a: n: a.${{n}}) {} {})",
-        flake(url),
-        list(path)
+        "d: {{ drvPath = d.drvPath; name = d.name or null; meta = builtins.intersectAttrs {keep} (d.meta or {{ }}); }}"
     )
 }
 
-/// The names of the flake's outputs.
-pub fn output_names(url: &str) -> String {
-    format!(
-        "builtins.attrNames (removeAttrs {} {})",
-        flake(url),
-        list(&METADATA)
-    )
-}
-
-/// The attribute names at `path`.
-pub fn attr_names(url: &str, path: &[&str]) -> String {
-    format!("builtins.attrNames {}", at(url, path))
-}
-
-/// The derivation at `path`: its `.drv` path and name.
-pub fn derivation(url: &str, path: &[&str]) -> String {
-    let value = at(url, path);
-    format!("let d = {value}; in {{ drvPath = d.drvPath; name = d.name or null; }}")
+/// The `warnings` list of a configuration (NixOS, Home Manager, nix-darwin), as data.
+pub fn config_warnings() -> String {
+    "c: c.config.warnings".to_string()
 }
 
 /// An app: its type and the program it runs.
-pub fn app(url: &str, path: &[&str]) -> String {
-    let value = at(url, path);
-    format!("let a = {value}; in {{ type = a.type; program = a.program; }}")
-}
-
-/// A flake input as a function argument: the locked nixpkgs flake.
-fn nixpkgs(reference: &str) -> String {
-    flake(reference)
+pub fn app() -> String {
+    "a: { type = a.type; program = a.program; }".to_string()
 }
 
 /// An overlay applied to the pinned nixpkgs at `system`; the result must evaluate.
-pub fn overlay(url: &str, pins: &str, system: &str, path: &[&str]) -> String {
-    let (value, np, sys) = (at(url, path), nixpkgs(pins), quote(system));
+pub fn overlay(pins: &str, system: &str) -> String {
+    let (np, sys) = (flake(pins), quote(system));
     let pkgs = format!("import np.outPath {{ system = {sys}; overlays = [ o ]; }}");
     format!(
-        "let np = {np}; o = {value}; pkgs = {pkgs}; in {{ attrs = builtins.length (builtins.attrNames (o pkgs pkgs)); }}"
+        "o: let np = {np}; pkgs = {pkgs}; in {{ attrs = builtins.length (builtins.attrNames (o pkgs pkgs)); }}"
     )
 }
 
 /// A NixOS module evaluated in a minimal NixOS configuration of the pinned nixpkgs, with the
 /// module system's option check on: a module that sets an option nobody declares fails here. The
 /// configuration is `x86_64-linux` (NixOS is Linux; nothing is built), and its build root is forced.
-pub fn nixos_module(url: &str, pins: &str, path: &[&str]) -> String {
-    let (value, np) = (at(url, path), nixpkgs(pins));
+pub fn nixos_module(pins: &str) -> String {
+    let np = flake(pins);
     let base = "{ nixpkgs.hostPlatform = \"x86_64-linux\"; system.stateVersion = \"25.11\"; \
         boot.loader.grub.enable = false; \
         fileSystems.\"/\" = { device = \"none\"; fsType = \"tmpfs\"; }; }";
     let eval = format!("np.lib.nixosSystem {{ modules = [ m {base} ]; }}");
     format!(
-        "let np = {np}; m = {value}; e = {eval}; in {{ drvPath = e.config.system.build.toplevel.drvPath; }}"
+        "m: let np = {np}; e = {eval}; in {{ drvPath = e.config.system.build.toplevel.drvPath; }}"
     )
 }
 
 /// What a module export is, forced to a value; used where the kit's lock has no module system for
 /// it (Home Manager and nix-darwin modules).
-pub fn module_value(url: &str, path: &[&str]) -> String {
-    let value = at(url, path);
-    format!("let m = {value}; in {{ type = builtins.typeOf m; }}")
+pub fn module_value() -> String {
+    "m: { type = builtins.typeOf m; }".to_string()
 }
 
 /// A configuration's build root: the derivation of `leaf` (for example `config.system.build.toplevel`).
-pub fn configuration(url: &str, path: &[&str], leaf: &[&str]) -> String {
-    let (value, leaf) = (at(url, path), leaf.join("."));
-    format!("let c = {value}; in {{ drvPath = c.{leaf}.drvPath; name = c.{leaf}.name or null; }}")
+pub fn configuration(leaf: &[&str]) -> String {
+    let leaf = leaf.join(".");
+    format!("c: {{ drvPath = c.{leaf}.drvPath; name = c.{leaf}.name or null; }}")
 }
 
 /// A template: the path it is copied from and its description.
-pub fn template(url: &str, path: &[&str]) -> String {
-    let value = at(url, path);
-    format!(
-        "let t = {value}; in {{ path = toString t.path; description = t.description or null; }}"
-    )
+pub fn template() -> String {
+    "t: { path = toString t.path; description = t.description or null; }".to_string()
 }
 
 #[cfg(test)]
@@ -136,60 +111,55 @@ mod tests {
     }
 
     #[test]
-    fn a_path_is_a_fold_over_quoted_names() {
-        let e = at("github:o/r/abc", &["packages", "x86_64-linux"]);
+    fn an_attribute_path_quotes_every_name_and_the_root_is_a_dot() {
+        assert_eq!(attr_path(&[]), ".");
         assert_eq!(
-            e,
-            "(builtins.foldl' (a: n: a.${n}) (builtins.getFlake \"github:o/r/abc\") [ \"packages\" \"x86_64-linux\" ])"
+            attr_path(&["packages", "x86_64-linux"]),
+            "\"packages\".\"x86_64-linux\""
         );
-        assert!(at("u", &[]).ends_with("[  ])"));
+        assert_eq!(
+            attr_path(&["a.b", "c\"d", "e\\f"]),
+            "\"a.b\".\"c\\\"d\".\"e\\\\f\""
+        );
     }
 
     #[test]
-    fn output_names_drop_the_metadata() {
-        let e = output_names("u");
-        assert!(e.starts_with("builtins.attrNames (removeAttrs (builtins.getFlake \"u\") ["));
-        for key in [
-            "\"_type\"",
-            "\"inputs\"",
-            "\"outputs\"",
-            "\"sourceInfo\"",
-            "\"narHash\"",
-        ] {
-            assert!(e.contains(key), "{key}");
-        }
-        assert!(!e.contains("\"packages\""));
+    fn an_installable_is_the_reference_a_hash_and_the_path() {
+        assert_eq!(
+            installable("git+file:///r?dir=x", &["apps", "s"]),
+            "git+file:///r?dir=x#\"apps\".\"s\""
+        );
+        assert_eq!(installable("u", &[]), "u#.");
     }
 
     #[test]
     fn each_builder_names_the_thing_it_forces() {
-        assert!(attr_names("u", &["a"]).starts_with("builtins.attrNames (builtins.foldl'"));
-        assert!(derivation("u", &["a"]).contains("d.drvPath"));
-        assert!(app("u", &["a"]).contains("a.program") && app("u", &["a"]).contains("a.type"));
-        let o = overlay("u", "np:ref", "x86_64-linux", &["overlays", "default"]);
+        assert_eq!(names(), "builtins.attrNames");
+        assert!(derivation().starts_with("d: ") && derivation().contains("d.drvPath"));
+        assert!(derivation().contains("intersectAttrs"));
+        assert!(app().contains("a.program") && app().contains("a.type"));
+        let o = overlay("np:ref", "x86_64-linux");
         assert!(
-            o.contains("import np.outPath")
+            o.starts_with("o: ")
+                && o.contains("import np.outPath")
                 && o.contains("\"x86_64-linux\"")
                 && o.contains("np:ref")
         );
-        let m = nixos_module("u", "np:ref", &["nixosModules", "m"]);
-        assert!(m.contains("np.lib.nixosSystem") && m.contains("np:ref"));
+        let m = nixos_module("np:ref");
+        assert!(m.starts_with("m: ") && m.contains("np.lib.nixosSystem") && m.contains("np:ref"));
         assert!(m.contains("hostPlatform = \"x86_64-linux\""));
         assert!(!m.contains("_module.check = false"));
         assert!(m.contains("config.system.build.toplevel.drvPath"));
-        assert!(module_value("u", &["homeManagerModules", "m"]).contains("builtins.typeOf m"));
-        let c = configuration(
-            "u",
-            &["nixosConfigurations", "h"],
-            &["config", "system", "build", "toplevel"],
-        );
+        assert_eq!(module_value(), "m: { type = builtins.typeOf m; }");
+        let c = configuration(&["config", "system", "build", "toplevel"]);
         assert!(c.contains("c.config.system.build.toplevel.drvPath"));
-        assert!(template("u", &["templates", "t"]).contains("toString t.path"));
+        assert_eq!(config_warnings(), "c: c.config.warnings");
+        assert!(template().contains("toString t.path"));
     }
 
     #[test]
-    fn a_hostile_name_stays_inside_its_literal() {
-        let e = at("u", &["a\" ; builtins.abort \"x"]);
-        assert!(e.contains("\\\" ; builtins.abort \\\"x"));
+    fn a_hostile_pin_stays_inside_its_literal() {
+        let o = overlay("x\" ; builtins.abort \"y", "s");
+        assert!(o.contains("x\\\" ; builtins.abort \\\"y"));
     }
 }

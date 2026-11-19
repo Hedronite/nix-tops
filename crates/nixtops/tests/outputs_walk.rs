@@ -1,6 +1,8 @@
 //! The inventory walk with stand-in tools: a shell script for the judge and one for
 //! `nix-eval-jobs`, each answering from a table of (pattern, stdout, stderr, exit code).
 
+mod common;
+
 use nixtops::{
     cmd::outputs::{self, Args},
     exit::Exit,
@@ -9,7 +11,6 @@ use nixtops::{
 use serde_json::Value;
 use std::{
     fs,
-    os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
 };
 
@@ -22,8 +23,7 @@ fn script(dir: &Path, name: &str, arms: &[Arm]) -> PathBuf {
     }
     text.push_str("*) echo \"no arm for: $*\" >&2; exit 99;;\nesac\n");
     let path = dir.join(name);
-    fs::write(&path, text).unwrap();
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+    common::write_executable(&path, &text);
     path
 }
 
@@ -33,80 +33,90 @@ fn judge_arms<'a>(template_dir: &'a str) -> Vec<Arm<'a>> {
     vec![
         ("--no-write-lock-file", "{}", "", 0),
         (
-            "--no-update-lock-file",
+            "flake'*'metadata'*'--no-update-lock-file",
             r#"{"url":"fake:locked"}"#,
             "warning: unknown setting 'x'",
             0,
         ),
-        ("removeAttrs", NAMES, "", 0),
+        (r##"#. --apply"##, NAMES, "", 0),
         (
-            r#"[ "packages" ]"#,
+            r##"#"packages" --apply"##,
             r#"["aarch64-darwin","x86_64-linux"]"#,
             "",
             0,
         ),
-        (r#"[ "checks" ]"#, r#"["x86_64-linux"]"#, "", 0),
-        (r#"[ "devShells" ]"#, r#"["x86_64-linux"]"#, "", 0),
-        (r#"[ "apps" ]"#, r#"["x86_64-linux"]"#, "", 0),
-        (r#"[ "formatter" ]"#, r#"["x86_64-linux"]"#, "", 0),
-        (r#"[ "legacyPackages" ]"#, r#"["x86_64-linux"]"#, "", 0),
-        (r#"[ "overlays" ]"#, r#"["bad","default"]"#, "", 0),
-        (r#"[ "nixosModules" ]"#, r#"["bad","m"]"#, "", 0),
-        (r#"[ "homeManagerModules" ]"#, r#"["hm"]"#, "", 0),
-        (r#"[ "templates" ]"#, r#"["t"]"#, "", 0),
-        (r#"[ "nixosConfigurations" ]"#, r#"["h"]"#, "", 0),
-        (r#"[ "homeConfigurations" ]"#, r#"["u"]"#, "", 0),
+        (r##"#"checks" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#"devShells" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#"apps" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#"formatter" --apply"##, r#"["x86_64-linux"]"#, "", 0),
         (
-            r#"[ "apps" "x86_64-linux" ]"#,
+            r##"#"legacyPackages" --apply"##,
+            r#"["x86_64-linux"]"#,
+            "",
+            0,
+        ),
+        (r##"#"overlays" --apply"##, r#"["bad","default"]"#, "", 0),
+        (r##"#"nixosModules" --apply"##, r#"["bad","m"]"#, "", 0),
+        (r##"#"homeManagerModules" --apply"##, r#"["hm"]"#, "", 0),
+        (r##"#"templates" --apply"##, r#"["t"]"#, "", 0),
+        (r##"#"nixosConfigurations" --apply"##, r#"["h"]"#, "", 0),
+        (r##"#"homeConfigurations" --apply"##, r#"["u"]"#, "", 0),
+        (
+            r##"#"apps"."x86_64-linux" --apply"##,
             r#"["broken","default","noprog"]"#,
             "",
             0,
         ),
         (
-            r#"[ "apps" "x86_64-linux" "default" ]"#,
+            r##"#"apps"."x86_64-linux"."default" --apply"##,
             r#"{"type":"app","program":"/p"}"#,
             "",
             0,
         ),
         (
-            r#"[ "apps" "x86_64-linux" "noprog" ]"#,
+            r##"#"apps"."x86_64-linux"."noprog" --apply"##,
             r#"{"type":"app"}"#,
             "",
             0,
         ),
         (
-            r#"[ "apps" "x86_64-linux" "broken" ]"#,
+            r##"#"apps"."x86_64-linux"."broken" --apply"##,
             r#"{"type":"derivation"}"#,
             "",
             0,
         ),
         (
-            r#"[ "formatter" "x86_64-linux" ]"#,
+            r##"#"formatter"."x86_64-linux" --apply"##,
             r#"{"drvPath":"/nix/store/f.drv","name":"nixfmt"}"#,
             "",
             0,
         ),
         (
-            r#"[ "overlays" "bad" ]"#,
+            r##"#"overlays"."bad" --apply"##,
             "",
             "error: overlay bad\nunpacking 'x'",
             1,
         ),
-        (r#"[ "overlays" "default" ]"#, r#"{"attrs":3}"#, "", 0),
         (
-            r#"[ "nixosModules" "bad" ]"#,
+            r##"#"overlays"."default" --apply"##,
+            r#"{"attrs":3}"#,
+            "",
+            0,
+        ),
+        (
+            r##"#"nixosModules"."bad" --apply"##,
             "",
             "error: The option `nonexistent.option' does not exist.",
             1,
         ),
         (
-            r#"[ "nixosModules" "m" ]"#,
+            r##"#"nixosModules"."m" --apply"##,
             r#"{"drvPath":"/nix/store/n.drv"}"#,
             "",
             0,
         ),
         (
-            r#"[ "homeManagerModules" "hm" ]"#,
+            r##"#"homeManagerModules"."hm" --apply"##,
             r#"{"type":"lambda"}"#,
             "",
             0,
@@ -366,8 +376,13 @@ fn a_flake_whose_output_names_cannot_be_read_is_an_environment_error() {
         dir.path(),
         "judge",
         &[
-            ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
-            ("removeAttrs", "", "error: boom", 1),
+            (
+                "flake'*'metadata'*'--no-update-lock-file",
+                r#"{"url":"u"}"#,
+                "",
+                0,
+            ),
+            (r##"#. --apply"##, "", "error: boom", 1),
         ],
     );
     let tools = Tools {
@@ -393,7 +408,7 @@ fn metadata_without_a_url_or_with_bad_json_is_an_error() {
         let judge = script(
             dir.path(),
             "judge",
-            &[("--no-update-lock-file", stdout, "", 0)],
+            &[("flake'*'metadata'*'--no-update-lock-file", stdout, "", 0)],
         );
         let tools = Tools {
             judge,
@@ -416,9 +431,14 @@ fn metadata_without_a_url_or_with_bad_json_is_an_error() {
 fn a_member_list_that_is_not_json_becomes_that_outputs_error() {
     let dir = tempfile::tempdir().unwrap();
     let arms: Vec<Arm> = vec![
-        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
-        ("removeAttrs", r#"["packages"]"#, "", 0),
-        (r#"[ "packages" ]"#, "garbage", "", 0),
+        (
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"u"}"#,
+            "",
+            0,
+        ),
+        (r##"#. --apply"##, r#"["packages"]"#, "", 0),
+        (r##"#"packages" --apply"##, "garbage", "", 0),
     ];
     let judge = script(dir.path(), "judge", &arms);
     let tools = Tools {
@@ -441,8 +461,13 @@ fn a_member_list_that_is_not_json_becomes_that_outputs_error() {
 fn an_empty_flake_has_no_outputs_and_no_facets() {
     let dir = tempfile::tempdir().unwrap();
     let arms: Vec<Arm> = vec![
-        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
-        ("removeAttrs", "[]", "", 0),
+        (
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"u"}"#,
+            "",
+            0,
+        ),
+        (r##"#. --apply"##, "[]", "", 0),
     ];
     let tools = Tools {
         judge: script(dir.path(), "judge", &arms),
@@ -479,8 +504,7 @@ fn the_judge_gets_gate_three_options_and_an_empty_cache() {
         log.display()
     );
     let judge = dir.path().join("judge");
-    fs::write(&judge, body).unwrap();
-    fs::set_permissions(&judge, fs::Permissions::from_mode(0o755)).unwrap();
+    common::write_executable(&judge, &body);
     let tools = Tools {
         judge,
         eval_jobs: dir.path().join("nej"),
@@ -499,12 +523,10 @@ fn eval_jobs_gets_flakes_enabled_by_option_and_gate_three_options() {
     let dir = tempfile::tempdir().unwrap();
     let log = dir.path().join("log");
     let nej = dir.path().join("nej");
-    fs::write(
+    common::write_executable(
         &nej,
-        format!("#!/bin/sh\necho \"$*\" >> {}\n", log.display()),
-    )
-    .unwrap();
-    fs::set_permissions(&nej, fs::Permissions::from_mode(0o755)).unwrap();
+        &format!("#!/bin/sh\necho \"$*\" >> {}\n", log.display()),
+    );
     let tools = Tools {
         judge: dir.path().join("judge"),
         eval_jobs: nej,
@@ -523,15 +545,20 @@ fn eval_jobs_gets_flakes_enabled_by_option_and_gate_three_options() {
 fn a_listing_error_stays_on_the_structure_and_in_the_report() {
     let dir = tempfile::tempdir().unwrap();
     let arms: Vec<Arm> = vec![
-        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
-        ("removeAttrs", r#"["devShells","packages"]"#, "", 0),
         (
-            r#"[ "packages" ]"#,
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"u"}"#,
+            "",
+            0,
+        ),
+        (r##"#. --apply"##, r#"["devShells","packages"]"#, "", 0),
+        (
+            r##"#"packages" --apply"##,
             "",
             "error: cannot list packages\nunpacking 'x'",
             1,
         ),
-        (r#"[ "devShells" ]"#, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#"devShells" --apply"##, r#"["x86_64-linux"]"#, "", 0),
         ("fake:locked#devShells.x86_64-linux", "", "", 0),
     ];
     let judge = script(dir.path(), "judge", &arms);
@@ -611,20 +638,30 @@ fn modules_without_a_module_system_in_the_lock_stay_evaluated_with_a_reason() {
 fn an_empty_per_system_set_exports_no_system_and_derives_no_facet() {
     let dir = tempfile::tempdir().unwrap();
     let arms: Vec<Arm> = vec![
-        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
-        ("removeAttrs", r#"["devShells","packages"]"#, "", 0),
-        (r#"[ "devShells" "aarch64-linux" ]"#, "[]", "", 0),
-        (r#"[ "devShells" "x86_64-linux" ]"#, "[]", "", 0),
         (
-            r#"[ "devShells" ]"#,
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"u"}"#,
+            "",
+            0,
+        ),
+        (r##"#. --apply"##, r#"["devShells","packages"]"#, "", 0),
+        (r##"#"devShells"."aarch64-linux" --apply"##, "[]", "", 0),
+        (r##"#"devShells"."x86_64-linux" --apply"##, "[]", "", 0),
+        (
+            r##"#"devShells" --apply"##,
             r#"["aarch64-linux","x86_64-linux"]"#,
             "",
             0,
         ),
-        (r#"[ "packages" "x86_64-linux" ]"#, r#"["default"]"#, "", 0),
-        (r#"[ "packages" "aarch64-linux" ]"#, "[]", "", 0),
         (
-            r#"[ "packages" ]"#,
+            r##"#"packages"."x86_64-linux" --apply"##,
+            r#"["default"]"#,
+            "",
+            0,
+        ),
+        (r##"#"packages"."aarch64-linux" --apply"##, "[]", "", 0),
+        (
+            r##"#"packages" --apply"##,
             r#"["aarch64-linux","x86_64-linux"]"#,
             "",
             0,
@@ -654,15 +691,20 @@ fn an_empty_per_system_set_exports_no_system_and_derives_no_facet() {
 fn a_set_that_cannot_be_listed_keeps_its_system() {
     let dir = tempfile::tempdir().unwrap();
     let arms: Vec<Arm> = vec![
-        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
-        ("removeAttrs", r#"["packages"]"#, "", 0),
         (
-            r#"[ "packages" "x86_64-linux" ]"#,
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"u"}"#,
+            "",
+            0,
+        ),
+        (r##"#. --apply"##, r#"["packages"]"#, "", 0),
+        (
+            r##"#"packages"."x86_64-linux" --apply"##,
             "",
             "error: cannot list",
             1,
         ),
-        (r#"[ "packages" ]"#, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#"packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
     ];
     let tools = Tools {
         judge: script(dir.path(), "judge", &arms),

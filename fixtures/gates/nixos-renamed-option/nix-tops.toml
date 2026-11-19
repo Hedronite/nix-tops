@@ -1,0 +1,7 @@
+protocol = "0.2.0"
+facets = ["nixos-host"]
+enforce = "hard"
+
+[toolchain]
+systems = ["x86_64-linux"]
+

@@ -1,0 +1,97 @@
+//! The text form of a report: one line per layer, the warnings, the verdict of the run. It reads
+//! the report as JSON so `nixtops report` can render a file written by an earlier run.
+
+use serde_json::Value;
+
+fn str_of<'a>(value: &'a Value, key: &str) -> &'a str {
+    value.get(key).and_then(Value::as_str).unwrap_or("")
+}
+
+fn layer_line(layer: &Value) -> String {
+    let (id, verdict) = (str_of(layer, "id"), str_of(layer, "verdict"));
+    match layer.get("reason").and_then(Value::as_str) {
+        Some(reason) => format!("{id:<13} {verdict:<9} {}", first_line(reason)),
+        None => format!("{id:<13} {verdict}"),
+    }
+}
+
+fn first_line(text: &str) -> &str {
+    text.lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or("")
+        .trim()
+}
+
+fn warning_line(warning: &Value) -> String {
+    let message = first_line(str_of(warning, "message"));
+    format!(
+        "  {} [{}] {message}",
+        str_of(warning, "verdict"),
+        str_of(warning, "source")
+    )
+}
+
+fn items<'a>(report: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
+    report
+        .get(key)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+}
+
+/// The report as text.
+pub fn render_text(report: &Value) -> String {
+    let mut lines: Vec<String> = items(report, "layers").map(layer_line).collect();
+    let warnings: Vec<String> = items(report, "warnings").map(warning_line).collect();
+    if !warnings.is_empty() {
+        lines.push("warnings".to_string());
+        lines.extend(warnings);
+    }
+    let outputs = items(report, "outputs").count();
+    lines.push(format!("{outputs} outputs evaluated"));
+    let passed = report
+        .get("passed")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    lines.push(format!(
+        "gate: {}",
+        if passed { "passed" } else { "failed" }
+    ));
+    lines.join("\n") + "\n"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_layer_line_pads_the_id_and_shows_the_first_line_of_the_reason() {
+        let report = json!({"layers": [
+            {"id": "source", "verdict": "pass"},
+            {"id": "eval", "verdict": "Refuse", "reason": "\nfirst\nsecond"}
+        ], "passed": false});
+        let text = render_text(&report);
+        assert!(text.starts_with("source        pass\n"), "{text}");
+        assert!(text.contains("eval          Refuse    first\n"), "{text}");
+        assert!(text.ends_with("0 outputs evaluated\ngate: failed\n"));
+    }
+
+    #[test]
+    fn warnings_are_listed_under_a_heading() {
+        let report = json!({"layers": [], "passed": true, "outputs": [{"attr": "a"}],
+            "warnings": [{"source": "builtins-warn", "message": "x\ny", "verdict": "Ack"}]});
+        assert_eq!(
+            render_text(&report),
+            "warnings\n  Ack [builtins-warn] x\n1 outputs evaluated\ngate: passed\n"
+        );
+    }
+
+    #[test]
+    fn a_missing_field_does_not_panic() {
+        assert_eq!(
+            render_text(&json!({})),
+            "0 outputs evaluated\ngate: failed\n"
+        );
+    }
+}

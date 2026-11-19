@@ -1,0 +1,85 @@
+{
+  "protocol": "0.2.0",
+  "enforce": "hard",
+  "baseline_identity": {
+    "implementation": "determinate",
+    "version": "3.22.3",
+    "system": "aarch64-darwin",
+    "lock_hash": "sha256-1/Jdj8JrlKYs4UQ3aycTzd2njPNeVWVZ0wTCVEA2kHk="
+  },
+  "facets": [
+    "nixos-host"
+  ],
+  "passed": false,
+  "counts": {
+    "verdicts": {
+      "ack": 0,
+      "deferred": 0,
+      "not_evaluated": 0,
+      "not_run": 5,
+      "pass": 1,
+      "refuse": 2,
+      "skip": 0,
+      "vacuous": 0
+    },
+    "failed": 6
+  },
+  "layers": [
+    {
+      "id": "source",
+      "verdict": "pass"
+    },
+    {
+      "id": "lint",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "eval",
+      "verdict": "Refuse",
+      "reason": "config.warnings: The option `services.openssh.permitRootLogin' defined in `/nix/store/64d7bdawbnr6pwp2sgjm83jl6r95gimc-source/flake.nix' has been renamed to `services.openssh.settings.PermitRootLogin'."
+    },
+    {
+      "id": "build-test",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "coverage",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "facet-layers",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "laws",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    }
+  ],
+  "laws": [],
+  "outputs": [
+    {
+      "attr": "nixosConfigurations.host",
+      "level": "evaluated"
+    },
+    {
+      "attr": "packages.x86_64-linux.default",
+      "level": "evaluated"
+    }
+  ],
+  "warnings": [
+    {
+      "source": "config-warnings",
+      "message": "The option `services.openssh.permitRootLogin' defined in `/nix/store/64d7bdawbnr6pwp2sgjm83jl6r95gimc-source/flake.nix' has been renamed to `services.openssh.settings.PermitRootLogin'.",
+      "verdict": "Refuse"
+    }
+  ],
+  "acks": {
+    "count": 0,
+    "entries": []
+  }
+}

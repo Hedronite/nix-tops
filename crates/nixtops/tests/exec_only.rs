@@ -7,8 +7,18 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Calls that run a `Command` without the retry.
-const FORBIDDEN: [&str; 3] = [".output()", ".spawn()", ".status()"];
+/// Calls that run a `Command` without the retry: the method forms, the function-call forms
+/// (`Command::output(&mut c)`), and `CommandExt::exec`, which replaces the process.
+const FORBIDDEN: [&str; 8] = [
+    ".output()",
+    ".spawn()",
+    ".status()",
+    "Command::output(",
+    "Command::spawn(",
+    "Command::status(",
+    ".exec(",
+    "CommandExt::exec(",
+];
 
 fn rust_files(dir: &Path, found: &mut Vec<PathBuf>) {
     for entry in fs::read_dir(dir).unwrap() {
@@ -61,7 +71,7 @@ fn no_command_is_run_outside_exec() {
 
 #[test]
 fn the_scan_finds_what_it_forbids_and_ignores_what_it_does_not() {
-    let source = "let a = Command::new(\"x\").output();\nlet b = c.spawn();\nlet d = c.status();\n// c.output() in a comment\nlet e = out.status.success();\nlet f = crate::exec::output(&mut c);\n";
+    let source = "let a = Command::new(\"x\").output();\nlet b = c.spawn();\nlet d = c.status();\n// c.output() in a comment\nlet e = out.status.success();\nlet f = crate::exec::output(&mut c);\nlet g = Command::output(&mut c);\nlet h = std::process::Command::spawn(&mut c);\nlet i = Command::status(&mut c);\nlet j = c.exec();\nlet k = CommandExt::exec(&mut c);\n";
     let lines: Vec<usize> = offences(source).into_iter().map(|(n, _)| n).collect();
-    assert_eq!(lines, [1, 2, 3]);
+    assert_eq!(lines, [1, 2, 3, 7, 8, 9, 10, 11]);
 }

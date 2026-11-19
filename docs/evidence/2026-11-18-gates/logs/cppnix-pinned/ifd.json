@@ -1,0 +1,70 @@
+{
+  "protocol": "0.2.0",
+  "enforce": "hard",
+  "baseline_identity": {
+    "implementation": "cppnix",
+    "version": "2.35.6",
+    "system": "aarch64-darwin",
+    "lock_hash": "sha256-1/Jdj8JrlKYs4UQ3aycTzd2njPNeVWVZ0wTCVEA2kHk="
+  },
+  "facets": [
+    "package-set"
+  ],
+  "passed": false,
+  "counts": {
+    "verdicts": {
+      "ack": 0,
+      "deferred": 0,
+      "not_evaluated": 0,
+      "not_run": 5,
+      "pass": 1,
+      "refuse": 1,
+      "skip": 0,
+      "vacuous": 0
+    },
+    "failed": 6
+  },
+  "layers": [
+    {
+      "id": "source",
+      "verdict": "pass"
+    },
+    {
+      "id": "lint",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "eval",
+      "verdict": "Refuse",
+      "reason": "N-07: import from derivation is off and an output needs it\nflake check failed: error: path '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv' is not valid\npackages.x86_64-linux.default failed: error: cannot build '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv^out' during evaluation because the option 'allow-import-from-derivation' is disabled"
+    },
+    {
+      "id": "build-test",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "coverage",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "facet-layers",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    },
+    {
+      "id": "laws",
+      "verdict": "not-run",
+      "reason": "not built in this version"
+    }
+  ],
+  "laws": [],
+  "outputs": [],
+  "warnings": [],
+  "acks": {
+    "count": 0,
+    "entries": []
+  }
+}
