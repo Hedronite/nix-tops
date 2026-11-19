@@ -1,0 +1,305 @@
+"""Tests for scripts/law_diff.py: one pair of trees per row of the comparison, with and without the label."""
+
+import contextlib
+import io
+import shutil
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import law_diff  # noqa: E402
+
+CONFIG = """protocol = "0.2.0"
+facets = ["package-set", "dev-flake"]
+enforce = "hard"
+baseline = ".nix-tops/baseline.json"
+
+[toolchain]
+systems = ["x86_64-linux", "aarch64-linux"]
+
+[eval]
+all_systems = true
+abort_on_warn = true
+allow_ifd = false
+
+[coverage]
+built_floor = 100
+tested_floor = 50
+
+[budgets.closure]
+mode = "ratchet"
+outputs = ["a", "b"]
+
+[budgets.eval_cost]
+mode = "advisory"
+tolerance_pct = 10
+
+[lint.deadnix]
+fail = true
+
+[lint.statix]
+config = "statix.toml"
+
+[laws]
+enable = ["N-01", "N-02"]
+ack_ledger = ".nix-tops/acks.toml"
+
+[layers]
+lint = { enabled = false, reason = "not built in M1" }
+custom = [{ id = "extra", command = "true", tier = 1 }]
+
+[[warnings.allow]]
+match = "unknown setting"
+reason = "daemon only"
+until = "2027-01-01"
+"""
+
+LAW = """id = "N-01"
+severity = "Refuse"
+artifacts = ["output", "flake"]
+reader = "ev"
+judged = true
+"""
+
+PROFILE = """facet = "dev-flake"
+[eval]
+all_systems = true
+[coverage]
+built_floor = 100
+[layers]
+rebuild = { enabled = false }
+"""
+
+
+def tree(root, config=CONFIG, law=LAW, profile=PROFILE):
+    root = Path(root)
+    (root / "laws").mkdir(parents=True)
+    (root / "profiles").mkdir()
+    if config is not None:
+        (root / "nix-tops.toml").write_text(config)
+    if law is not None:
+        (root / "laws" / "N-01.toml").write_text(law)
+    if profile is not None:
+        (root / "profiles" / "dev-flake.toml").write_text(profile)
+
+
+class Pair(unittest.TestCase):
+    """Two trees: the base as written above, the head with one change."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.base = Path(self.tmp.name) / "base"
+        self.head = Path(self.tmp.name) / "head"
+        tree(self.base)
+
+    def make_head(self, **kwargs):
+        shutil.rmtree(self.head, ignore_errors=True)
+        tree(self.head, **kwargs)
+
+    def keys(self):
+        return [(f, k) for f, k, _, _ in law_diff.weakenings(self.base, self.head)]
+
+    def edit(self, old, new, **kwargs):
+        config = kwargs.pop("config", CONFIG)
+        assert old in config, old
+        self.make_head(config=config.replace(old, new), **kwargs)
+
+    def run_main(self, labels=""):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = law_diff.main(["--base", str(self.base), "--head", str(self.head), "--labels", labels])
+        return code, out.getvalue()
+
+
+class Unchanged(Pair):
+    def test_the_same_trees_have_no_weakening_and_no_output(self):
+        self.make_head()
+        self.assertEqual(self.keys(), [])
+        self.assertEqual(self.run_main(), (0, ""))
+
+    def test_a_strengthening_is_not_a_weakening(self):
+        config = CONFIG.replace("tested_floor = 50", "tested_floor = 60").replace('mode = "ratchet"', 'mode = "hard"')
+        config = config.replace("tolerance_pct = 10", "tolerance_pct = 5").replace('"N-02"]', '"N-02", "N-03"]')
+        self.make_head(config=config)
+        self.assertEqual(self.keys(), [])
+
+
+class Config(Pair):
+    def test_enforce_lowered(self):
+        self.edit('enforce = "hard"', 'enforce = "ratchet"')
+        self.assertEqual(self.keys(), [("nix-tops.toml", "enforce")])
+        self.edit('enforce = "hard"', 'enforce = "advisory"')
+        self.assertEqual(self.keys(), [("nix-tops.toml", "enforce")])
+
+    def test_a_missing_enforce_is_ratchet(self):
+        self.edit('enforce = "hard"\n', "")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "enforce")])
+
+    def test_a_layer_switched_off(self):
+        config = CONFIG + '\n[layers.coverage]\nenabled = false\nreason = "later"\n'
+        config = config.replace("[layers]\n", "[layers]\n", 1)
+        self.make_head(config=config.replace('custom = [{ id = "extra", command = "true", tier = 1 }]\n', ""))
+        keys = self.keys()
+        self.assertIn(("nix-tops.toml", "layers.coverage"), keys)
+        self.assertIn(("nix-tops.toml", "layers.custom.extra"), keys)
+
+    def test_a_layer_already_off_with_a_new_reason_is_fine(self):
+        self.edit("not built in M1", "another reason")
+        self.assertEqual(self.keys(), [])
+
+    def test_a_custom_layer_moved_to_a_later_tier(self):
+        self.edit("tier = 1", "tier = 2")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "layers.custom.extra.tier")])
+
+    def test_eval_options_weakened(self):
+        self.edit("all_systems = true", "all_systems = false")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "eval.all_systems")])
+        self.edit("allow_ifd = false", "allow_ifd = true")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "eval.allow_ifd")])
+        self.edit("abort_on_warn = true", "abort_on_warn = false")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "eval.abort_on_warn")])
+
+    def test_coverage_floors_lowered_or_removed(self):
+        self.edit("built_floor = 100", "built_floor = 90")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "coverage.built_floor")])
+        self.edit("tested_floor = 50\n", "")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "coverage.tested_floor")])
+
+    def test_budgets(self):
+        self.edit('mode = "ratchet"', 'mode = "advisory"')
+        self.assertEqual(self.keys(), [("nix-tops.toml", "budgets.closure.mode")])
+        self.edit("tolerance_pct = 10", "tolerance_pct = 20")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "budgets.eval_cost.tolerance_pct")])
+        self.edit('["a", "b"]', '["a"]')
+        self.assertEqual(self.keys(), [("nix-tops.toml", "budgets.closure.outputs")])
+
+    def test_lint(self):
+        self.edit("fail = true", "fail = false")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "lint.deadnix.fail")])
+        self.edit('[lint.statix]\nconfig = "statix.toml"\n', "")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "lint.statix")])
+
+    def test_laws_narrowed_and_the_ledger_moved(self):
+        self.edit('["N-01", "N-02"]', '["N-01"]')
+        self.assertEqual(self.keys(), [("nix-tops.toml", "laws.enable")])
+        self.edit(".nix-tops/acks.toml", "other.toml")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "laws.ack_ledger")])
+        self.edit('["N-01", "N-02"]', "[]")
+        self.assertEqual(len(self.keys()), 2)
+
+    def test_a_default_law_set_replaced_by_a_list_is_narrowing(self):
+        self.base = Path(self.tmp.name) / "base2"
+        tree(self.base, config=CONFIG.replace('enable = ["N-01", "N-02"]', 'enable = "default"'))
+        self.make_head()
+        self.assertEqual(self.keys(), [("nix-tops.toml", "laws.enable")])
+
+    def test_facets_systems_and_baseline_dropped(self):
+        self.edit('"package-set", ', "")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "facets")])
+        self.edit(', "aarch64-linux"', "")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "toolchain.systems")])
+        self.edit(".nix-tops/baseline.json", "lenient.json")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "baseline")])
+
+    def test_the_config_file_removed(self):
+        self.make_head(config=None)
+        self.assertEqual(self.keys(), [("nix-tops.toml", "file")])
+
+
+class Ledger(Pair):
+    ENTRY = '\n[[warnings.allow]]\nmatch = "{m}"\nreason = "r"\nuntil = "{u}"\n'
+
+    def test_a_new_entry_is_a_weakening(self):
+        self.make_head(config=CONFIG + self.ENTRY.format(m="another", u="2026-12-01"))
+        self.assertEqual(self.keys(), [("nix-tops.toml", "warnings.allow")])
+
+    def test_a_later_until_or_a_wider_match_is_a_weakening(self):
+        self.edit("2027-01-01", "2027-06-01")
+        self.assertEqual(self.keys(), [("nix-tops.toml", "warnings.allow")])
+        self.edit('"unknown setting"', '"unknown"')
+        self.assertEqual(self.keys(), [("nix-tops.toml", "warnings.allow")])
+
+    def test_an_earlier_until_or_a_removed_entry_is_fine(self):
+        self.edit("2027-01-01", "2026-12-01")
+        self.assertEqual(self.keys(), [])
+        self.make_head(config=CONFIG.split("[[warnings.allow]]")[0])
+        self.assertEqual(self.keys(), [])
+
+
+class LawsAndProfiles(Pair):
+    def test_a_law_removed_lowered_or_narrowed(self):
+        self.make_head(law=None)
+        self.assertEqual(self.keys(), [("laws/N-01.toml", "file")])
+        self.make_head(law=LAW.replace("Refuse", "Ack"))
+        self.assertEqual(self.keys(), [("laws/N-01.toml", "severity")])
+        self.make_head(law=LAW.replace("judged = true", "judged = false"))
+        self.assertEqual(self.keys(), [("laws/N-01.toml", "judged")])
+        self.make_head(law=LAW.replace('reader = "ev"', 'reader = "src"'))
+        self.assertEqual(self.keys(), [("laws/N-01.toml", "reader")])
+        self.make_head(law=LAW.replace('["output", "flake"]', '["output"]'))
+        self.assertEqual(self.keys(), [("laws/N-01.toml", "artifacts")])
+
+    def test_a_law_added_is_not_a_weakening(self):
+        self.make_head()
+        (self.head / "laws" / "N-02.toml").write_text(LAW.replace("N-01", "N-02"))
+        self.assertEqual(self.keys(), [])
+
+    def test_a_profile_removed_or_its_floor_lowered(self):
+        self.make_head(profile=None)
+        self.assertEqual(self.keys(), [("profiles/dev-flake.toml", "file")])
+        self.make_head(profile=PROFILE.replace("built_floor = 100", "built_floor = 80"))
+        self.assertEqual(self.keys(), [("profiles/dev-flake.toml", "coverage.built_floor")])
+        self.make_head(profile=PROFILE.replace("all_systems = true", "all_systems = false"))
+        self.assertEqual(self.keys(), [("profiles/dev-flake.toml", "eval.all_systems")])
+
+    def test_a_profile_layer_newly_switched_off(self):
+        self.make_head(profile=PROFILE + "vulnix = { enabled = false }\n")
+        self.assertEqual(self.keys(), [("profiles/dev-flake.toml", "layers.vulnix")])
+
+
+class Main(Pair):
+    def test_without_the_label_a_weakening_exits_1_and_names_it(self):
+        self.edit('enforce = "hard"', 'enforce = "ratchet"')
+        code, out = self.run_main("docs, bug")
+        self.assertEqual(code, 1)
+        self.assertIn("law-diff: weakening: nix-tops.toml: enforce: hard -> ratchet", out)
+        self.assertIn("without the protocol-change label", out)
+
+    def test_with_the_label_the_same_list_prints_and_the_exit_is_0(self):
+        self.edit('enforce = "hard"', 'enforce = "ratchet"')
+        code, out = self.run_main("docs, protocol-change")
+        self.assertEqual(code, 0)
+        self.assertIn("nix-tops.toml: enforce: hard -> ratchet", out)
+        self.assertIn("allowed by protocol-change", out)
+
+    def test_a_label_does_not_match_by_prefix(self):
+        self.edit('enforce = "hard"', 'enforce = "ratchet"')
+        self.assertEqual(self.run_main("protocol-change-not")[0], 1)
+
+    def test_a_head_file_that_does_not_parse_exits_2_and_the_label_does_not_clear_it(self):
+        self.make_head(config="enforce = [")
+        self.assertEqual(self.run_main("protocol-change")[0], 2)
+
+    def test_a_new_head_file_that_does_not_parse_exits_2(self):
+        self.make_head()
+        (self.head / "laws" / "N-09.toml").write_text("id = [")
+        self.assertEqual(self.run_main()[0], 2)
+
+    def test_a_base_with_no_files_has_nothing_to_weaken(self):
+        empty = Path(self.tmp.name) / "empty"
+        empty.mkdir()
+        self.make_head()
+        self.assertEqual(law_diff.weakenings(empty, self.head), [])
+
+
+class RealRepo(unittest.TestCase):
+    def test_the_repo_compared_with_itself_has_no_weakening(self):
+        repo = Path(__file__).resolve().parent.parent.parent
+        self.assertEqual(law_diff.weakenings(repo, repo), [])
+
+
+if __name__ == "__main__":
+    unittest.main()
