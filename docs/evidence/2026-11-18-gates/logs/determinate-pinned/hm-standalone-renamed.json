@@ -1,0 +1,95 @@
+{
+  "protocol": "0.2.0",
+  "enforce": "hard",
+  "baseline_identity": {
+    "implementation": "cppnix",
+    "version": "2.35.6",
+    "system": "aarch64-darwin",
+    "lock_hash": "sha256-LEzGUqHpWLk2MSHDNRwX3USANbKmcjFyZVklO0OsX5w="
+  },
+  "facets": [
+    "home-config"
+  ],
+  "passed": false,
+  "counts": {
+    "verdicts": {
+      "ack": 0,
+      "deferred": 0,
+      "not_evaluated": 0,
+      "not_run": 0,
+      "pass": 3,
+      "refuse": 2,
+      "skip": 5,
+      "vacuous": 0
+    },
+    "failed": 1
+  },
+  "layers": [
+    {
+      "id": "source",
+      "verdict": "pass"
+    },
+    {
+      "id": "lint",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "eval",
+      "verdict": "Refuse",
+      "reason": "config.warnings: The option `programs.carapace.ignoreCase' defined in `<unknown-file>' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'."
+    },
+    {
+      "id": "build-test",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "coverage",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "facet-layers",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "laws",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    }
+  ],
+  "laws": [],
+  "outputs": [
+    {
+      "attr": "homeConfigurations.fixture",
+      "level": "evaluated"
+    },
+    {
+      "attr": "packages.x86_64-linux.default",
+      "level": "evaluated"
+    }
+  ],
+  "warnings": [
+    {
+      "source": "config-warnings",
+      "message": "The option `programs.carapace.ignoreCase' defined in `<unknown-file>' has been renamed to `programs.carapace.environment.CARAPACE_MATCH'.",
+      "verdict": "Refuse"
+    },
+    {
+      "source": "diagnostic",
+      "message": "warning: unknown setting 'eval-cores' [D-06]",
+      "verdict": "pass"
+    },
+    {
+      "source": "diagnostic",
+      "message": "warning: unknown setting 'lazy-trees' [D-07]",
+      "verdict": "pass"
+    }
+  ],
+  "acks": {
+    "count": 0,
+    "entries": []
+  }
+}

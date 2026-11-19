@@ -1,0 +1,9 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "Refuse"
+  },
+  "named": "N-07",
+  "note": "An output needs import from derivation: gate 3 evaluates with it off (N-07)."
+}

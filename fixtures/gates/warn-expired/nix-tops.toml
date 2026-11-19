@@ -1,0 +1,18 @@
+protocol = "0.2.0"
+facets = ["package-set"]
+enforce = "hard"
+
+[toolchain]
+systems = ["x86_64-linux"]
+
+[layers]
+lint = { enabled = false, reason = "not built in M1" }
+build-test = { enabled = false, reason = "not built in M1" }
+coverage = { enabled = false, reason = "not built in M1" }
+facet-layers = { enabled = false, reason = "not built in M1" }
+laws = { enabled = false, reason = "not built in M1" }
+
+[[warnings.allow]]
+match = "has been renamed"
+reason = "upstream rename; fixed in the next lock update"
+until = "2020-01-01"

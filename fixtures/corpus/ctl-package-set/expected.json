@@ -1,0 +1,16 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "lint": "skip",
+    "eval": "pass",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
+  },
+  "note": "Packages with meta.description, meta.license, meta.mainProgram and one overlay, on all three systems.",
+  "raw": {
+    "exit": 0
+  }
+}

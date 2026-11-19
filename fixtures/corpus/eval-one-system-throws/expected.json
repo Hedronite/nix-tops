@@ -1,0 +1,20 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "lint": "skip",
+    "eval": "Refuse",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
+  },
+  "named": "packages.x86_64-linux.default",
+  "failing_outputs": [
+    "packages.x86_64-linux.default"
+  ],
+  "note": "packages.x86_64-linux.default throws; aarch64-linux and aarch64-darwin evaluate. The failing set is exactly that one output.",
+  "raw": {
+    "exit": 1
+  }
+}

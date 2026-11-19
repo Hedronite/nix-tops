@@ -1,0 +1,16 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "lint": "skip",
+    "eval": "pass",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
+  },
+  "note": "Baseline a dev-flake must pass: dev shell and a checks entry on all three systems.",
+  "raw": {
+    "exit": 0
+  }
+}

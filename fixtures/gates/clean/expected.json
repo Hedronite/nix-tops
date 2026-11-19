@@ -1,0 +1,9 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "named": "",
+  "note": "A clean flake passes gates 1 and 3."
+}

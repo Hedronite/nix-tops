@@ -1,0 +1,889 @@
+{
+  "flake": "github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D",
+  "facets": [
+    "dev-flake",
+    "package-set"
+  ],
+  "systems": [
+    "aarch64-darwin",
+    "aarch64-linux",
+    "x86_64-darwin",
+    "x86_64-linux"
+  ],
+  "summary": {
+    "outputs": 35,
+    "errors": 6
+  },
+  "outputs": [
+    {
+      "attr": "apps.aarch64-darwin.cargo-tops",
+      "kind": "app",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "apps.aarch64-linux.cargo-tops",
+      "kind": "app",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "apps.x86_64-darwin.cargo-tops",
+      "kind": "app",
+      "system": "x86_64-darwin",
+      "level": "error",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": "evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\nerror:\n       … while evaluating attribute 'program'\n         at «string»:1:21:\n            1| a: { type = a.type; program = a.program; }\n             |                     ^\n\n       … while evaluating the attribute 'program'\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:57:11:\n           56|           type = \"app\";\n           57|           program = lib.getExe self.packages.${system}.cargo-tops;\n             |           ^\n           58|         };\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
+    },
+    {
+      "attr": "apps.x86_64-linux.cargo-tops",
+      "kind": "app",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.aarch64-darwin.cargo-tops",
+      "kind": "check",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/z03rf9rv9g9m72vk6lb093nja20lyh4l-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.aarch64-darwin.law-catalog-names",
+      "kind": "check",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/fj0lfg8171x46g9w9r9i2qk38mqkmsrp-rust-tops-law-catalog-names.drv",
+      "name": "rust-tops-law-catalog-names",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.aarch64-darwin.rust-tops-laws",
+      "kind": "check",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/y4vwk4drhsjv6v20x255diikw11w1fiz-rust-tops-laws-0.4.0.drv",
+      "name": "rust-tops-laws-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "rust-tops Bend2 laws pack (H-01..H-53), judged by the laws layer of protocol 1.1.0",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ]
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.aarch64-linux.bend-proof",
+      "kind": "check",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/5qgd55i5lyzffbh0s5y8g6hn46k6xlry-rust-tops-bend-proof.drv",
+      "name": "rust-tops-bend-proof",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.aarch64-linux.cargo-tops",
+      "kind": "check",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/a0mk4x0flw7yib6fmsb64fqg0gwnh7xr-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.aarch64-linux.law-catalog-names",
+      "kind": "check",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/2w0w92yd79nmsfhxjwikihr4jv5picgk-rust-tops-law-catalog-names.drv",
+      "name": "rust-tops-law-catalog-names",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.aarch64-linux.rust-tops-laws",
+      "kind": "check",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/bizzn7nxmahkxr47c3dbgjb0w8ksm8qc-rust-tops-laws-0.4.0.drv",
+      "name": "rust-tops-laws-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "rust-tops Bend2 laws pack (H-01..H-53), judged by the laws layer of protocol 1.1.0",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ]
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.x86_64-darwin.cargo-tops",
+      "kind": "check",
+      "system": "x86_64-darwin",
+      "level": "error",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
+    },
+    {
+      "attr": "checks.x86_64-darwin.law-catalog-names",
+      "kind": "check",
+      "system": "x86_64-darwin",
+      "level": "error",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
+    },
+    {
+      "attr": "checks.x86_64-darwin.rust-tops-laws",
+      "kind": "check",
+      "system": "x86_64-darwin",
+      "level": "error",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": "error:\n       … while evaluating the attribute 'packages.x86_64-darwin.cargo-tops'\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1356:9:\n         1355|         inherit name;\n         1356|         value = f name;\n             |         ^\n         1357|       }) names\n\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
+    },
+    {
+      "attr": "checks.x86_64-linux.bend-proof",
+      "kind": "check",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/74g8ixj6fk053kq284a2bchdd7zsjrjf-rust-tops-bend-proof.drv",
+      "name": "rust-tops-bend-proof",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.x86_64-linux.cargo-tops",
+      "kind": "check",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/ibsrv0fkplja5qckdq9gqzqsgxqmniq9-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.x86_64-linux.law-catalog-names",
+      "kind": "check",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/3wl3bxxsjc65xygm2rgq2sx31q03acmm-rust-tops-law-catalog-names.drv",
+      "name": "rust-tops-law-catalog-names",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "checks.x86_64-linux.rust-tops-laws",
+      "kind": "check",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/br5a08hxy1n9yzvkb42513laak31lf3b-rust-tops-laws-0.4.0.drv",
+      "name": "rust-tops-laws-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "rust-tops Bend2 laws pack (H-01..H-53), judged by the laws layer of protocol 1.1.0",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ]
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "devShells.aarch64-darwin.default",
+      "kind": "dev-shell",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/wc5zyqh0xmgrryv4jns72krjkamjyf2v-nix-shell.drv",
+      "name": "nix-shell",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "devShells.aarch64-linux.default",
+      "kind": "dev-shell",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/c8qka5h3w83a1jzmqgc176bcc8vgi8wx-nix-shell.drv",
+      "name": "nix-shell",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "devShells.x86_64-darwin.default",
+      "kind": "dev-shell",
+      "system": "x86_64-darwin",
+      "level": "error",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": "error:\n       … while calling the 'warn' builtin\n         at «github:NixOS/nixpkgs/7486293a941f7b0ec123f0c431517027f705f60f?narHash=sha256-WQhNWIW3PPijuZexyl5Zf0tJuQ7sKt5C9WPXVO4pMuM%3D»/pkgs/top-level/default.nix:33:5:\n           32|   x86_64DarwinDeprecationWarning =\n           33|     pristineLib.warn\n             |     ^\n           34|       \"Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\"\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
+    },
+    {
+      "attr": "devShells.x86_64-linux.default",
+      "kind": "dev-shell",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/vz4lj51n4l7a01m08lhl7yy6898n1ksb-nix-shell.drv",
+      "name": "nix-shell",
+      "meta": {
+        "available": true,
+        "broken": false
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "overlays.default",
+      "kind": "overlay",
+      "system": null,
+      "level": "instantiated",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.aarch64-darwin.cargo-tops",
+      "kind": "package",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/z03rf9rv9g9m72vk6lb093nja20lyh4l-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.aarch64-darwin.default",
+      "kind": "package",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/z03rf9rv9g9m72vk6lb093nja20lyh4l-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.aarch64-darwin.rust-tops-laws",
+      "kind": "package",
+      "system": "aarch64-darwin",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/y4vwk4drhsjv6v20x255diikw11w1fiz-rust-tops-laws-0.4.0.drv",
+      "name": "rust-tops-laws-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "rust-tops Bend2 laws pack (H-01..H-53), judged by the laws layer of protocol 1.1.0",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ]
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.aarch64-linux.cargo-tops",
+      "kind": "package",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/a0mk4x0flw7yib6fmsb64fqg0gwnh7xr-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.aarch64-linux.default",
+      "kind": "package",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/a0mk4x0flw7yib6fmsb64fqg0gwnh7xr-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.aarch64-linux.rust-tops-bend",
+      "kind": "package",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/98hdkb316z42124ifbriv3q3vazw4p93-rust-tops-bend-2.0.36.drv",
+      "name": "rust-tops-bend-2.0.36",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "Bend 2.0.36, TOFU-pinned by rust-tops laws/bend.lock (judge of the laws layer)",
+        "homepage": "https://github.com/bendlang/bend",
+        "mainProgram": "bend"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.aarch64-linux.rust-tops-laws",
+      "kind": "package",
+      "system": "aarch64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/bizzn7nxmahkxr47c3dbgjb0w8ksm8qc-rust-tops-laws-0.4.0.drv",
+      "name": "rust-tops-laws-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "rust-tops Bend2 laws pack (H-01..H-53), judged by the laws layer of protocol 1.1.0",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ]
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.x86_64-darwin",
+      "kind": "package",
+      "system": "x86_64-darwin",
+      "level": "error",
+      "coverage": "not-evaluated",
+      "drv_path": null,
+      "name": null,
+      "meta": null,
+      "error": "evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05\nerror:\n       … in the right operand of the update (//) operator\n         at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n           48|         }\n           49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n             |            ^\n           50|           inherit (pkgs) rust-tops-bend;\n\n       … while evaluating a branch condition\n         at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1492:29:\n         1491|   */\n         1492|   optionalAttrs = cond: as: if cond then as else { };\n             |                             ^\n         1493|\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: aborting to reveal stack trace of warning, as abort-on-warn is set\nerror: worker error: error:\n              … in the right operand of the update (//) operator\n                at «github:Hedronite/rust-tops/77056c9908ec0a945a188cb800e1733a54fd3177?narHash=sha256-Tnu%2BggsHoRZVggWgaRMkC%2BHYvvdwAIcGGmqxfld259o%3D»/flake.nix:49:12:\n                  48|         }\n                  49|         // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {\n                    |            ^\n                  50|           inherit (pkgs) rust-tops-bend;\n\n              … while evaluating a branch condition\n                at «github:NixOS/nixpkgs/4975466d324710c576dc11ad614684e6bd8cad8e?narHash=sha256-xJ%2BX4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU%3D»/lib/attrsets.nix:1492:29:\n                1491|   */\n                1492|   optionalAttrs = cond: as: if cond then as else { };\n                    |                             ^\n                1493|\n\n              (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n              error: aborting to reveal stack trace of warning, as abort-on-warn is set",
+      "note": null
+    },
+    {
+      "attr": "packages.x86_64-linux.cargo-tops",
+      "kind": "package",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/ibsrv0fkplja5qckdq9gqzqsgxqmniq9-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.x86_64-linux.default",
+      "kind": "package",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/ibsrv0fkplja5qckdq9gqzqsgxqmniq9-cargo-tops-0.4.0.drv",
+      "name": "cargo-tops-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "init / check / gate for the Rust-TOPS protocol",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ],
+        "mainProgram": "cargo-tops"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.x86_64-linux.rust-tops-bend",
+      "kind": "package",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/y6q09cwc83ggpkm1nfmni549sls48cas-rust-tops-bend-2.0.36.drv",
+      "name": "rust-tops-bend-2.0.36",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "Bend 2.0.36, TOFU-pinned by rust-tops laws/bend.lock (judge of the laws layer)",
+        "homepage": "https://github.com/bendlang/bend",
+        "mainProgram": "bend"
+      },
+      "error": null,
+      "note": null
+    },
+    {
+      "attr": "packages.x86_64-linux.rust-tops-laws",
+      "kind": "package",
+      "system": "x86_64-linux",
+      "level": "evaluated",
+      "coverage": "not-evaluated",
+      "drv_path": "/nix/store/br5a08hxy1n9yzvkb42513laak31lf3b-rust-tops-laws-0.4.0.drv",
+      "name": "rust-tops-laws-0.4.0",
+      "meta": {
+        "available": true,
+        "broken": false,
+        "description": "rust-tops Bend2 laws pack (H-01..H-53), judged by the laws layer of protocol 1.1.0",
+        "homepage": "https://github.com/Hedronite/rust-tops",
+        "license": [
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "MIT License",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "mit",
+            "spdxId": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+          },
+          {
+            "deprecated": false,
+            "free": true,
+            "fullName": "Apache License 2.0",
+            "licenseType": "simple",
+            "redistributable": true,
+            "shortName": "asl20",
+            "spdxId": "Apache-2.0",
+            "url": "https://spdx.org/licenses/Apache-2.0.html"
+          }
+        ]
+      },
+      "error": null,
+      "note": null
+    }
+  ]
+}

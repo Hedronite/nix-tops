@@ -1,0 +1,9 @@
+{
+  "exit": 2,
+  "layers": {
+    "source": "not-run",
+    "eval": "not-run"
+  },
+  "named": "expired",
+  "note": "The same ledger entry past its date: the config check refuses (exit 2); the entry is expired whether or not the warning appears."
+}

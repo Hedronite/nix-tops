@@ -1,0 +1,16 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "lint": "skip",
+    "eval": "pass",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
+  },
+  "note": "Pure lib functions, one template, a formatter per system; no packages.",
+  "raw": {
+    "exit": 0
+  }
+}

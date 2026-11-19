@@ -1,0 +1,18 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "Refuse",
+    "lint": "skip",
+    "eval": "not-run",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
+  },
+  "named": "N-05",
+  "scratch": true,
+  "note": "The flake has an input and no flake.lock. With --no-update-lock-file the evaluation cannot create it.",
+  "raw": {
+    "exit": 1
+  }
+}

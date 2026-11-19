@@ -24,6 +24,16 @@
       "enum": ["dev-flake", "package-set", "nixos-module", "flake-lib", "nixos-host", "home-config",
                "darwin-host", "fleet-root", "image"]
     },
+    "layerOff": {
+      "description": "A layer of the gate report switched off. The only value is off, and the reason is required; the report shows the layer as skip with it (section 6.7).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "reason"],
+      "properties": {
+        "enabled": { "const": false },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
     "layer": {
       "type": "object",
       "additionalProperties": false,
@@ -150,6 +160,11 @@
         "vm_tests": { "$ref": "#/$defs/layer" },
         "rebuild": { "$ref": "#/$defs/layer" },
         "vulnix": { "$ref": "#/$defs/layer" },
+        "lint": { "$ref": "#/$defs/layerOff" },
+        "build-test": { "$ref": "#/$defs/layerOff" },
+        "coverage": { "$ref": "#/$defs/layerOff" },
+        "facet-layers": { "$ref": "#/$defs/layerOff" },
+        "laws": { "$ref": "#/$defs/layerOff" },
         "custom": {
           "type": "array",
           "items": {

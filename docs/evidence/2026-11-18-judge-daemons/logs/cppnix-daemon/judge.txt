@@ -1,0 +1,4 @@
+judge: /nix/store/p959r3d926iaqiyjpd0s3mbzppcxfmck-nix-2.35.6/bin/nix
+nix (Nix) 2.35.6
+host nix: nix (Nix) 2.35.2
+daemon: {"trusted":false,"url":"daemon","version":"2.35.2"}

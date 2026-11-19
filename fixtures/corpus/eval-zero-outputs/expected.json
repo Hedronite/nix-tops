@@ -1,0 +1,18 @@
+{
+  "exit": 2,
+  "layers": {
+    "source": "not-run",
+    "lint": "not-run",
+    "eval": "not-run",
+    "build-test": "not-run",
+    "coverage": "not-run",
+    "facet-layers": "not-run",
+    "laws": "not-run"
+  },
+  "named": ["facets[0]", "toolchain.systems"],
+  "note": "The flake exports nothing, so nix-tops.toml's three systems differ from its outputs: the gate's check exits 2 (invalid configuration) before any layer runs. The raw run records nix's own result: nix flake check passes a flake with no outputs (exit 0).",
+  "raw": {
+    "exit": 0,
+    "note": "nix flake check passes a flake with no outputs; only the gate fails it"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "Refuse"
+  },
+  "named": "does not exist",
+  "note": "An option that does not exist: the module system refuses at toplevel.drvPath."
+}

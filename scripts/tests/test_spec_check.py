@@ -120,12 +120,100 @@ class Catalog(Scratch):
         laws.mkdir()
         for k in range(1, 50):
             (laws / f"N-{k:02d}.toml").write_text(f'id = "N-{k:02d}"\n', encoding="utf-8")
-        self.assertEqual(sc.check_catalog(self.root), [])
         (laws / "N-07.toml").unlink()
         self.assertTrue(any("no file for N-07" in e for e in sc.check_catalog(self.root)))
         (laws / "N-07.toml").write_text("", encoding="utf-8")
         (laws / "N-99.toml").write_text("", encoding="utf-8")
         self.assertTrue(any("N-99" in e for e in sc.check_catalog(self.root)))
+
+
+class LawFields(Scratch):
+    """One planted flip per compared field: the check must fail and name the ID, the field and both values."""
+
+    def law(self, law_id, old, new):
+        """Change one line of a law file (the file side)."""
+        self.edit(f"laws/{law_id}.toml", old, new)
+
+    def errors(self):
+        return sc.check_catalog(self.root)
+
+    def assert_flagged(self, law_id, field, *values):
+        errs = [e for e in self.errors() if f"{law_id} field '{field}'" in e]
+        self.assertEqual(len(errs), 1, self.errors())
+        for v in values:
+            self.assertIn(v, errs[0])
+
+    def test_repo_is_clean(self):
+        self.assertEqual(self.errors(), [])
+
+    def test_law_text_flip(self):
+        self.law("N-05", "is committed and current", "is committed and stale")
+        self.assert_flagged("N-05", "law", "committed and stale", "committed and current")
+
+    def test_emphasis_and_whitespace_are_not_differences(self):
+        self.law("N-17", "**no unmatched warnings**", "no   unmatched  warnings")
+        self.assertEqual(self.errors(), [])
+
+    def test_row_text_flip(self):
+        self.edit("NIX_TOPS.md", "| N-05 | `flake.lock` is committed and current;", "| N-05 | `flake.lock` is committed and old;")
+        self.assert_flagged("N-05", "law", "committed and old", "committed and current")
+
+    def test_severity_flip(self):
+        self.law("N-05", 'severity = "Refuse"', 'severity = "Ack"')
+        self.assert_flagged("N-05", "severity", "Ack", "Refuse")
+
+    def test_primary_reader_flip(self):
+        self.law("N-05", 'reader = "ev"', 'reader = "an"')
+        self.assert_flagged("N-05", "reader", "an", "ev")
+
+    def test_further_readers_flip(self):
+        self.law("N-01", 'reader_also = ["an"]', 'reader_also = ["tl"]')
+        self.assert_flagged("N-01", "reader_also", "tl", "an")
+
+    def test_reader_detail_flip(self):
+        self.law("N-01", 'reader_detail = "ev, an: syntax"', 'reader_detail = "ev, an: types"')
+        self.assert_flagged("N-01", "reader_detail", "ev, an: types", "ev, an: syntax")
+
+    def test_bare_reader_may_omit_detail(self):
+        text = (self.root / "laws/N-05.toml").read_text(encoding="utf-8")
+        self.assertNotIn("reader_detail", text)
+        self.assertEqual(self.errors(), [])
+
+    def test_sketch_flip(self):
+        self.law("N-01", 'sketch = "\u00a72"', 'sketch = "\u00a73"')
+        self.assert_flagged("N-01", "sketch", "\u00a73", "\u00a72")
+
+    def test_sketch_added_to_a_law_with_none_fails(self):
+        self.law("N-05", 'judged = true', 'judged = true\nsketch = "\u00a71"')
+        self.assert_flagged("N-05", "sketch", "\u00a71")
+
+    def test_artifacts_flip(self):
+        self.law("N-34", 'artifacts = ["module", "configuration"]', 'artifacts = ["module"]')
+        self.assert_flagged("N-34", "artifacts", "['module']", "['module', 'configuration']")
+
+    def test_judged_flip_file_side(self):
+        self.law("N-05", "judged = true", "judged = false")
+        self.assert_flagged("N-05", "judged", "False", "True")
+
+    def test_judged_flip_row_side_also_trips_the_counts(self):
+        self.flip("N-05")
+        errs = self.errors()
+        self.assertTrue(any("N-05 field 'judged'" in e for e in errs), errs)
+
+    def test_id_mismatch(self):
+        self.law("N-05", 'id = "N-05"', 'id = "N-06"')
+        self.assertTrue(any("N-05.toml: field 'id'" in e for e in self.errors()))
+
+    def test_row_with_wrong_cell_count_fails(self):
+        self.edit("NIX_TOPS.md", "| N-05 | `flake.lock` is committed and current; evaluation with `--no-update-lock-file` succeeds | R |", "| N-05 | `flake.lock` is committed and current; evaluation with `--no-update-lock-file` succeeds |")
+        self.assertTrue(any("N-05 has" in e for e in self.errors()))
+
+    def test_escaped_pipe_stays_in_its_cell(self):
+        self.assertEqual(sc.split_row(r"| N-99 | a \| b | R | ev | | flake | |"), ["N-99", "a | b", "R", "ev", "", "flake", ""])
+
+    def test_readers_of_the_composite_cell(self):
+        f = sc.row_fields(["N-99", "x", "R", "ev: derivation (base against head); an: diff; tl at tier 2", "", "flake", ""])
+        self.assertEqual((f["reader"], f["reader_also"]), ("ev", ["an", "tl"]))
 
 
 @unittest.skipUnless(HAVE_CJS, "check-jsonschema is not installed")

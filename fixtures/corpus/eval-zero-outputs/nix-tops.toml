@@ -1,0 +1,13 @@
+protocol = "0.2.0"
+facets = ["flake-lib"]
+enforce = "hard"
+
+[toolchain]
+systems = ["aarch64-darwin", "x86_64-linux", "aarch64-linux"]
+
+[layers]
+lint = { enabled = false, reason = "not built in M1" }
+build-test = { enabled = false, reason = "not built in M1" }
+coverage = { enabled = false, reason = "not built in M1" }
+facet-layers = { enabled = false, reason = "not built in M1" }
+laws = { enabled = false, reason = "not built in M1" }

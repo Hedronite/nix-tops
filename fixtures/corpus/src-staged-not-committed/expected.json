@@ -1,0 +1,19 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "Refuse",
+    "lint": "skip",
+    "eval": "not-run",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
+  },
+  "named": "N-04",
+  "scratch": true,
+  "note": "extra.nix is staged and not committed, which counts as untracked (git status shows A).",
+  "raw": {
+    "exit": 0,
+    "note": "nix reads staged files, so the raw check passes on the machine that has them; the gate fails it (N-04)"
+  }
+}

@@ -19,3 +19,13 @@ result-*
 .DS_Store
 *.swp
 /tmp
+
+# cargo-mutants output
+/mutants.out*/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Gate reports written by runs inside a fixture directory
+**/.nix-tops/report.json

@@ -1,0 +1,9 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "Refuse"
+  },
+  "named": "config-warnings",
+  "note": "A renamed Home Manager option in a standalone configuration: warning source 2, config.warnings read as data (flake check exits 0)."
+}
