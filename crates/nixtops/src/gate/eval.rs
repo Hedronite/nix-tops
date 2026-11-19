@@ -61,10 +61,10 @@ fn run_pass(session: &mut Session, input: &Input, abort_on_warn: bool) -> Pass {
     let inventory =
         inventory::collect(session, input.flake_ref).map(|inv| only_system(inv, input.system));
     Pass {
-        // With a system selected, `flake check` stands for every system and says nothing about
-        // one: what fails for the selected system is read from the inventory's records, never
-        // from the text of the check.
-        check_ok: run.ok || input.system.is_some(),
+        // With a system selected, a failure of `flake check` that is about an attribute on
+        // another system is not this run's (the same rule as for a warning); one that names the
+        // selected system, or no system at all, counts.
+        check_ok: run.ok || !error_concerns(&run.stderr, input.system),
         check_text,
         inventory,
     }
@@ -105,6 +105,68 @@ fn record_system(record: &Record) -> Option<&str> {
             | Kind::Unknown
     );
     per_system.then(|| record.attr.split('.').nth(1)).flatten()
+}
+
+/// The error of a `flake check` run: from the first line that says `error` on, without the
+/// progress lines before it (they name every attribute checked, whatever its system).
+fn error_block(stderr: &str) -> String {
+    let lines: Vec<&str> = stderr.lines().collect();
+    let first = lines
+        .iter()
+        .position(|l| l.trim_start().starts_with("error"));
+    lines[first.unwrap_or(0)..].join("\n")
+}
+
+/// The systems of the attributes an error names between single quotes (`'packages.aarch64-linux.a'`,
+/// as in "while checking the derivation '...'"). The source excerpts nix prints under an error
+/// name other systems too, so only what the error itself quotes is read.
+fn quoted_attribute_systems(error: &str) -> Vec<&'static str> {
+    let quoted = error.split('\'').skip(1).step_by(2);
+    let mut found: Vec<&'static str> = Vec::new();
+    for token in quoted {
+        for part in token.split('.') {
+            if let Some(system) = SYSTEMS.iter().find(|s| **s == part) {
+                found.push(system);
+            }
+        }
+    }
+    found
+}
+
+/// The outputs a Determinate `flake check` marks failed: its `❌ <attribute>` lines, which come
+/// before the error and name each failing attribute.
+fn failed_attributes(stderr: &str) -> Vec<&str> {
+    let marked = stderr
+        .lines()
+        .filter_map(|l| l.trim_start().strip_prefix('❌'));
+    marked.map(str::trim).collect()
+}
+
+/// Whether an attribute path is on the wanted system, or on none (an output without a system level
+/// such as a configuration counts for every run).
+fn on_system(attribute: &str, wanted: &str) -> bool {
+    let systems: Vec<&str> = attribute
+        .split('.')
+        .filter(|p| SYSTEMS.contains(p))
+        .collect();
+    systems.is_empty() || systems.contains(&wanted)
+}
+
+/// Whether a failure of `flake check` is about the selected system. With no selection always.
+/// With one: when the check names its failed attributes (`❌` lines), by those; otherwise by the
+/// attributes the error quotes (`while checking the derivation '...'`), unless all are on other
+/// systems. An error that names no attribute counts. The source excerpts under an error name
+/// other systems too, so only these are read.
+fn error_concerns(stderr: &str, system: Option<&str>) -> bool {
+    let Some(wanted) = system else {
+        return true;
+    };
+    let failed = failed_attributes(stderr);
+    if !failed.is_empty() {
+        return failed.iter().any(|a| on_system(a, wanted));
+    }
+    let named = quoted_attribute_systems(&error_block(stderr));
+    named.is_empty() || named.contains(&wanted)
 }
 
 fn only_system(mut inv: Inventory, system: Option<&str>) -> Inventory {
@@ -412,6 +474,53 @@ mod tests {
             scrub("at /a/b/flake.nix:1 and git+file:///a/b?dir=x", "/a/b"),
             "at ./flake.nix:1 and git+file://.?dir=x"
         );
+    }
+
+    #[test]
+    fn an_error_is_about_the_systems_of_the_attributes_it_quotes() {
+        let throw = "error:\n  … while checking the derivation 'packages.aarch64-linux.default'\n     6| packages.x86_64-linux.default = a;\n  error: qa broken";
+        assert!(!error_concerns(throw, Some("x86_64-linux")));
+        assert!(error_concerns(throw, Some("aarch64-linux")));
+        assert!(error_concerns(throw, None));
+        let none = "error: something broke at packages.x86_64-linux.a";
+        assert!(error_concerns(none, Some("aarch64-linux")));
+        assert!(error_concerns("", Some("x86_64-linux")));
+        let both = "'checks.x86_64-linux.a' and 'checks.aarch64-linux.b'";
+        assert!(
+            error_concerns(both, Some("x86_64-linux"))
+                && error_concerns(both, Some("aarch64-linux"))
+        );
+        assert!(!error_concerns("'a.x86_64-darwin.b'", Some("x86_64-linux")));
+    }
+
+    #[test]
+    fn a_determinate_check_names_its_failed_attributes_and_they_decide() {
+        let text = "✅ packages.x86_64-linux.default (build skipped)\n❌ packages.aarch64-linux.default\nerror:\n  at flake.nix\n  packages.x86_64-linux.default = a;\n  error: qa broken";
+        assert!(!error_concerns(text, Some("x86_64-linux")));
+        assert!(error_concerns(text, Some("aarch64-linux")));
+        let both = "❌ checks.x86_64-linux.a\n❌ checks.aarch64-linux.b\nerror: x";
+        assert!(
+            error_concerns(both, Some("x86_64-linux"))
+                && error_concerns(both, Some("aarch64-linux"))
+        );
+        // A failed output without a system level counts for every selection.
+        assert!(error_concerns(
+            "❌ nixosConfigurations.host\nerror: x",
+            Some("x86_64-linux")
+        ));
+        assert_eq!(failed_attributes("a\n  ❌ b.c\n❌d"), ["b.c", "d"]);
+    }
+
+    #[test]
+    fn the_error_block_starts_at_the_first_error_line() {
+        assert_eq!(
+            error_block(
+                "checking derivation packages.x86_64-linux.a\nerror: boom\n  at packages.aarch64-linux.b"
+            ),
+            "error: boom\n  at packages.aarch64-linux.b"
+        );
+        assert_eq!(error_block("no error line"), "no error line");
+        assert_eq!(error_block(""), "");
     }
 
     #[test]

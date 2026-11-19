@@ -715,3 +715,93 @@ fn a_set_that_cannot_be_listed_keeps_its_system() {
     let structure = inventory::structure_of(&session, ".").unwrap();
     assert_eq!(structure.members["packages"], ["x86_64-linux"]);
 }
+
+#[test]
+fn a_member_that_is_not_a_derivation_is_an_error_record_not_a_silence() {
+    let dir = tempfile::tempdir().unwrap();
+    let arms: Vec<Arm> = vec![
+        (
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"fake:locked"}"#,
+            "",
+            0,
+        ),
+        (r##"#. --apply"##, r#"["checks"]"#, "", 0),
+        (r##"#"checks" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (
+            r##"#"checks"."x86_64-linux" --apply"##,
+            r#"["bad","good","sub"]"#,
+            "",
+            0,
+        ),
+    ];
+    let nej = script(
+        dir.path(),
+        "nej",
+        &[(
+            "fake:locked#checks.x86_64-linux",
+            "{\"attr\":\"good\",\"attrPath\":[\"good\"],\"drvPath\":\"/d\",\"name\":\"g\"}\n{\"attr\":\"sub.leaf\",\"attrPath\":[\"sub\",\"leaf\"],\"drvPath\":\"/e\",\"name\":\"l\"}",
+            "",
+            0,
+        )],
+    );
+    let tools = Tools {
+        judge: script(dir.path(), "judge", &arms),
+        eval_jobs: nej,
+        nixpkgs: "n".into(),
+    };
+    let r = run_json(tools);
+    let bad = find(&r, "checks.x86_64-linux.bad");
+    assert_eq!(bad["level"], "error");
+    assert_eq!(bad["error"], "checks.x86_64-linux.bad is not a derivation");
+    assert_eq!(bad["system"], "x86_64-linux");
+    assert_eq!(find(&r, "checks.x86_64-linux.good")["level"], "evaluated");
+    // A set it descended into is not silent either.
+    assert_eq!(
+        find(&r, "checks.x86_64-linux.sub.leaf")["level"],
+        "evaluated"
+    );
+    assert_eq!(r["summary"]["errors"], 1);
+}
+
+#[test]
+fn a_set_that_failed_as_a_whole_gets_no_per_member_errors() {
+    let dir = tempfile::tempdir().unwrap();
+    let arms: Vec<Arm> = vec![
+        (
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"fake:locked"}"#,
+            "",
+            0,
+        ),
+        (r##"#. --apply"##, r#"["packages"]"#, "", 0),
+        (r##"#"packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (
+            r##"#"packages"."x86_64-linux" --apply"##,
+            r#"["a","b"]"#,
+            "",
+            0,
+        ),
+    ];
+    let nej = script(
+        dir.path(),
+        "nej",
+        &[(
+            "fake:locked#packages.x86_64-linux",
+            "",
+            "error: the set failed",
+            1,
+        )],
+    );
+    let tools = Tools {
+        judge: script(dir.path(), "judge", &arms),
+        eval_jobs: nej,
+        nixpkgs: "n".into(),
+    };
+    let r = run_json(tools);
+    assert_eq!(r["summary"]["errors"], 1);
+    assert_eq!(
+        find(&r, "packages.x86_64-linux")["error"],
+        "error: the set failed"
+    );
+}

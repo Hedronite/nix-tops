@@ -145,7 +145,7 @@ fn derivation_set(
         return per_attribute(session, url, &[name, system], kind, system);
     }
     let run = session.eval_jobs(&format!("{url}#{base}"));
-    jobs::records(
+    let mut found = jobs::records(
         &Target {
             base: &base,
             kind,
@@ -154,7 +154,44 @@ fn derivation_set(
         run.ok,
         &run.stdout,
         &run.stderr,
-    )
+    );
+    found.extend(missing_members(session, url, &[name, system], kind, &found));
+    found
+}
+
+/// A member of a per-system output that `nix-eval-jobs` says nothing about is not a derivation (it
+/// lists derivations and the sets it descends into, and passes over the rest): `packages.<s>.bad
+/// = 42`. That is an error record, never a silent gap. When the whole set failed there is nothing
+/// to add: its own record says why.
+fn missing_members(
+    session: &Session,
+    url: &str,
+    base: &[&str],
+    kind: Kind,
+    found: &[Record],
+) -> Vec<Record> {
+    let (base_attr, system) = (base.join("."), base[1]);
+    if found.iter().any(|r| r.attr == base_attr) {
+        return Vec::new();
+    }
+    let Ok(listed) = eval_json(session, url, base, &expr::names()).map(names) else {
+        return Vec::new();
+    };
+    let said = |member: &str| {
+        let full = format!("{base_attr}.{member}");
+        let below = format!("{full}.");
+        found
+            .iter()
+            .any(|r| r.attr == full || r.attr.starts_with(&below))
+    };
+    let silent = listed.into_iter().filter(|member| !said(member));
+    silent
+        .map(|member| {
+            let full = format!("{base_attr}.{member}");
+            let error = format!("{full} is not a derivation");
+            Record::failed(&full, kind, Some(system), error)
+        })
+        .collect()
 }
 
 /// The derivations of one attribute set, one `nix eval` each: a failing attribute is an error

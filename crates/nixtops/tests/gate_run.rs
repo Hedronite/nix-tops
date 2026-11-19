@@ -878,8 +878,13 @@ fn x86_only(rig: &Rig) -> Settings {
 #[test]
 fn c18_a_throw_on_another_system_does_not_fail_a_run_that_selects_one() {
     let rig = two_system_rig();
-    // `flake check` fails on the aarch64 throw and its text names no system.
-    let check = ("flake'*'check", "", "error: qa broken on aarch64", 1);
+    // `flake check` fails on the aarch64 throw; its text names the attribute.
+    let check = (
+        "flake'*'check",
+        "",
+        "checking derivation packages.x86_64-linux.default\nerror: qa broken on aarch64\n  while checking the derivation 'packages.aarch64-linux.default'",
+        1,
+    );
     let tools = rig.tools(
         &with_check(check, two_system_arms()),
         &nej_two(THROW_LINE, OK_LINE),
@@ -918,21 +923,95 @@ fn c19_the_same_throw_on_the_selected_system_still_fails() {
 }
 
 #[test]
-fn a_failing_check_is_not_judged_by_its_text_when_a_system_is_selected() {
+fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
     let rig = two_system_rig();
-    // Any text, even one naming the selected system: the records decide.
-    let check = (
-        "flake'*'check",
-        "",
-        "error: something about x86_64-linux",
-        1,
+    let tools_for = |text: &'static str| {
+        let check = ("flake'*'check", "", text, 1);
+        rig.tools(
+            &with_check(check, two_system_arms()),
+            &nej_two(OK_LINE, OK_LINE),
+        )
+    };
+    // The progress lines before the error name every attribute: they do not count.
+    let progress = "checking derivation packages.x86_64-linux.default\nerror: bad\n  while checking the derivation 'packages.aarch64-linux.default'";
+    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(progress), &switched());
+    assert_eq!(
+        verdict(&report, "eval"),
+        "pass",
+        "{}",
+        reason(&report, "eval")
     );
+    // One that names the selected system, or no attribute at all, counts.
+    let mine = "error: bad\n  while checking the derivation 'packages.x86_64-linux.default'";
+    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(mine), &switched());
+    assert_eq!(verdict(&report, "eval"), "Refuse");
+    let none = "error: something broke";
+    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(none), &switched());
+    assert_eq!(verdict(&report, "eval"), "Refuse");
+}
+
+fn bad_member_arms<'a>() -> Vec<Arm<'a>> {
+    // `packages.<s>.bad = 42`: listed, but not a derivation, so nix-eval-jobs says nothing of it.
+    let mut arms: Vec<Arm> = vec![
+        (
+            r##"#"packages"."aarch64-linux" --apply"##,
+            r#"["bad","default"]"#,
+            "",
+            0,
+        ),
+        (
+            r##"#"packages"."x86_64-linux" --apply"##,
+            r#"["bad","default"]"#,
+            "",
+            0,
+        ),
+    ];
+    arms.extend(two_system_arms());
+    arms
+}
+
+#[test]
+fn a_member_that_is_not_a_derivation_on_the_selected_system_fails_and_on_another_passes() {
+    let rig = two_system_rig();
+    // `flake check` is clean in both runs: the records decide.
     let tools = rig.tools(
-        &with_check(check, two_system_arms()),
+        &with_check(CHECK_OK, bad_member_arms()),
         &nej_two(OK_LINE, OK_LINE),
     );
-    let (_, report) = run_json(&rig, &x86_only(&rig), tools, &switched());
-    assert_eq!(verdict(&report, "eval"), "pass");
+    let (exit, report) = run_json(&rig, &x86_only(&rig), tools, &switched());
+    assert_eq!(exit, Exit::GateFailed);
+    assert!(
+        reason(&report, "eval").contains(
+            "packages.x86_64-linux.bad failed: packages.x86_64-linux.bad is not a derivation"
+        ),
+        "{}",
+        reason(&report, "eval")
+    );
+    assert!(!reason(&report, "eval").contains("aarch64"));
+    // Selecting the other system: the x86 member is not this run's... and the aarch64 one is.
+    let aarch64 = Settings {
+        system: Some("aarch64-linux".into()),
+        ..rig.settings()
+    };
+    let tools = rig.tools(
+        &with_check(CHECK_OK, bad_member_arms()),
+        &nej_two(OK_LINE, OK_LINE),
+    );
+    let (_, report) = run_json(&rig, &aarch64, tools, &switched());
+    assert!(reason(&report, "eval").contains("packages.aarch64-linux.bad failed"));
+    assert!(!reason(&report, "eval").contains("packages.x86_64-linux.bad"));
+    // Without a selection both fail.
+    let tools = rig.tools(
+        &with_check(CHECK_OK, bad_member_arms()),
+        &nej_two(OK_LINE, OK_LINE),
+    );
+    let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    let text = reason(&report, "eval");
+    assert!(
+        text.contains("packages.aarch64-linux.bad failed")
+            && text.contains("packages.x86_64-linux.bad failed"),
+        "{text}"
+    );
 }
 
 fn warning_arms<'a>() -> Vec<Arm<'a>> {

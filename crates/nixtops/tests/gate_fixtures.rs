@@ -317,3 +317,57 @@ fn a_selected_system_narrows_the_run_with_the_real_tools() {
         "{same}"
     );
 }
+
+/// A member that is not a derivation (`<output>.<system>.bad = 42`) fails on the selected system
+/// and passes when the other system is selected, with the real tools.
+#[test]
+fn a_non_derivation_member_fails_only_on_the_selected_system_with_the_real_tools() {
+    let Some(tools) = tools() else {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    };
+    let clean = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/gates/clean");
+    let verdict_for = |output: &str, broken: &str, selected: &str| {
+        let repo = scratch_repo(&clean);
+        let flake = repo.path().join("flake.nix");
+        let text = fs::read_to_string(&flake).unwrap();
+        let at = text.find("outputs = _: {\n").unwrap() + "outputs = _: {\n".len();
+        let mut edited = text.clone();
+        edited.insert_str(at, &format!("    {output}.{broken}.bad = 42;\n"));
+        fs::write(&flake, edited).unwrap();
+        git(repo.path(), &["add", "-A"]);
+        git(repo.path(), &["commit", "-q", "-m", "bad"]);
+        let settings = Settings {
+            root: repo.path().to_path_buf(),
+            keep_going: true,
+            only: None,
+            system: Some(selected.to_string()),
+            evaluator: evaluator(),
+            ci: false,
+            today: gate::run::today(),
+            nix: nixtops::probe::nix_bin(),
+        };
+        let result = gate::run(&settings, Some(tools.clone()), &Seams::default());
+        let report = serde_json::to_value(&result.report).unwrap();
+        report["layers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|l| l["id"] == "eval")
+            .unwrap()
+            .clone()
+    };
+    for output in ["packages", "checks"] {
+        let mine = verdict_for(output, "x86_64-linux", "x86_64-linux");
+        assert_eq!(mine["verdict"], "Refuse", "{output}: {mine}");
+        assert!(
+            mine["reason"]
+                .as_str()
+                .unwrap()
+                .contains(&format!("{output}.x86_64-linux.bad")),
+            "{mine}"
+        );
+        let other = verdict_for(output, "aarch64-linux", "x86_64-linux");
+        assert_eq!(other["verdict"], "pass", "{output}: {other}");
+    }
+}
