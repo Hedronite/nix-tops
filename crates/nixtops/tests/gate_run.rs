@@ -51,7 +51,7 @@ fn judge_arms<'a>() -> Vec<Arm<'a>> {
             0,
         ),
         (r##"#. --apply"##, r#"["packages"]"#, "", 0),
-        (r##"#"packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
     ]
 }
 
@@ -926,7 +926,7 @@ const THROW_LINE: &str = r#"{"attr":"default","attrPath":["default"],"error":"er
 
 fn two_system_arms<'a>() -> Vec<Arm<'a>> {
     let mut arms: Vec<Arm> = vec![(
-        r##"#"packages" --apply"##,
+        r##"#."packages" --apply"##,
         r#"["aarch64-linux","x86_64-linux"]"#,
         "",
         0,
@@ -1028,13 +1028,13 @@ fn bad_member_arms<'a>() -> Vec<Arm<'a>> {
     // `packages.<s>.bad = 42`: listed, but not a derivation, so nix-eval-jobs says nothing of it.
     let mut arms: Vec<Arm> = vec![
         (
-            r##"#"packages"."aarch64-linux" --apply"##,
+            r##"#."packages"."aarch64-linux" --apply"##,
             r#"["bad","default"]"#,
             "",
             0,
         ),
         (
-            r##"#"packages"."x86_64-linux" --apply"##,
+            r##"#."packages"."x86_64-linux" --apply"##,
             r#"["bad","default"]"#,
             "",
             0,
@@ -1205,7 +1205,7 @@ fn the_flake_path_does_not_appear_in_the_report() {
 fn config_arms<'a>(warnings: &'a str) -> Vec<Arm<'a>> {
     vec![
         (".config.warnings", warnings, "", 0),
-        (r##"#"nixosConfigurations" --apply"##, r#"["host"]"#, "", 0),
+        (r##"#."nixosConfigurations" --apply"##, r#"["host"]"#, "", 0),
         (
             "config.system.build.toplevel.drvPath",
             r#"{"drvPath":"/nix/store/h.drv","name":"nixos"}"#,
@@ -1226,7 +1226,7 @@ fn config_arms<'a>(warnings: &'a str) -> Vec<Arm<'a>> {
             "",
             0,
         ),
-        (r##"#"packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
     ]
 }
 
@@ -1276,20 +1276,20 @@ fn the_host_evaluator_lists_derivations_one_attribute_at_a_time() {
             ),
             (r##"#. --apply"##, r#"["packages"]"#, "", 0),
             (
-                r##"#"packages"."x86_64-linux" --apply"##,
+                r##"#."packages"."x86_64-linux" --apply"##,
                 r#"["a","b"]"#,
                 "",
                 0,
             ),
-            (r##"#"packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+            (r##"#."packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
             (
-                r##"#"packages"."x86_64-linux"."a" --apply"##,
+                r##"#."packages"."x86_64-linux"."a" --apply"##,
                 r#"{"drvPath":"/nix/store/a.drv","name":"a"}"#,
                 "",
                 0,
             ),
             (
-                r##"#"packages"."x86_64-linux"."b" --apply"##,
+                r##"#."packages"."x86_64-linux"."b" --apply"##,
                 "",
                 "error: b broke",
                 1,
@@ -1491,9 +1491,9 @@ fn an_output_that_is_not_a_derivation_is_reported_at_instantiated() {
     let rig = rig();
     let mut arms: Vec<Arm> = vec![
         (r##"#. --apply"##, r#"["overlays","packages"]"#, "", 0),
-        (r##"#"overlays" --apply"##, r#"["default"]"#, "", 0),
+        (r##"#."overlays" --apply"##, r#"["default"]"#, "", 0),
         (
-            r##"#"overlays"."default" --apply"##,
+            r##"#."overlays"."default" --apply"##,
             r#"{"attrs":1}"#,
             "",
             0,

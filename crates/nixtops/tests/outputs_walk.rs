@@ -40,83 +40,83 @@ fn judge_arms<'a>(template_dir: &'a str) -> Vec<Arm<'a>> {
         ),
         (r##"#. --apply"##, NAMES, "", 0),
         (
-            r##"#"packages" --apply"##,
+            r##"#."packages" --apply"##,
             r#"["aarch64-darwin","x86_64-linux"]"#,
             "",
             0,
         ),
-        (r##"#"checks" --apply"##, r#"["x86_64-linux"]"#, "", 0),
-        (r##"#"devShells" --apply"##, r#"["x86_64-linux"]"#, "", 0),
-        (r##"#"apps" --apply"##, r#"["x86_64-linux"]"#, "", 0),
-        (r##"#"formatter" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."checks" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."devShells" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."apps" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."formatter" --apply"##, r#"["x86_64-linux"]"#, "", 0),
         (
-            r##"#"legacyPackages" --apply"##,
+            r##"#."legacyPackages" --apply"##,
             r#"["x86_64-linux"]"#,
             "",
             0,
         ),
-        (r##"#"overlays" --apply"##, r#"["bad","default"]"#, "", 0),
-        (r##"#"nixosModules" --apply"##, r#"["bad","m"]"#, "", 0),
-        (r##"#"homeManagerModules" --apply"##, r#"["hm"]"#, "", 0),
-        (r##"#"templates" --apply"##, r#"["t"]"#, "", 0),
-        (r##"#"nixosConfigurations" --apply"##, r#"["h"]"#, "", 0),
-        (r##"#"homeConfigurations" --apply"##, r#"["u"]"#, "", 0),
+        (r##"#."overlays" --apply"##, r#"["bad","default"]"#, "", 0),
+        (r##"#."nixosModules" --apply"##, r#"["bad","m"]"#, "", 0),
+        (r##"#."homeManagerModules" --apply"##, r#"["hm"]"#, "", 0),
+        (r##"#."templates" --apply"##, r#"["t"]"#, "", 0),
+        (r##"#."nixosConfigurations" --apply"##, r#"["h"]"#, "", 0),
+        (r##"#."homeConfigurations" --apply"##, r#"["u"]"#, "", 0),
         (
-            r##"#"apps"."x86_64-linux" --apply"##,
+            r##"#."apps"."x86_64-linux" --apply"##,
             r#"["broken","default","noprog"]"#,
             "",
             0,
         ),
         (
-            r##"#"apps"."x86_64-linux"."default" --apply"##,
+            r##"#."apps"."x86_64-linux"."default" --apply"##,
             r#"{"type":"app","program":"/p"}"#,
             "",
             0,
         ),
         (
-            r##"#"apps"."x86_64-linux"."noprog" --apply"##,
+            r##"#."apps"."x86_64-linux"."noprog" --apply"##,
             r#"{"type":"app"}"#,
             "",
             0,
         ),
         (
-            r##"#"apps"."x86_64-linux"."broken" --apply"##,
+            r##"#."apps"."x86_64-linux"."broken" --apply"##,
             r#"{"type":"derivation"}"#,
             "",
             0,
         ),
         (
-            r##"#"formatter"."x86_64-linux" --apply"##,
+            r##"#."formatter"."x86_64-linux" --apply"##,
             r#"{"drvPath":"/nix/store/f.drv","name":"nixfmt"}"#,
             "",
             0,
         ),
         (
-            r##"#"overlays"."bad" --apply"##,
+            r##"#."overlays"."bad" --apply"##,
             "",
             "error: overlay bad\nunpacking 'x'",
             1,
         ),
         (
-            r##"#"overlays"."default" --apply"##,
+            r##"#."overlays"."default" --apply"##,
             r#"{"attrs":3}"#,
             "",
             0,
         ),
         (
-            r##"#"nixosModules"."bad" --apply"##,
+            r##"#."nixosModules"."bad" --apply"##,
             "",
             "error: The option `nonexistent.option' does not exist.",
             1,
         ),
         (
-            r##"#"nixosModules"."m" --apply"##,
+            r##"#."nixosModules"."m" --apply"##,
             r#"{"drvPath":"/nix/store/n.drv"}"#,
             "",
             0,
         ),
         (
-            r##"#"homeManagerModules"."hm" --apply"##,
+            r##"#."homeManagerModules"."hm" --apply"##,
             r#"{"type":"lambda"}"#,
             "",
             0,
@@ -438,7 +438,7 @@ fn a_member_list_that_is_not_json_becomes_that_outputs_error() {
             0,
         ),
         (r##"#. --apply"##, r#"["packages"]"#, "", 0),
-        (r##"#"packages" --apply"##, "garbage", "", 0),
+        (r##"#."packages" --apply"##, "garbage", "", 0),
     ];
     let judge = script(dir.path(), "judge", &arms);
     let tools = Tools {
@@ -537,7 +537,7 @@ fn eval_jobs_gets_flakes_enabled_by_option_and_gate_three_options() {
     let line = fs::read_to_string(&log).unwrap();
     assert_eq!(
         line.trim(),
-        "--flake ref#packages.x --meta --workers 1 --option extra-experimental-features nix-command flakes --option abort-on-warn true --option allow-import-from-derivation false"
+        "--flake ref#packages.x --meta --workers 1 --option extra-experimental-features nix-command flakes --option abort-on-warn true --option allow-import-from-derivation false --option eval-cache false"
     );
 }
 
@@ -553,12 +553,12 @@ fn a_listing_error_stays_on_the_structure_and_in_the_report() {
         ),
         (r##"#. --apply"##, r#"["devShells","packages"]"#, "", 0),
         (
-            r##"#"packages" --apply"##,
+            r##"#."packages" --apply"##,
             "",
             "error: cannot list packages\nunpacking 'x'",
             1,
         ),
-        (r##"#"devShells" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."devShells" --apply"##, r#"["x86_64-linux"]"#, "", 0),
         ("fake:locked#devShells.x86_64-linux", "", "", 0),
     ];
     let judge = script(dir.path(), "judge", &arms);
@@ -645,23 +645,23 @@ fn an_empty_per_system_set_exports_no_system_and_derives_no_facet() {
             0,
         ),
         (r##"#. --apply"##, r#"["devShells","packages"]"#, "", 0),
-        (r##"#"devShells"."aarch64-linux" --apply"##, "[]", "", 0),
-        (r##"#"devShells"."x86_64-linux" --apply"##, "[]", "", 0),
+        (r##"#."devShells"."aarch64-linux" --apply"##, "[]", "", 0),
+        (r##"#."devShells"."x86_64-linux" --apply"##, "[]", "", 0),
         (
-            r##"#"devShells" --apply"##,
+            r##"#."devShells" --apply"##,
             r#"["aarch64-linux","x86_64-linux"]"#,
             "",
             0,
         ),
         (
-            r##"#"packages"."x86_64-linux" --apply"##,
+            r##"#."packages"."x86_64-linux" --apply"##,
             r#"["default"]"#,
             "",
             0,
         ),
-        (r##"#"packages"."aarch64-linux" --apply"##, "[]", "", 0),
+        (r##"#."packages"."aarch64-linux" --apply"##, "[]", "", 0),
         (
-            r##"#"packages" --apply"##,
+            r##"#."packages" --apply"##,
             r#"["aarch64-linux","x86_64-linux"]"#,
             "",
             0,
@@ -699,12 +699,12 @@ fn a_set_that_cannot_be_listed_keeps_its_system() {
         ),
         (r##"#. --apply"##, r#"["packages"]"#, "", 0),
         (
-            r##"#"packages"."x86_64-linux" --apply"##,
+            r##"#."packages"."x86_64-linux" --apply"##,
             "",
             "error: cannot list",
             1,
         ),
-        (r##"#"packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
     ];
     let tools = Tools {
         judge: script(dir.path(), "judge", &arms),
@@ -727,9 +727,9 @@ fn a_member_that_is_not_a_derivation_is_an_error_record_not_a_silence() {
             0,
         ),
         (r##"#. --apply"##, r#"["checks"]"#, "", 0),
-        (r##"#"checks" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."checks" --apply"##, r#"["x86_64-linux"]"#, "", 0),
         (
-            r##"#"checks"."x86_64-linux" --apply"##,
+            r##"#."checks"."x86_64-linux" --apply"##,
             r#"["bad","good","sub"]"#,
             "",
             0,
@@ -775,9 +775,9 @@ fn a_set_that_failed_as_a_whole_gets_no_per_member_errors() {
             0,
         ),
         (r##"#. --apply"##, r#"["packages"]"#, "", 0),
-        (r##"#"packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
+        (r##"#."packages" --apply"##, r#"["x86_64-linux"]"#, "", 0),
         (
-            r##"#"packages"."x86_64-linux" --apply"##,
+            r##"#."packages"."x86_64-linux" --apply"##,
             r#"["a","b"]"#,
             "",
             0,
