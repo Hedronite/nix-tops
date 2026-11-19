@@ -1,21 +1,52 @@
 //! `nixtops init`: what it writes, what it refuses, and that a second run changes nothing.
 
 mod common;
-use common::{stderr, stdout};
-use std::{
-    fs,
-    path::Path,
-    process::{Command, Output},
-};
+
+/// What a command printed, shaped like a process output so the tests read the same.
+struct Status(u8);
+impl Status {
+    fn code(&self) -> Option<i32> {
+        Some(i32::from(self.0))
+    }
+}
+struct Res {
+    status: Status,
+    stdout: String,
+    stderr: String,
+}
+fn from_output(o: nixtops::exit::Output) -> Res {
+    Res {
+        status: Status(o.exit.code()),
+        stdout: o.stdout,
+        stderr: o.stderr,
+    }
+}
+fn stdout(r: &Res) -> String {
+    r.stdout.clone()
+}
+fn stderr(r: &Res) -> String {
+    r.stderr.clone()
+}
+
+#[derive(Debug, Parser)]
+#[command(name = "nixtops")]
+struct Cli {
+    #[command(subcommand)]
+    command: cmd::Command,
+}
+use clap::Parser;
+use nixtops::cmd;
+use std::{fs, path::Path};
 use tempfile::tempdir;
 
-fn init(dir: &Path, args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_nixtops"))
-        .arg("init")
-        .args(args)
-        .current_dir(dir)
-        .output()
-        .expect("nixtops runs")
+fn init(dir: &Path, args: &[&str]) -> Res {
+    let mut full = vec!["init"];
+    full.extend(args);
+    let parsed = Cli::try_parse_from(std::iter::once("nixtops").chain(full)).expect("args parse");
+    let cmd::Command::Setup(cmd::Setup::Init(args)) = parsed.command else {
+        panic!("not init")
+    };
+    from_output(cmd::init::init_in(dir, &args))
 }
 
 fn read(dir: &Path, rel: &str) -> String {
@@ -124,12 +155,11 @@ fn what_init_writes_passes_check() {
     let nix = common::fake_nix(dir.path(), "nix (Nix) 2.35.2");
     fs::create_dir(dir.path().join(".nix-tops")).expect("mkdir");
     fs::write(dir.path().join(".nix-tops/baseline.json"), "{}").expect("write");
-    let out = Command::new(env!("CARGO_BIN_EXE_nixtops"))
-        .arg("check")
-        .current_dir(dir.path())
-        .env("NIXTOPS_NIX", nix)
-        .output()
-        .expect("runs");
+    let out = from_output(nixtops::cmd::check::check_at(
+        &dir.path().join("nix-tops.toml"),
+        &nixtops::config::semantic::today_utc(),
+        nix.to_str().expect("utf8"),
+    ));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
 
@@ -150,4 +180,16 @@ fn a_directory_that_cannot_be_made_or_a_file_that_cannot_be_written_exits_3() {
     let out = init(unwritable.path(), &["--facet", "dev-flake", "--force"]);
     assert_eq!(out.status.code(), Some(3), "{}", stderr(&out));
     assert!(stderr(&out).contains("cannot write"));
+}
+
+#[test]
+fn without_a_pinned_judge_it_says_the_systems_are_not_verified() {
+    let dir = tempdir().expect("tempdir");
+    let out = init(dir.path(), &["--facet", "dev-flake"]);
+    assert_eq!(out.status.code(), Some(0));
+    let text = stdout(&out);
+    assert!(
+        text.contains("not verified") && text.contains("nixtops check will verify them"),
+        "{text}"
+    );
 }

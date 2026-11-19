@@ -2,9 +2,8 @@
 //! the schema, is byte-identical on a second run, and survives being merged into an existing
 //! `AGENTS.md` any number of times.
 
-mod common;
 use nixtops::config::{self, render};
-use std::{fs, process::Command};
+use std::fs;
 use tempfile::tempdir;
 
 const FACETS: [&str; 6] = [
@@ -58,17 +57,15 @@ fn property_agents_merge_is_idempotent_and_leaves_no_field_for_every_facet_set()
 fn property_init_run_twice_with_force_is_byte_identical_for_each_single_facet() {
     for facet in FACETS {
         let dir = tempdir().expect("tempdir");
-        let run = || {
-            Command::new(env!("CARGO_BIN_EXE_nixtops"))
-                .args(["init", "--facet", facet, "--force"])
-                .current_dir(dir.path())
-                .output()
-                .expect("runs")
+        let args = nixtops::cmd::init::Args {
+            facets: vec![facet.to_string()],
+            force: true,
         };
-        assert_eq!(run().status.code(), Some(0), "{facet}");
+        let run = || nixtops::cmd::init::init_in(dir.path(), &args);
+        assert_eq!(run().exit.code(), 0, "{facet}");
         let read = || fs::read_to_string(dir.path().join("AGENTS.md")).expect("agents");
         let first = read();
-        assert_eq!(run().status.code(), Some(0), "{facet}");
+        assert_eq!(run().exit.code(), 0, "{facet}");
         assert_eq!(first, read(), "{facet}");
     }
 }

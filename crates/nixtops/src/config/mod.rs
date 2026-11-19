@@ -1,6 +1,8 @@
 //! Reads and checks `nix-tops.toml`: the TOML as JSON, the schema failures with their keys, the
 //! semantic checks that need no outputs, and the text `init` writes.
 
+pub mod baseline;
+pub mod outputs;
 pub mod render;
 pub mod schema;
 pub mod semantic;
@@ -18,6 +20,15 @@ impl Problem {
     pub fn new(key: String, message: String) -> Self {
         Self { key, message }
     }
+}
+
+/// What a group of checks found: config failures (exit 2), failures to read the environment
+/// (exit 3), and notes.
+#[derive(Debug, Default, PartialEq)]
+pub struct Outcome {
+    pub problems: Vec<Problem>,
+    pub environment: Vec<Problem>,
+    pub notes: Vec<String>,
 }
 
 fn json_of(value: toml::Value) -> Value {
