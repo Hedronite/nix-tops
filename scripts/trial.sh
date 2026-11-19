@@ -93,10 +93,14 @@ KNOWN = {
         "the inventory also lists packages.x86_64-darwin, the whole-set record of the system's packages that the "
         "nixpkgs warning fails under abort-on-warn, besides the five attribute paths the README counted; all six are "
         "x86_64-darwin"},
-    "hedronetes-h3s": {"names": r"^devShells\.x86_64-linux$", "cause":
-        "flake.nix line 163 sets devShells.\"x86_64-linux\" to the same unsupported-system throw as packages, so two "
-        "outputs fail on a cold cache too (the second reads as a cached failure within one evaluation); the README "
-        "names only packages"},
+    "hedronetes-h3s": {"names": r"^(devShells\.x86_64-linux|devShells|nixosModules|packages)$", "cause":
+        "the flake sets packages.\"x86_64-linux\" and devShells.\"x86_64-linux\" to an unsupported-system throw "
+        "(flake.nix lines 156 and 163), and the README names only packages. On an aarch64-darwin host the "
+        "inventory lists the two per-system records. On the x86_64-linux runner it lists the whole-set records "
+        "devShells, nixosModules and packages instead (three, not two): the measured error of each is the same "
+        "throw from line 156 (\"does not support x86_64-linux; bundled runtime artifacts are aarch64-linux "
+        "only\"), including nixosModules, whose own definition is a module file the flake imports and does not "
+        "appear in the error. The difference depends on the host system, not on the flake's pin"},
 }
 rows, bad = [], 0
 for line in (out / "rows.tsv").read_text().splitlines():
