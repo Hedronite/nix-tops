@@ -29,7 +29,7 @@ pub struct Args {
     /// Highest tier to run
     #[arg(long, default_value_t = 1)]
     pub max_tier: u8,
-    /// Compare against this base
+    /// Compare against this base (refused until the diff laws are built)
     #[arg(long)]
     pub base: Option<String>,
     /// Keep going after a layer fails
@@ -120,7 +120,8 @@ fn parse_only(args: &Args) -> Result<Option<LayerId>, Output> {
     })
 }
 
-/// The runs that stop before any layer: a tier that is not built, and a dry run.
+/// The runs that stop before any layer: a tier that is not built, a base to compare against (no
+/// diff law is built), and a dry run.
 fn before_any_layer(args: &Args, settings: &Settings, ci: bool) -> Option<Output> {
     if args.max_tier != BUILT_TIER {
         let reason = format!(
@@ -128,6 +129,10 @@ fn before_any_layer(args: &Args, settings: &Settings, ci: bool) -> Option<Output
             args.max_tier
         );
         return Some(refuse(settings, &reason));
+    }
+    if args.base.is_some() {
+        let reason = "the diff laws that use --base are not built in M1";
+        return Some(refuse(settings, reason));
     }
     if args.dry_run && ci {
         return Some(refuse(settings, "--dry-run is refused when CI is set"));

@@ -117,16 +117,23 @@ fn error_block(stderr: &str) -> String {
     lines[first.unwrap_or(0)..].join("\n")
 }
 
-/// The systems of the attributes an error names between single quotes (`'packages.aarch64-linux.a'`,
-/// as in "while checking the derivation '...'"). The source excerpts nix prints under an error
-/// name other systems too, so only what the error itself quotes is read.
+/// Whether a line of an error names an attribute: a trace line (`… while checking the derivation
+/// 'packages.aarch64-linux.default'`) or an `error:` line. The source excerpts under them are
+/// code and may quote anything, so they are not read.
+fn names_attribute(line: &str) -> bool {
+    let line = line.trim_start();
+    line.starts_with("error:") || (line.starts_with('…') && line.contains("while "))
+}
+
+/// The systems of the attributes an error names between single quotes, on those lines only.
 fn quoted_attribute_systems(error: &str) -> Vec<&'static str> {
-    let quoted = error.split('\'').skip(1).step_by(2);
     let mut found: Vec<&'static str> = Vec::new();
-    for token in quoted {
-        for part in token.split('.') {
-            if let Some(system) = SYSTEMS.iter().find(|s| **s == part) {
-                found.push(system);
+    for line in error.lines().filter(|l| names_attribute(l)) {
+        for token in line.split('\'').skip(1).step_by(2) {
+            for part in token.split('.') {
+                if let Some(system) = SYSTEMS.iter().find(|s| **s == part) {
+                    found.push(system);
+                }
             }
         }
     }
@@ -485,12 +492,23 @@ mod tests {
         let none = "error: something broke at packages.x86_64-linux.a";
         assert!(error_concerns(none, Some("aarch64-linux")));
         assert!(error_concerns("", Some("x86_64-linux")));
-        let both = "'checks.x86_64-linux.a' and 'checks.aarch64-linux.b'";
+        let both = "error: 'checks.x86_64-linux.a' and 'checks.aarch64-linux.b'";
         assert!(
             error_concerns(both, Some("x86_64-linux"))
                 && error_concerns(both, Some("aarch64-linux"))
         );
-        assert!(!error_concerns("'a.x86_64-darwin.b'", Some("x86_64-linux")));
+        assert!(!error_concerns("error: 'a.x86_64-darwin.b'", Some("x86_64-linux")));
+    }
+
+    /// QA's q4: another system's broken output quotes the selected system's name in its source
+    /// excerpt (CppNix prints no per-attribute lines, so the trace lines decide).
+    #[test]
+    fn a_system_quoted_in_a_source_excerpt_does_not_make_the_error_the_selected_systems() {
+        let q4 = "error:\n       … while checking the derivation 'packages.aarch64-linux.default'\n         at /s/flake.nix:6:5:\n            5|     packages.aarch64-linux.default = throw \"x\"; /* 'x86_64-linux' */\n            6|     packages.x86_64-linux.default = a;\n\n       error: x";
+        assert!(!error_concerns(q4, Some("x86_64-linux")));
+        assert!(error_concerns(q4, Some("aarch64-linux")));
+        let message = "error: flake attribute 'checks.aarch64-linux.bad' is not a derivation";
+        assert!(!error_concerns(message, Some("x86_64-linux")));
     }
 
     #[test]
