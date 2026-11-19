@@ -73,10 +73,23 @@ rebuild = { enabled = false }
 """
 
 
+EXTRAS = {
+    "NIX_TOPS.md": "# protocol\n",
+    "schema/nix-tops.schema.json": "{}\n",
+    "laws/diagnostics.toml": "x = 1\n",
+    ".github/workflows/nix-tops.yml": "name: x\n",
+    "scripts/law_diff.py": "# base\n",
+    "scripts/layers_ran.py": "# base\n",
+}
+
+
 def tree(root, config=CONFIG, law=LAW, profile=PROFILE):
     root = Path(root)
     (root / "laws").mkdir(parents=True)
     (root / "profiles").mkdir()
+    for name, text in EXTRAS.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
     if config is not None:
         (root / "nix-tops.toml").write_text(config)
     if law is not None:
@@ -100,7 +113,12 @@ class Pair(unittest.TestCase):
         tree(self.head, **kwargs)
 
     def keys(self):
-        return [(f, k) for f, k, _, _ in law_diff.weakenings(self.base, self.head)]
+        """The findings of the key rules; the path rule has its own tests."""
+        return [(f, k) for f, k, _, _ in law_diff.weakenings(self.base, self.head) if k != "protected path"]
+
+    def paths(self):
+        found = law_diff.weakenings(self.base, self.head)
+        return [(f, new) for f, k, _, new in found if k == "protected path"]
 
     def edit(self, old, new, **kwargs):
         config = kwargs.pop("config", CONFIG)
@@ -125,6 +143,44 @@ class Unchanged(Pair):
         config = config.replace("tolerance_pct = 10", "tolerance_pct = 5").replace('"N-02"]', '"N-02", "N-03"]')
         self.make_head(config=config)
         self.assertEqual(self.keys(), [])
+
+
+class Paths(Pair):
+    def test_a_change_under_each_protected_path_is_found(self):
+        for name in EXTRAS:
+            self.make_head()
+            (self.head / name).write_text("x = 3\n")
+            self.assertEqual(self.paths(), [(name, "changed")], name)
+
+    def test_a_file_added_or_removed_under_a_protected_path_is_found(self):
+        self.make_head()
+        (self.head / "laws" / "N-90.toml").write_text('id = "N-90"\n')
+        (self.head / "schema" / "new.schema.json").write_text("{}\n")
+        (self.head / "scripts" / "layers_ran.py").unlink()
+        (self.head / ".github" / "workflows" / "other.yml").write_text("name: y\n")
+        self.assertEqual(
+            sorted(self.paths()),
+            [
+                (".github/workflows/other.yml", "added"),
+                ("laws/N-90.toml", "added"),
+                ("schema/new.schema.json", "added"),
+                ("scripts/layers_ran.py", "removed"),
+            ],
+        )
+
+    def test_a_change_elsewhere_is_not_a_protected_path(self):
+        self.make_head()
+        (self.head / "README.md").write_text("changed\n")
+        (self.head / "scripts" / "spec_check.py").write_text("changed\n")
+        self.assertEqual(self.paths(), [])
+
+    def test_the_label_rule_covers_a_path_with_no_key_moved(self):
+        self.make_head()
+        (self.head / "laws" / "diagnostics.toml").write_text("x = 2\n")
+        code, out = self.run_main("docs")
+        self.assertEqual(code, 1)
+        self.assertIn("law-diff: weakening: laws/diagnostics.toml: protected path: unchanged -> changed", out)
+        self.assertEqual(self.run_main("protocol-change")[0], 0)
 
 
 class Config(Pair):
@@ -292,7 +348,8 @@ class Main(Pair):
         empty = Path(self.tmp.name) / "empty"
         empty.mkdir()
         self.make_head()
-        self.assertEqual(law_diff.weakenings(empty, self.head), [])
+        found = [f for f in law_diff.weakenings(empty, self.head) if f[1] != "protected path"]
+        self.assertEqual(found, [])
 
 
 class RealRepo(unittest.TestCase):

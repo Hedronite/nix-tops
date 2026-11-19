@@ -18,6 +18,11 @@ laws/*.toml     a law removed; severity lowered; judged turned off; reader chang
                 dropped
 profiles/*.toml a profile removed; the same floor, layer, eval and budget rules as nix-tops.toml
 
+Any file under a protected path (see PROTECTED) that is added, removed or different: a change
+to the protocol, a schema, a law, a profile, a workflow or these two scripts is a protocol change
+and needs the label even when no key above moved. This catches what the key rules cannot name,
+such as a new diagnostics entry or a schema loosened.
+
 A weakening with no protocol-change label exits 1 and lists each one. With the label the same list
 prints, marked allowed, and the exit is 0. Exit 2: a file of the change cannot be read, which no
 label clears. A change with no weakening prints nothing and exits 0.
@@ -33,6 +38,18 @@ MODE_RANK = {"advisory": 0, "ratchet": 1, "hard": 2}
 SEVERITY_RANK = {"Ack": 0, "Refuse": 1}
 # The value that keeps the gate strict; anything else is weaker.
 EVAL_STRONG = {"all_systems": True, "abort_on_warn": True, "allow_ifd": False}
+
+
+# Paths whose change is a protocol change by itself (the label rule of the review).
+PROTECTED = (
+    "NIX_TOPS.md",
+    "schema",
+    "laws",
+    "profiles",
+    ".github/workflows",
+    "scripts/law_diff.py",
+    "scripts/layers_ran.py",
+)
 
 
 class Unreadable(Exception):
@@ -218,12 +235,40 @@ def compare_files(base_dir, head_dir, pattern, compare):
     return found
 
 
+def files_under(root, entry):
+    """The files at a protected path, relative to the root: the file itself, or every file below it."""
+    path = root / entry
+    if path.is_file():
+        return {Path(entry)}
+    if path.is_dir():
+        return {p.relative_to(root) for p in path.rglob("*") if p.is_file()}
+    return set()
+
+
+def path_findings(base_dir, head_dir):
+    found = []
+    for entry in PROTECTED:
+        for rel in sorted(files_under(base_dir, entry) | files_under(head_dir, entry)):
+            old, new = base_dir / rel, head_dir / rel
+            if not old.is_file():
+                state = "added"
+            elif not new.is_file():
+                state = "removed"
+            elif old.read_bytes() != new.read_bytes():
+                state = "changed"
+            else:
+                continue
+            found.append((str(rel), "protected path", "unchanged", state))
+    return found
+
+
 def weakenings(base_dir, head_dir):
     """Every weakening between two checkouts, as (file, key, old, new). Raises Unreadable."""
     base_dir, head_dir = Path(base_dir), Path(head_dir)
     found = compare_files(base_dir, head_dir, "nix-tops.toml", config_findings)
     found += compare_files(base_dir, head_dir, "laws/*.toml", law_findings)
     found += compare_files(base_dir, head_dir, "profiles/*.toml", settings_findings)
+    found += path_findings(base_dir, head_dir)
     # A head file with no base twin is not compared, but it must still parse.
     for path in sorted(head_dir.glob("nix-tops.toml")) + sorted(head_dir.glob("laws/*.toml")) + sorted(
         head_dir.glob("profiles/*.toml")

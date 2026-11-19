@@ -906,9 +906,9 @@ The drop-in workflow `.github/workflows/nix-tops.yml`:
 | `determinate` | The same gate and the same layer check, with `--evaluator host` (§12) so Determinate Nix evaluates (the named leg of §2), `lazy-trees false` and `eval-cores 1` (§2) |
 | `build-matrix` | Tier 2, and where `deferred` outputs build: `ubuntu-24.04` (x86_64), `ubuntu-24.04-arm` (aarch64) and an aarch64-darwin runner, per declared systems. VM tests run on x86_64 only. The kit's own workflow does not have this job until the tier 2 layers exist |
 | `nightly` | `nixtops gate --max-tier 2` on a schedule. The kit's own workflow does not have this job yet |
-| `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option, a budget, a coverage floor or a layer switch, or adds, changes or extends a `[[warnings.allow]]` entry, without the `protocol-change` label. It checks out the base commit and runs that commit's `scripts/law_diff.py` on the PR's files, which it reads as data and never runs. When the base has no script it reports `vacuous` and passes. The label can be added after the run: adding or removing it runs the job again. The comparisons are listed at the top of `scripts/law_diff.py` |
+| `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option, a budget, a coverage floor or a layer switch, or adds, changes or extends a `[[warnings.allow]]` entry, without the `protocol-change` label. A change to any file under `NIX_TOPS.md`, `schema/`, `laws/`, `profiles/`, `.github/workflows/`, `scripts/law_diff.py` or `scripts/layers_ran.py` needs the label too, whether or not a key above moved. It checks out the base commit and runs that commit's `scripts/law_diff.py` on the PR's files, which it reads as data and never runs. When the base has no script it reports `vacuous` and passes. The label can be added after the run: adding or removing it runs the job again. The comparisons and the protected paths are listed at the top of `scripts/law_diff.py` |
 
-The kit's own `.github/workflows/nix-tops.yml` is `config/workflow.template.yml` (what `nixtops init` writes) with the layer check and the `law-diff` job added. The kit gates itself with `hard`: gates 1 and 3 run, and the layers that are not built are switched off in its `nix-tops.toml` with a reason.
+Known limit: a PR can change the workflow that runs `law-diff` and drop the job, so the job is only as strong as the branch protection that requires it. The kit's own `.github/workflows/nix-tops.yml` is `config/workflow.template.yml` (what `nixtops init` writes) with the layer check and the `law-diff` job added. The kit gates itself with `hard`: gates 1 and 3 run, and the layers that are not built are switched off in its `nix-tops.toml` with a reason.
 
 CI rules: `fetch-depth: 0` (diff laws need the merge base); actions pinned by commit SHA; minimal
 `permissions:`; `--dry-run` refused; empty reports fail. Every `nix` command passes
@@ -1073,7 +1073,7 @@ nix-tops/
 ├── config/                         # AGENTS.template.md, workflow.template.yml
 ├── scripts/                        # spec_check.py, rules_gen.py, fixtures.sh, layers_ran.py, law_diff.py, tests/
 ├── examples/quickstart/            # the adopter flake of §4 and a stub kit
-├── docs/evidence/                  # the gate-3 trial and the warning-source fixtures
+├── docs/evidence/                  # the gate-3 trial, the warning-source fixtures and per-step evidence
 ├── changelog.d/                    # fragments for the next release (README only after a release)
 ├── .github/workflows/              # spec, kit, rust-tops, nix-tops
 ├── flake.nix · flake.lock          # the kit: nixtops, apps.nixtops, devShells, formatter
@@ -1081,7 +1081,7 @@ nix-tops/
 ├── crates/nixtops/                 # the runner: every command of §12
 ├── fixtures/                       # corpus/ (one flake per case) and gates/
 ├── nix-tops.toml                   # Nix-TOPS gates itself, hard
-├── Cargo.toml · Cargo.lock · rust-toolchain.toml · rust-tops.yaml · rust-tops.lock · RUST-TOPS.md · deny.toml
+├── Cargo.toml · Cargo.lock · rust-toolchain.toml · rust-tops.yaml · rust-tops.lock · RUST-TOPS.md · deny.toml · clippy.toml · .cargo-crap.toml
 ├── AGENTS.md · CLAUDE.md · CHANGELOG.md · README.md
 └── LICENSE · LICENSE-MIT · LICENSE-APACHE
 ```
