@@ -5,6 +5,5 @@
     "eval": "Refuse"
   },
   "named": "unclassified diagnostic",
-  "note": "nix prints a line laws/diagnostics.toml does not list: unclassified, so gate 3 fails.",
-  "exit_note": "exit counts lint, build-test, coverage, facet-layers and laws as switched off (not built in this version); until the config can switch them off they are not-run and the exit of a passing fixture is 1."
+  "note": "nix prints a line laws/diagnostics.toml does not list: unclassified, so gate 3 fails."
 }

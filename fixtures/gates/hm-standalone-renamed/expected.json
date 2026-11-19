@@ -5,6 +5,5 @@
     "eval": "Refuse"
   },
   "named": "config-warnings",
-  "note": "A renamed Home Manager option in a standalone configuration: warning source 2, config.warnings read as data (flake check exits 0).",
-  "exit_note": "exit counts lint, build-test, coverage, facet-layers and laws as switched off (not built in this version); until the config can switch them off they are not-run and the exit of a passing fixture is 1."
+  "note": "A renamed Home Manager option in a standalone configuration: warning source 2, config.warnings read as data (flake check exits 0)."
 }

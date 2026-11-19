@@ -5,3 +5,9 @@ enforce = "hard"
 [toolchain]
 systems = ["x86_64-linux"]
 
+[layers]
+lint = { enabled = false, reason = "not built in M1" }
+build-test = { enabled = false, reason = "not built in M1" }
+coverage = { enabled = false, reason = "not built in M1" }
+facet-layers = { enabled = false, reason = "not built in M1" }
+laws = { enabled = false, reason = "not built in M1" }

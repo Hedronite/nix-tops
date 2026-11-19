@@ -8,7 +8,6 @@ use nixtops::{
     exit::Exit,
     gate::{self, Evaluator, Seams, Settings},
     inventory::Tools,
-    report::LayerId,
 };
 use serde_json::Value;
 use std::{
@@ -89,23 +88,6 @@ fn fixtures() -> Vec<PathBuf> {
     dirs
 }
 
-fn switched_off() -> Seams {
-    let ids = [
-        LayerId::Lint,
-        LayerId::BuildTest,
-        LayerId::Coverage,
-        LayerId::FacetLayers,
-        LayerId::Laws,
-    ];
-    Seams {
-        switched_off: ids
-            .into_iter()
-            .map(|id| (id, "not built in this version".to_string()))
-            .collect(),
-        ..Seams::default()
-    }
-}
-
 #[test]
 fn every_gate_fixture_has_the_verdicts_its_expected_json_says() {
     let Some(tools) = tools() else {
@@ -134,7 +116,7 @@ fn every_gate_fixture_has_the_verdicts_its_expected_json_says() {
             today: gate::run::today(),
             nix: nixtops::probe::nix_bin(),
         };
-        let result = gate::run(&settings, Some(tools.clone()), &switched_off());
+        let result = gate::run(&settings, Some(tools.clone()), &Seams::default());
         let report = serde_json::to_value(&result.report).unwrap();
         if let Some(dir) = env("NIXTOPS_FX_REPORTS") {
             fs::create_dir_all(&dir).unwrap();
@@ -202,19 +184,8 @@ fn a_dirty_tree_is_evaluated_from_its_tracked_files_and_gate_one_still_refuses_i
         today: gate::run::today(),
         nix: nixtops::probe::nix_bin(),
     };
-    // nix prints `warning: Git tree '...' is dirty`, which the diagnostics table does not list yet
-    // (an open protocol item); the test-only seam stands in for the entry so the rest is judged.
-    let entry = |implementation: &str| {
-        format!(
-            "[[diagnostic]]\nid = \"X-03\"\nimplementation = \"{implementation}\"\neffect = \"report\"\nmatch = \"^warning: Git tree '.*' (is dirty|has uncommitted changes)$\"\n"
-        )
-    };
-    let dirty = format!("{}{}", entry("cppnix"), entry("determinate"));
-    let seams = Seams {
-        extra_diagnostics: gate::diag::parse(&dirty).unwrap(),
-        ..switched_off()
-    };
-    let result = gate::run(&settings, Some(tools), &seams);
+    // nix prints `warning: Git tree ...` for a dirty tree; laws/diagnostics.toml classifies it.
+    let result = gate::run(&settings, Some(tools), &Seams::default());
     let report = serde_json::to_value(&result.report).unwrap();
     let layer = |id: &str| {
         report["layers"]

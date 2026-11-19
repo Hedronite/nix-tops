@@ -43,15 +43,12 @@ pub struct Settings {
     pub nix: String,
 }
 
-/// Arguments that stand in for protocol text not yet decided. A normal run has none: the
-/// diagnostics table is `laws/diagnostics.toml` and nothing else. Tests pass entries here to
-/// show what the gate does once the table grows.
+/// A test-only argument. A normal run has none: the diagnostics table is `laws/diagnostics.toml`
+/// and nothing else. Tests pass entries here to show how an entry's `effect` is applied (the
+/// embedded table has only `report` entries).
 #[derive(Default)]
 pub struct Seams {
     pub extra_diagnostics: Vec<diag::Entry>,
-    /// Layers switched off with a reason, as the config's `[layers]` will say once the schema has
-    /// the keys. A switch in the config file is read too; this adds to it.
-    pub switched_off: Vec<(LayerId, String)>,
 }
 
 /// The result of a run.
@@ -190,17 +187,33 @@ fn system_of(session: &Session) -> String {
     }
 }
 
-fn layer_switches(doc: &Value, seams: &Seams, id: LayerId) -> Option<String> {
-    let seam = seams.switched_off.iter().find(|(layer, _)| *layer == id);
-    seam.map(|(_, reason)| reason.clone())
-        .or_else(|| config_switch(doc, id))
-}
-
+/// The reason a layer is switched off in the config (`[layers] <id> = { enabled = false, reason }`).
 fn config_switch(doc: &Value, id: LayerId) -> Option<String> {
     let entry = doc.pointer(&format!("/layers/{}", id.as_str()))?;
     let off = entry.get("enabled").and_then(Value::as_bool) == Some(false);
     let reason = entry.get("reason").and_then(Value::as_str);
     off.then(|| reason.unwrap_or("switched off").to_string())
+}
+
+/// A layer switched off with a reason that is only whitespace has no reason: the schema's
+/// `minLength` lets it through, so the gate refuses it (exit 2), naming the key.
+pub fn switch_problems(doc: &Value) -> Vec<String> {
+    let off = ALL_LAYERS.iter().filter(|id| layer::can_switch_off(**id));
+    let mut problems = Vec::new();
+    for id in off {
+        let Some(entry) = doc.pointer(&format!("/layers/{}", id.as_str())) else {
+            continue;
+        };
+        let switched = entry.get("enabled").and_then(Value::as_bool) == Some(false);
+        let reason = entry.get("reason").and_then(Value::as_str).unwrap_or("");
+        if switched && reason.trim().is_empty() {
+            problems.push(format!(
+                "nix-tops.toml: layers.{}.reason: a reason that is only whitespace is no reason",
+                id.as_str()
+            ));
+        }
+    }
+    problems
 }
 
 /// What the layers produced.
@@ -240,7 +253,7 @@ fn run_layers(
     let mut stopped_by: Option<LayerId> = None;
     for id in ALL_LAYERS {
         let fixed = skipped(settings, id)
-            .or_else(|| layer::fixed_state(id, layer_switches(doc, seams, id).as_deref()));
+            .or_else(|| layer::fixed_state(id, config_switch(doc, id).as_deref()));
         if let Some(layer) = fixed {
             got.layers.push(layer);
             continue;
@@ -345,6 +358,12 @@ pub fn run(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> RunResul
     let doc = std::fs::read_to_string(&config_path)
         .ok()
         .and_then(|t| config::load(&t).ok());
+    if let Some(doc) = &doc {
+        let problems = switch_problems(doc);
+        if !problems.is_empty() {
+            return stopped(settings, Some(doc), Exit::ConfigInvalid, problems);
+        }
+    }
     let (Some(doc), Some(tools)) = (doc, tools) else {
         return stopped(
             settings,
@@ -427,19 +446,24 @@ mod tests {
     }
 
     #[test]
-    fn a_seam_switch_wins_over_the_config() {
-        let doc = json!({"layers": {"lint": {"enabled": false, "reason": "file"}}});
-        let seams = Seams {
-            switched_off: vec![(LayerId::Lint, "seam".into())],
-            ..Seams::default()
-        };
+    fn a_reason_that_is_only_whitespace_is_no_reason() {
+        let doc = json!({"layers": {
+            "lint": {"enabled": false, "reason": "   \t"},
+            "laws": {"enabled": false, "reason": "kept"},
+            "coverage": {"enabled": false, "reason": ""},
+            "build-test": {"enabled": true, "reason": " "}
+        }});
         assert_eq!(
-            layer_switches(&doc, &seams, LayerId::Lint).as_deref(),
-            Some("seam")
+            switch_problems(&doc),
+            [
+                "nix-tops.toml: layers.lint.reason: a reason that is only whitespace is no reason",
+                "nix-tops.toml: layers.coverage.reason: a reason that is only whitespace is no reason",
+            ]
         );
-        assert_eq!(
-            layer_switches(&doc, &Seams::default(), LayerId::Lint).as_deref(),
-            Some("file")
+        assert!(switch_problems(&json!({})).is_empty());
+        assert!(
+            switch_problems(&json!({"layers": {"lint": {"enabled": false, "reason": "r"}}}))
+                .is_empty()
         );
     }
 

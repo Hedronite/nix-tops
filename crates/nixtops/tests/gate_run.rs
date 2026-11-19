@@ -30,7 +30,12 @@ fn script(dir: &Path, name: &str, arms: &[Arm]) -> PathBuf {
     path
 }
 
-const CONFIG: &str = "protocol = \"0.2.0\"\nfacets = [\"package-set\"]\nenforce = \"hard\"\n\n[toolchain]\nsystems = [\"x86_64-linux\"]\n";
+/// A valid config with every layer that is not built in this version switched off, as the kit's
+/// own config does.
+const CONFIG: &str = "protocol = \"0.2.0\"\nfacets = [\"package-set\"]\nenforce = \"hard\"\n\n[toolchain]\nsystems = [\"x86_64-linux\"]\n\n[layers]\nlint = { enabled = false, reason = \"not built in M1\" }\nbuild-test = { enabled = false, reason = \"not built in M1\" }\ncoverage = { enabled = false, reason = \"not built in M1\" }\nfacet-layers = { enabled = false, reason = \"not built in M1\" }\nlaws = { enabled = false, reason = \"not built in M1\" }\n";
+
+/// The same config with no layer switched off: the five unbuilt layers are then `not-run`.
+const CONFIG_ALL_ON: &str = "protocol = \"0.2.0\"\nfacets = [\"package-set\"]\nenforce = \"hard\"\n\n[toolchain]\nsystems = [\"x86_64-linux\"]\n";
 const NEJ_OK: &str =
     r#"{"attr":"default","attrPath":["default"],"drvPath":"/nix/store/d.drv","name":"p-1"}"#;
 
@@ -130,6 +135,13 @@ impl Rig {
         }
     }
 
+    /// Replaces `nix-tops.toml` and commits it.
+    fn set_config(&self, text: &str) {
+        self.write("nix-tops.toml", text);
+        git(self.root(), &["add", "-A"]);
+        git(self.root(), &["commit", "-q", "-m", "config"]);
+    }
+
     fn write(&self, name: &str, text: &str) {
         fs::write(self.root().join(name), text).unwrap();
     }
@@ -137,19 +149,9 @@ impl Rig {
 
 const NEJ_PACKAGES: [Arm; 1] = [("fake:locked#packages.x86_64-linux", NEJ_OK, "", 0)];
 
+/// No seam: the diagnostics table is the file and the layers come from the config.
 fn switched() -> Seams {
-    let reason = "not built in M1".to_string();
-    let ids = [
-        LayerId::Lint,
-        LayerId::BuildTest,
-        LayerId::Coverage,
-        LayerId::FacetLayers,
-        LayerId::Laws,
-    ];
-    Seams {
-        switched_off: ids.into_iter().map(|id| (id, reason.clone())).collect(),
-        ..Seams::default()
-    }
+    Seams::default()
 }
 
 fn layer<'a>(report: &'a Value, id: &str) -> &'a Value {
@@ -259,6 +261,7 @@ fn the_report_is_written_where_the_config_says_and_by_default() {
 #[test]
 fn layers_that_are_on_and_not_built_are_not_run_and_fail_the_gate() {
     let rig = rig();
+    rig.set_config(CONFIG_ALL_ON);
     let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
     let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
     assert_eq!(exit, Exit::GateFailed);
@@ -274,17 +277,11 @@ fn layers_that_are_on_and_not_built_are_not_run_and_fail_the_gate() {
 #[test]
 fn a_layer_switched_off_in_the_config_is_skip_with_the_configured_reason() {
     let rig = rig();
+    rig.set_config(&format!(
+        "{CONFIG_ALL_ON}\n[layers]\nlint = {{ enabled = false, reason = \"from the file\" }}\n"
+    ));
     let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
-    let doc: Value =
-        serde_json::json!({"layers": {"lint": {"enabled": false, "reason": "from the file"}}});
-    // The schema does not allow these keys yet, so the config check would refuse the file; the
-    // reader of the switch is exercised through the seam that carries the same shape.
-    assert_eq!(doc["layers"]["lint"]["reason"], "from the file");
-    let seams = Seams {
-        switched_off: vec![(LayerId::Lint, "from the file".to_string())],
-        ..Seams::default()
-    };
-    let (_, report) = run_json(&rig, &rig.settings(), tools, &seams);
+    let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
     assert_eq!(
         (
             verdict(&report, "lint").as_str(),
@@ -292,25 +289,76 @@ fn a_layer_switched_off_in_the_config_is_skip_with_the_configured_reason() {
         ),
         ("skip", "from the file")
     );
-    assert_eq!(verdict(&report, "laws"), "not-run");
+    for id in ["build-test", "coverage", "facet-layers", "laws"] {
+        assert_eq!(verdict(&report, id), "not-run", "{id}");
+    }
+    assert_eq!(exit, Exit::GateFailed);
+    assert_eq!(report["counts"]["verdicts"]["skip"], 1);
 }
 
 #[test]
-fn gates_one_and_three_cannot_be_switched_off() {
+fn every_layer_that_can_be_switched_off_is_skip_with_its_own_reason() {
+    let rig = rig();
+    let layers = ["lint", "build-test", "coverage", "facet-layers", "laws"];
+    let lines: String = layers
+        .iter()
+        .map(|id| format!("{id} = {{ enabled = false, reason = \"why {id}\" }}\n"))
+        .collect();
+    rig.set_config(&format!("{CONFIG_ALL_ON}\n[layers]\n{lines}"));
+    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
+    assert_eq!(exit, Exit::Pass);
+    for id in layers {
+        assert_eq!(verdict(&report, id), "skip", "{id}");
+        assert_eq!(reason(&report, id), format!("why {id}"));
+    }
+    assert_eq!(report["counts"]["verdicts"]["skip"], 5);
+    assert_eq!(report["counts"]["failed"], 0);
+}
+
+#[test]
+fn a_config_that_switches_off_gate_one_or_gate_three_is_invalid() {
+    for key in ["source", "eval"] {
+        let rig = rig();
+        rig.set_config(&format!(
+            "{CONFIG}\n[layers.{key}]\nenabled = false\nreason = \"no\"\n"
+        ));
+        let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+        let result = gate::run(&rig.settings(), Some(tools), &switched());
+        assert_eq!(result.exit, Exit::ConfigInvalid, "{key}");
+        assert!(
+            result.problems.iter().any(|p| p.contains("layers")),
+            "{:?}",
+            result.problems
+        );
+    }
+}
+
+#[test]
+fn a_reason_that_is_only_whitespace_is_no_reason_and_exit_two() {
+    let rig = rig();
+    rig.set_config(&format!(
+        "{CONFIG_ALL_ON}\n[layers]\nlaws = {{ enabled = false, reason = \"  \" }}\n"
+    ));
+    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let result = gate::run(&rig.settings(), Some(tools), &switched());
+    assert_eq!(result.exit, Exit::ConfigInvalid);
+    assert_eq!(
+        result.problems,
+        ["nix-tops.toml: layers.laws.reason: a reason that is only whitespace is no reason"]
+    );
+    let report = serde_json::to_value(&result.report).unwrap();
+    assert_valid(&report);
+    assert_eq!(verdict(&report, "source"), "not-run");
+}
+
+#[test]
+fn a_gate_with_the_laws_layer_switched_off_says_laws_are_not_enforced() {
     let rig = rig();
     let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
-    let seams = Seams {
-        switched_off: vec![(LayerId::Source, "no".into()), (LayerId::Eval, "no".into())],
-        ..Seams::default()
-    };
-    let (_, report) = run_json(&rig, &rig.settings(), tools, &seams);
-    assert_eq!(
-        (
-            verdict(&report, "source").as_str(),
-            verdict(&report, "eval").as_str()
-        ),
-        ("pass", "pass")
-    );
+    let result = gate::run(&rig.settings(), Some(tools), &switched());
+    let text = nixtops::report::render_text(&serde_json::to_value(&result.report).unwrap());
+    assert!(text.contains("laws are not enforced in this run"), "{text}");
 }
 
 #[test]
@@ -738,7 +786,6 @@ fn an_unclassified_diagnostic_fails_and_a_table_entry_for_it_turns_it_into_a_rep
     let extra = diag::parse("[[diagnostic]]\nid = \"X-01\"\nimplementation = \"cppnix\"\neffect = \"report\"\nmatch = \"^warning: ignoring untrusted flake configuration setting '[^']+'\\\\.$\"\n").unwrap();
     let seams = Seams {
         extra_diagnostics: extra,
-        ..switched()
     };
     let tools = rig.tools(&with_check(check, judge_arms()), &NEJ_PACKAGES);
     let (exit, report) = run_json(&rig, &rig.settings(), tools, &seams);
@@ -764,7 +811,6 @@ fn a_fail_effect_entry_fails_the_gate() {
     let extra = diag::parse("[[diagnostic]]\nid = \"X-02\"\nimplementation = \"cppnix\"\neffect = \"fail\"\nmatch = \"^warning: bad thing happened$\"\n").unwrap();
     let seams = Seams {
         extra_diagnostics: extra,
-        ..switched()
     };
     let tools = rig.tools(&with_check(check, judge_arms()), &NEJ_PACKAGES);
     let (_, report) = run_json(&rig, &rig.settings(), tools, &seams);

@@ -39,9 +39,17 @@ fn items<'a>(report: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
         .flatten()
 }
 
+/// The laws layer is `skip`: no law was judged, and the text says so.
+fn laws_switched_off(report: &Value) -> bool {
+    items(report, "layers").any(|l| str_of(l, "id") == "laws" && str_of(l, "verdict") == "skip")
+}
+
 /// The report as text.
 pub fn render_text(report: &Value) -> String {
     let mut lines: Vec<String> = items(report, "layers").map(layer_line).collect();
+    if laws_switched_off(report) {
+        lines.push("laws are not enforced in this run: the laws layer is switched off".to_string());
+    }
     let warnings: Vec<String> = items(report, "warnings").map(warning_line).collect();
     if !warnings.is_empty() {
         lines.push("warnings".to_string());
@@ -85,6 +93,21 @@ mod tests {
             render_text(&report),
             "warnings\n  Ack [builtins-warn] x\n1 outputs evaluated\ngate: passed\n"
         );
+    }
+
+    #[test]
+    fn a_report_with_the_laws_layer_switched_off_says_laws_are_not_enforced() {
+        let off =
+            json!({"layers": [{"id": "laws", "verdict": "skip", "reason": "r"}], "passed": true});
+        assert!(
+            render_text(&off)
+                .contains("\nlaws are not enforced in this run: the laws layer is switched off\n")
+        );
+        let skipped_other =
+            json!({"layers": [{"id": "lint", "verdict": "skip", "reason": "r"}], "passed": true});
+        assert!(!render_text(&skipped_other).contains("not enforced"));
+        let laws_on = json!({"layers": [{"id": "laws", "verdict": "not-run", "reason": "r"}], "passed": false});
+        assert!(!render_text(&laws_on).contains("not enforced"));
     }
 
     #[test]
