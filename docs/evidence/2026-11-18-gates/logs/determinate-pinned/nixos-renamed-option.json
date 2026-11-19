@@ -16,13 +16,13 @@
       "ack": 0,
       "deferred": 0,
       "not_evaluated": 0,
-      "not_run": 5,
-      "pass": 1,
-      "refuse": 4,
-      "skip": 0,
+      "not_run": 0,
+      "pass": 3,
+      "refuse": 2,
+      "skip": 5,
       "vacuous": 0
     },
-    "failed": 6
+    "failed": 1
   },
   "layers": [
     {
@@ -31,33 +31,33 @@
     },
     {
       "id": "lint",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "eval",
       "verdict": "Refuse",
-      "reason": "config.warnings: The option `services.openssh.permitRootLogin' defined in `/nix/store/64d7bdawbnr6pwp2sgjm83jl6r95gimc-source/flake.nix' has been renamed to `services.openssh.settings.PermitRootLogin'.\ndiagnostic: warning: unknown setting 'eval-cores' [unclassified diagnostic]\ndiagnostic: warning: unknown setting 'lazy-trees' [unclassified diagnostic]"
+      "reason": "config.warnings: The option `services.openssh.permitRootLogin' defined in `/nix/store/64d7bdawbnr6pwp2sgjm83jl6r95gimc-source/flake.nix' has been renamed to `services.openssh.settings.PermitRootLogin'."
     },
     {
       "id": "build-test",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "coverage",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "facet-layers",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "laws",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     }
   ],
   "laws": [],
@@ -79,13 +79,13 @@
     },
     {
       "source": "diagnostic",
-      "message": "warning: unknown setting 'eval-cores' [unclassified diagnostic]",
-      "verdict": "Refuse"
+      "message": "warning: unknown setting 'eval-cores' [D-06]",
+      "verdict": "pass"
     },
     {
       "source": "diagnostic",
-      "message": "warning: unknown setting 'lazy-trees' [unclassified diagnostic]",
-      "verdict": "Refuse"
+      "message": "warning: unknown setting 'lazy-trees' [D-07]",
+      "verdict": "pass"
     }
   ],
   "acks": {

@@ -1,9 +1,0 @@
-clean                    exit 1  source pass     eval pass
-diag-unclassified        exit 1  source pass     eval Refuse
-hm-standalone-renamed    exit 1  source pass     eval Refuse
-ifd                      exit 1  source pass     eval Refuse
-nixos-renamed-option     exit 1  source pass     eval Refuse
-nixos-unknown-option     exit 1  source pass     eval Refuse
-omitted-system           exit 2  source not-run  eval not-run
-warn-allowed             exit 1  source pass     eval pass
-warn-expired             exit 2  source not-run  eval not-run

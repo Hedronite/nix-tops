@@ -11,19 +11,19 @@
     "dev-flake",
     "package-set"
   ],
-  "passed": false,
+  "passed": true,
   "counts": {
     "verdicts": {
       "ack": 0,
       "deferred": 0,
       "not_evaluated": 0,
-      "not_run": 5,
+      "not_run": 0,
       "pass": 2,
       "refuse": 0,
-      "skip": 0,
+      "skip": 5,
       "vacuous": 0
     },
-    "failed": 5
+    "failed": 0
   },
   "layers": [
     {
@@ -32,8 +32,8 @@
     },
     {
       "id": "lint",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "eval",
@@ -41,23 +41,23 @@
     },
     {
       "id": "build-test",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "coverage",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "facet-layers",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "laws",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     }
   ],
   "laws": [],

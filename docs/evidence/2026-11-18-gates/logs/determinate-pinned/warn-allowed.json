@@ -10,19 +10,19 @@
   "facets": [
     "package-set"
   ],
-  "passed": false,
+  "passed": true,
   "counts": {
     "verdicts": {
       "ack": 1,
       "deferred": 0,
       "not_evaluated": 0,
-      "not_run": 5,
-      "pass": 1,
-      "refuse": 3,
-      "skip": 0,
+      "not_run": 0,
+      "pass": 4,
+      "refuse": 0,
+      "skip": 5,
       "vacuous": 0
     },
-    "failed": 6
+    "failed": 0
   },
   "layers": [
     {
@@ -31,33 +31,32 @@
     },
     {
       "id": "lint",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "eval",
-      "verdict": "Refuse",
-      "reason": "diagnostic: warning: unknown setting 'eval-cores' [unclassified diagnostic]\ndiagnostic: warning: unknown setting 'lazy-trees' [unclassified diagnostic]"
+      "verdict": "pass"
     },
     {
       "id": "build-test",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "coverage",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "facet-layers",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     },
     {
       "id": "laws",
-      "verdict": "not-run",
-      "reason": "not built in this version"
+      "verdict": "skip",
+      "reason": "not built in M1"
     }
   ],
   "laws": [],
@@ -82,13 +81,13 @@
     },
     {
       "source": "diagnostic",
-      "message": "warning: unknown setting 'eval-cores' [unclassified diagnostic]",
-      "verdict": "Refuse"
+      "message": "warning: unknown setting 'eval-cores' [D-06]",
+      "verdict": "pass"
     },
     {
       "source": "diagnostic",
-      "message": "warning: unknown setting 'lazy-trees' [unclassified diagnostic]",
-      "verdict": "Refuse"
+      "message": "warning: unknown setting 'lazy-trees' [D-07]",
+      "verdict": "pass"
     }
   ],
   "acks": {
