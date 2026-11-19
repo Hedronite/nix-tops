@@ -7,6 +7,7 @@
 pub mod build_info;
 pub mod cmd;
 pub mod config;
+pub mod exec;
 pub mod exit;
 pub mod gate;
 pub mod host;
