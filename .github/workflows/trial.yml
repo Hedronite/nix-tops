@@ -6,7 +6,7 @@ name: trial
 # schedule and on demand, not on pull requests: it needs the network and takes a while.
 on:
   schedule:
-    - cron: "17 5 * * 1"
+    - cron: "17 5 * * *"
   workflow_dispatch:
 
 permissions:
