@@ -37,12 +37,12 @@ const OK: [(&str, &str, i32); 4] = [
     ),
     (r##"#. --apply"##, r#"["devShells","packages"]"#, 0),
     (
-        r##"#"devShells" --apply"##,
+        r##"#."devShells" --apply"##,
         r#"["aarch64-linux","x86_64-linux"]"#,
         0,
     ),
     (
-        r##"#"packages" --apply"##,
+        r##"#."packages" --apply"##,
         r#"["aarch64-linux","x86_64-linux"]"#,
         0,
     ),

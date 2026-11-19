@@ -7,7 +7,7 @@
 use nixtops::{
     exit::Exit,
     gate::{self, Evaluator, Seams, Settings},
-    inventory::Tools,
+    inventory::{self, Backend, Session, Tools},
 };
 use serde_json::Value;
 use std::{
@@ -414,4 +414,94 @@ fn a_system_quoted_in_the_excerpt_of_another_systems_error_does_not_refuse_the_r
         .find(|l| l["id"] == "eval")
         .unwrap();
     assert_eq!(eval["verdict"], "pass", "{eval}");
+}
+
+/// The Nix system of the machine the test runs on, which is where `nix` looks first for a bare
+/// attribute (`packages.<host>.<name>`).
+fn host_system() -> &'static str {
+    match (std::env::consts::ARCH, std::env::consts::OS) {
+        ("aarch64", "macos") => "aarch64-darwin",
+        ("x86_64", "macos") => "x86_64-darwin",
+        ("aarch64", _) => "aarch64-linux",
+        _ => "x86_64-linux",
+    }
+}
+
+fn inventory_of(flake: &str) -> inventory::Inventory {
+    let tools = tools().unwrap();
+    let repo = tempfile::tempdir().unwrap();
+    fs::write(repo.path().join("flake.nix"), flake).unwrap();
+    git(repo.path(), &["init", "-q", "."]);
+    git(repo.path(), &["config", "user.email", "a@b"]);
+    git(repo.path(), &["config", "user.name", "n"]);
+    git(repo.path(), &["add", "-A"]);
+    git(repo.path(), &["commit", "-q", "-m", "f"]);
+    let mut session = Session::new(tools).unwrap();
+    if evaluator() == Evaluator::Host {
+        session.set_backend(Backend::PerAttribute);
+    }
+    let root = repo.path().canonicalize().unwrap().display().to_string();
+    inventory::collect(&session, &root).unwrap()
+}
+
+fn drv(system: &str) -> String {
+    format!("builtins.derivation {{ name = \"x\"; system = \"{system}\"; builder = \"/bin/sh\"; }}")
+}
+
+/// Every attribute the inventory asks for is anchored at the outputs (`#."devShells"`). A
+/// throwing `packages.<host>` is where `nix` looks first for a bare name, so unanchored it hid
+/// every output; and a member named like an output shadowed it.
+#[test]
+fn a_throwing_packages_set_for_the_host_does_not_hide_the_other_outputs_with_the_real_tools() {
+    if tools().is_none() {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    }
+    let host = host_system();
+    let flake = format!(
+        "{{ outputs = _: {{\n packages.{host} = throw \"packages throws\";\n devShells.{host}.default = {d};\n checks.{host}.real = {d};\n }}; }}",
+        d = drv(host)
+    );
+    let inv = inventory_of(&flake);
+    let ok = |attr: &str| {
+        inv.records
+            .iter()
+            .any(|r| r.attr == attr && r.error.is_none())
+    };
+    assert!(
+        ok(&format!("devShells.{host}.default")),
+        "{:?}",
+        inv.records
+    );
+    assert!(ok(&format!("checks.{host}.real")), "{:?}", inv.records);
+    let failed = inv.records.iter().find(|r| r.error.is_some()).unwrap();
+    assert!(failed.error.as_deref().unwrap().contains("packages throws"));
+}
+
+#[test]
+fn a_member_named_like_an_output_is_not_read_as_that_output_with_the_real_tools() {
+    if tools().is_none() {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    }
+    let host = host_system();
+    let flake = format!(
+        "{{ outputs = _: {{\n packages.{host}.checks = {d};\n packages.{host}.devShells = {d};\n checks.{host}.real = {d};\n devShells.{host}.mine = {d};\n }}; }}",
+        d = drv(host)
+    );
+    let inv = inventory_of(&flake);
+    let attrs: Vec<&str> = inv.records.iter().map(|r| r.attr.as_str()).collect();
+    for want in [
+        format!("checks.{host}.real"),
+        format!("devShells.{host}.mine"),
+        format!("packages.{host}.checks"),
+        format!("packages.{host}.devShells"),
+    ] {
+        assert!(attrs.contains(&want.as_str()), "{want} in {attrs:?}");
+    }
+    assert!(
+        inv.records.iter().all(|r| r.error.is_none()),
+        "{:?}",
+        inv.records
+    );
 }
