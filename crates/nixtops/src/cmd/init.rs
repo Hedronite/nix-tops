@@ -31,6 +31,9 @@ pub struct Args {
 
 const FLAKE_LINES: &str = "Add to your flake.nix (init never edits it):\n  inputs.nix-tops.url = \"github:Hedronite/nix-tops\";   # no follows: the kit's tools stay on its pin\n  apps = perSystem (system: { nixtops = nix-tops.apps.${system}.nixtops; });\n  checks = nixpkgs.lib.recursiveUpdate (nix-tops.lib.mkChecks { inherit self systems; }) { /* your checks */ };\n";
 
+/// Printed when the outputs were not read: the systems are the kit's three, not the flake's.
+const UNVERIFIED: &str = "note: the outputs were not read (this build has no pinned judge), so the systems are the kit's three and are not verified; nixtops check will verify them against the outputs\n";
+
 const KNOWN: [&str; 9] = [
     "dev-flake",
     "package-set",
@@ -204,7 +207,9 @@ pub fn init_with(dir: &Path, args: &Args, inventory: &dyn Fn() -> Read) -> Outpu
     {
         return refusal;
     }
-    let (facets, systems) = match choose(args, inventory()) {
+    let read = inventory();
+    let unverified = read == Read::NoJudge;
+    let (facets, systems) = match choose(args, read) {
         Ok(chosen) => chosen,
         Err(output) => return output,
     };
@@ -220,8 +225,9 @@ pub fn init_with(dir: &Path, args: &Args, inventory: &dyn Fn() -> Read) -> Outpu
     if let Some(failure) = write_all(&writes) {
         return failure;
     }
+    let note = if unverified { UNVERIFIED } else { "" };
     Output::ok(format!(
-        "wrote nix-tops.toml, .github/workflows/nix-tops.yml and the AGENTS.md section\nfacets {}; systems {}\n{FLAKE_LINES}",
+        "wrote nix-tops.toml, .github/workflows/nix-tops.yml and the AGENTS.md section\nfacets {}; systems {}\n{note}{FLAKE_LINES}",
         facets.join(", "),
         systems.join(", ")
     ))

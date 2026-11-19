@@ -181,3 +181,15 @@ fn a_directory_that_cannot_be_made_or_a_file_that_cannot_be_written_exits_3() {
     assert_eq!(out.status.code(), Some(3), "{}", stderr(&out));
     assert!(stderr(&out).contains("cannot write"));
 }
+
+#[test]
+fn without_a_pinned_judge_it_says_the_systems_are_not_verified() {
+    let dir = tempdir().expect("tempdir");
+    let out = init(dir.path(), &["--facet", "dev-flake"]);
+    assert_eq!(out.status.code(), Some(0));
+    let text = stdout(&out);
+    assert!(
+        text.contains("not verified") && text.contains("nixtops check will verify them"),
+        "{text}"
+    );
+}

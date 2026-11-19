@@ -165,3 +165,11 @@ fn facets_without_systems_or_systems_without_facets_are_each_refused() {
     assert_eq!(out.exit.code(), 2, "a system and no facet");
     assert_eq!(fs::read_dir(dir.path()).expect("ls").count(), 0);
 }
+
+#[test]
+fn with_the_outputs_read_there_is_no_unverified_note() {
+    let dir = tempdir().expect("tempdir");
+    let out = init_with(dir.path(), &args(&[], false), &|| Read::Found(flake()));
+    assert!(!out.stdout.contains("not verified"), "{}", out.stdout);
+    assert!(out.stdout.contains("systems aarch64-linux, x86_64-linux"));
+}
