@@ -39,10 +39,15 @@ class Corpus(unittest.TestCase):
             d = CORPUS / n
             for f in ("flake.nix", "nix-tops.toml", "expected.json"):
                 self.assertTrue((d / f).is_file(), f"{n}: no {f}")
-            # N-05: every flake carries a committed lock, even one with no inputs. The two cases about
-            # the lock are the exception: one has none, and the other builds its stale lock in setup.sh
-            lockless = n in ("src-lock-missing", "src-lock-stale")
-            self.assertEqual((d / "flake.lock").is_file(), not lockless, f"{n}: flake.lock")
+            # N-05: a flake with inputs carries a committed lock. A flake with none has nothing to
+            # lock and carries none, except ctl-flake-lib, kept as the control that both shapes pass.
+            # src-lock-missing has none by design; src-lock-stale builds its stale lock in setup.sh.
+            has_inputs = "inputs" in (d / "flake.nix").read_text()
+            if n in ("src-lock-missing", "src-lock-stale"):
+                want = False
+            else:
+                want = has_inputs or n == "ctl-flake-lib"
+            self.assertEqual((d / "flake.lock").is_file(), want, f"{n}: flake.lock")
 
     def test_layers_block_switches_the_five_off_and_leaves_gates_one_and_three(self):
         for n in NAMES:
@@ -64,7 +69,8 @@ class Corpus(unittest.TestCase):
             if e["exit"] == 2:
                 # an invalid configuration stops the gate before any layer runs: every layer is not-run
                 self.assertEqual(set(e["layers"].values()), {"not-run"}, n)
-                self.assertIn(e["named"], EXIT2_NAMES, n)
+                for key in ([e["named"]] if isinstance(e["named"], str) else e["named"]):
+                    self.assertIn(key, EXIT2_NAMES, n)
             else:
                 for k in OFF:
                     self.assertEqual(e["layers"][k], "skip", f"{n}: {k}")
@@ -123,7 +129,8 @@ class GateRunner(unittest.TestCase):
         layers = dict(e["layers"])
         if mutate:
             mutate(layers)
-        reason = (e.get("named") or "").split("|")[0]
+        nm = e.get("named") or ""
+        reason = " ".join(nm) if isinstance(nm, list) else nm.split("|")[0]
         report = {"layers": [{"id": k, "verdict": v, "reason": reason} for k, v in layers.items()]}
         with tempfile.TemporaryDirectory() as tmp:
             stub = Path(tmp) / "nixtops"
@@ -164,6 +171,21 @@ class GateRunner(unittest.TestCase):
             r = subprocess.run(["bash", str(RUNNER), "gate", "src-lock-missing"], env=env, capture_output=True, text=True)
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("does not name 'N-05'", r.stdout)
+
+    def test_a_list_of_names_needs_every_one(self):
+        e = json.loads((CORPUS / "eval-zero-outputs" / "expected.json").read_text())
+        self.assertEqual(e["named"], ["facets[0]", "toolchain.systems"])
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = Path(tmp) / "nixtops"
+            stub.write_text(STUB)
+            stub.chmod(0o755)
+            rep = Path(tmp) / "report.json"
+            rep.write_text(json.dumps({"layers": [{"id": k, "verdict": v, "reason": "facets[0] only"} for k, v in e["layers"].items()]}))
+            env = dict(os.environ, NIXTOPS=str(stub), STUB_REPORT=str(rep), STUB_EXIT="2")
+            r = subprocess.run(["bash", str(RUNNER), "gate", "eval-zero-outputs"], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("does not name 'toolchain.systems'", r.stdout)
+        self.assertNotIn("does not name 'facets[0]'", r.stdout)
 
     def test_a_changed_exit_fails(self):
         e = json.loads((CORPUS / "ctl-dev-flake" / "expected.json").read_text())

@@ -69,8 +69,14 @@ if int(code) != exp["exit"]:
 for layer, verdict in want.items():
     if got.get(layer) != verdict:
         problems.append(f"{layer} {got.get(layer, '-')}, expected {verdict}")
-if exp.get("named") and not any(alt in text for alt in exp["named"].split("|")):
-    problems.append(f"report does not name {exp['named']!r}")
+named = exp.get("named")
+if isinstance(named, list):
+    # a list means every entry must appear; a string means any one of its | alternatives
+    for want in named:
+        if want not in text:
+            problems.append(f"report does not name {want!r}")
+elif named and not any(alt in text for alt in named.split("|")):
+    problems.append(f"report does not name {named!r}")
 for needle in exp.get("failing_outputs", []):
     if needle not in text:
         problems.append(f"report does not name output {needle!r}")
