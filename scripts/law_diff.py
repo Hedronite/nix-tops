@@ -21,7 +21,9 @@ profiles/*.toml a profile removed; the same floor, layer, eval and budget rules 
 Any file under a protected path (see PROTECTED) that is added, removed or different: a change
 to the protocol, a schema, a law, a profile, a workflow or these two scripts is a protocol change
 and needs the label even when no key above moved. This catches what the key rules cannot name,
-such as a new diagnostics entry or a schema loosened.
+such as a new diagnostics entry or a schema loosened. Links are never followed: a link at or
+under a protected path counts as a change, because a link into the base checkout reads the same
+as the file it replaces.
 
 A weakening with no protocol-change label exits 1 and lists each one. With the label the same list
 prints, marked allowed, and the exit is 0. Exit 2: a file of the change cannot be read, which no
@@ -29,6 +31,7 @@ label clears. A change with no weakening prints nothing and exits 0.
 """
 
 import argparse
+import os
 import sys
 import tomllib
 from pathlib import Path
@@ -235,30 +238,65 @@ def compare_files(base_dir, head_dir, pattern, compare):
     return found
 
 
-def files_under(root, entry):
-    """The files at a protected path, relative to the root: the file itself, or every file below it."""
+def behind_a_link(root, rel):
+    """True when a directory on the way to rel is a symbolic link."""
+    return any((root / parent).is_symlink() for parent in list(rel.parents)[:-1])
+
+
+def entries_under(root, entry):
+    """What sits at a protected path, relative to the root, without following a link.
+
+    A link on the way to the path, or at the path, is the entry itself. Below a directory, every file
+    and every link (a link to a directory is not entered) is an entry.
+    """
+    parts = Path(entry).parts
+    for count in range(1, len(parts) + 1):
+        if (root / Path(*parts[:count])).is_symlink():
+            return {Path(*parts[:count])}
     path = root / entry
     if path.is_file():
         return {Path(entry)}
+    found = set()
     if path.is_dir():
-        return {p.relative_to(root) for p in path.rglob("*") if p.is_file()}
-    return set()
+        for dirpath, dirnames, filenames in os.walk(path, followlinks=False):
+            for name in filenames + dirnames:
+                item = Path(dirpath) / name
+                if name in filenames or item.is_symlink():
+                    found.add(item.relative_to(root))
+    return found
+
+
+def snapshot(root, rel):
+    """A link by its target, a file by its bytes, anything else (or behind a link) as nothing."""
+    path = root / rel
+    if path.is_symlink():
+        return ("link", os.readlink(path))
+    if not path.is_file():
+        return None
+    return ("file", path.read_bytes())
+
+
+def path_state(old, new):
+    """How a protected path differs, or None. Any link in the change is a change: a link can point
+    at the base checkout, so it reads the same as the file it replaces and says nothing."""
+    if new is not None and new[0] == "link":
+        return "symlink"
+    if old == new:
+        return None
+    if old is None:
+        return "added"
+    return "removed" if new is None else "changed"
 
 
 def path_findings(base_dir, head_dir):
     found = []
     for entry in PROTECTED:
-        for rel in sorted(files_under(base_dir, entry) | files_under(head_dir, entry)):
-            old, new = base_dir / rel, head_dir / rel
-            if not old.is_file():
-                state = "added"
-            elif not new.is_file():
-                state = "removed"
-            elif old.read_bytes() != new.read_bytes():
-                state = "changed"
-            else:
-                continue
-            found.append((str(rel), "protected path", "unchanged", state))
+        for rel in sorted(entries_under(base_dir, entry) | entries_under(head_dir, entry)):
+            if behind_a_link(base_dir, rel) or behind_a_link(head_dir, rel):
+                continue  # the link above it is the finding
+            state = path_state(snapshot(base_dir, rel), snapshot(head_dir, rel))
+            if state:
+                found.append((str(rel), "protected path", "unchanged", state))
     return found
 
 

@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+import os
 import shutil
 import sys
 import tempfile
@@ -181,6 +182,64 @@ class Paths(Pair):
         self.assertEqual(code, 1)
         self.assertIn("law-diff: weakening: laws/diagnostics.toml: protected path: unchanged -> changed", out)
         self.assertEqual(self.run_main("protocol-change")[0], 0)
+
+
+class Links(Pair):
+    """A link under a protected path is a change, however it points."""
+
+    def swap(self, name, target):
+        """Put a link where the head's file or directory was."""
+        path = self.head / name
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        elif path.exists() or path.is_symlink():
+            path.unlink()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        os.symlink(target, path)
+
+    def test_a_relative_link_into_the_base_checkout_on_a_file(self):
+        self.make_head()
+        self.swap("laws/N-01.toml", "../../base/laws/N-01.toml")
+        self.assertEqual(self.paths(), [("laws/N-01.toml", "symlink")])
+        self.assertEqual(self.run_main("docs")[0], 1)
+        self.assertEqual(self.run_main("protocol-change")[0], 0)
+
+    def test_a_relative_link_on_a_directory_is_one_finding_and_is_not_entered(self):
+        for name in ("laws", "schema", ".github/workflows", "profiles"):
+            self.make_head()
+            self.swap(name, os.path.relpath(self.base / name, (self.head / name).parent))
+            self.assertEqual(self.paths(), [(name, "symlink")], name)
+
+    def test_a_link_on_the_way_to_a_protected_path_is_the_finding(self):
+        self.make_head()
+        self.swap(".github", "../base/.github")
+        self.assertEqual(self.paths(), [(".github", "symlink")])
+
+    def test_an_absolute_link(self):
+        self.make_head()
+        self.swap("scripts/law_diff.py", str(self.base / "scripts" / "law_diff.py"))
+        self.assertEqual(self.paths(), [("scripts/law_diff.py", "symlink")])
+        self.make_head()
+        self.swap("NIX_TOPS.md", str(self.base / "NIX_TOPS.md"))
+        self.assertEqual(self.paths(), [("NIX_TOPS.md", "symlink")])
+
+    def test_a_link_added_where_there_was_no_file(self):
+        self.make_head()
+        self.swap("laws/N-77.toml", "nowhere.toml")
+        self.assertEqual(self.paths(), [("laws/N-77.toml", "symlink")])
+
+    def test_a_link_in_the_base_replaced_by_a_file_is_a_change(self):
+        shutil.rmtree(self.base)
+        tree(self.base)
+        (self.base / "scripts" / "layers_ran.py").unlink()
+        os.symlink("law_diff.py", self.base / "scripts" / "layers_ran.py")
+        self.make_head()
+        self.assertEqual(self.paths(), [("scripts/layers_ran.py", "changed")])
+
+    def test_a_link_outside_the_protected_paths_is_not_a_finding(self):
+        self.make_head()
+        os.symlink("../base/README.md", self.head / "README.md")
+        self.assertEqual(self.paths(), [])
 
 
 class Config(Pair):
