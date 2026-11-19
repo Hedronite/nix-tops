@@ -25,11 +25,14 @@ class Workflows(unittest.TestCase):
             self.assertIn("contents: read", text, name)
             self.assertIn("persist-credentials: false", text, name)
 
-    def test_fixtures_runs_on_pull_requests_and_trial_does_not(self):
+    def test_fixtures_runs_on_pull_requests_and_trial_only_for_its_own_files(self):
         fx = (WORKFLOWS / "fixtures.yml").read_text(encoding="utf-8")
         tr = (WORKFLOWS / "trial.yml").read_text(encoding="utf-8")
         self.assertRegex(fx, r"(?m)^  pull_request:")
-        self.assertNotRegex(tr, r"(?m)^  pull_request:")
+        self.assertRegex(tr, r"(?m)^  pull_request:\n    paths:\n      - \.github/workflows/trial\.yml\n      - scripts/trial\.sh\n  schedule:")
+        self.assertEqual(len(re.findall(r"(?m)^    paths:", tr)), 1)
+        self.assertNotIn("pull_request_target", tr)
+        self.assertRegex(tr, r"(?m)^permissions:\n  contents: read\n")
         self.assertRegex(tr, r"(?m)^  schedule:")
         self.assertRegex(tr, r"(?m)^  workflow_dispatch:")
 
