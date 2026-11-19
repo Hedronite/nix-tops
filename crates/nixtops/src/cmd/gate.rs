@@ -89,6 +89,21 @@ fn render(args: &Args, report: &Report) -> String {
     render_text(&serde_json::to_value(report).unwrap_or_default())
 }
 
+/// The one tier this version builds.
+const BUILT_TIER: u8 = 1;
+
+/// Writes the report of a run that did not run: every layer `not-run` with `reason`.
+fn write_stopped(settings: &Settings, reason: &str) {
+    let report = gate::run::stopped_report(settings, None, reason);
+    let _ = gate::run::write_report(&settings.root.join(".nix-tops/report.json"), &report);
+}
+
+/// A refusal by policy (exit 4): the report is written, so a refusal leaves a trace.
+fn refuse(settings: &Settings, reason: &str) -> Output {
+    write_stopped(settings, reason);
+    Output::fail(Exit::Refused, format!("nixtops gate: {reason}\n"))
+}
+
 /// Runs the gate with the given inputs; the caller chooses the date, CI flag and tools.
 pub fn run_with(args: &Args, ci: bool, tools: Option<Tools>, seams: &Seams) -> Output {
     let only = match args.only.as_deref().map(LayerId::parse) {
@@ -104,13 +119,18 @@ pub fn run_with(args: &Args, ci: bool, tools: Option<Tools>, seams: &Seams) -> O
         None => None,
     };
     let settings = settings_of(args, only, ci);
+    if args.max_tier != BUILT_TIER {
+        let reason = format!(
+            "only tier {BUILT_TIER} is built; --max-tier {} is refused",
+            args.max_tier
+        );
+        return refuse(&settings, &reason);
+    }
     if args.dry_run && ci {
-        let reason = "--dry-run is refused when CI is set";
-        let report = gate::run::stopped_report(&settings, None, reason);
-        let _ = gate::run::write_report(&settings.root.join(".nix-tops/report.json"), &report);
-        return Output::fail(Exit::Refused, format!("nixtops gate: {reason}\n"));
+        return refuse(&settings, "--dry-run is refused when CI is set");
     }
     if args.dry_run {
+        write_stopped(&settings, "dry run");
         return Output::ok(plan(&settings));
     }
     let result = gate::run(&settings, tools, seams);

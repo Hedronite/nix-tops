@@ -212,3 +212,54 @@ fn a_dirty_tree_is_evaluated_from_its_tracked_files_and_gate_one_still_refuses_i
         .collect();
     assert!(attrs.contains(&"packages.x86_64-linux.second"), "{attrs:?}");
 }
+
+/// A flake with a template, from a source that is not in the store yet: the template must be
+/// copied from a realised path (a comment with a fresh nonce makes the source new on every run).
+#[test]
+fn a_template_in_a_fresh_source_is_copied_from_the_store() {
+    let Some(tools) = tools() else {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    };
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/corpus/ctl-flake-lib");
+    let repo = tempfile::tempdir().unwrap();
+    copy_dir(&corpus, repo.path());
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let flake = repo.path().join("flake.nix");
+    let text = fs::read_to_string(&flake).unwrap();
+    fs::write(
+        &flake,
+        format!("{text}\n# fresh source {nonce} {}\n", std::process::id()),
+    )
+    .unwrap();
+    git(repo.path(), &["init", "-q", "."]);
+    git(repo.path(), &["config", "user.email", "a@b"]);
+    git(repo.path(), &["config", "user.name", "n"]);
+    git(repo.path(), &["add", "-A"]);
+    git(repo.path(), &["commit", "-q", "-m", "fresh"]);
+    let settings = Settings {
+        root: repo.path().to_path_buf(),
+        keep_going: true,
+        only: None,
+        system: None,
+        evaluator: evaluator(),
+        ci: false,
+        today: gate::run::today(),
+        nix: nixtops::probe::nix_bin(),
+    };
+    let result = gate::run(&settings, Some(tools), &Seams::default());
+    let report = serde_json::to_value(&result.report).unwrap();
+    let eval = report["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["id"] == "eval")
+        .unwrap()
+        .clone();
+    assert_eq!(eval["verdict"], "pass", "{eval}");
+    let outputs = report["outputs"].to_string();
+    assert!(outputs.contains("templates.default"), "{outputs}");
+}

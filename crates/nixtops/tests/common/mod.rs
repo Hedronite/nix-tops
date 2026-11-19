@@ -9,8 +9,11 @@ use std::{
 };
 
 pub fn nixtops(args: &[&str]) -> Output {
+    // CI is set on a CI runner; the gate reads it (a dry run is refused, the tree must be clean),
+    // so a test that does not mean to depend on it clears it for the child.
     Command::new(env!("CARGO_BIN_EXE_nixtops"))
         .args(args)
+        .env_remove("CI")
         .output()
         .expect("nixtops runs")
 }

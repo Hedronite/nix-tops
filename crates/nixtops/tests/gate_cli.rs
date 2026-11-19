@@ -56,13 +56,70 @@ fn only_takes_a_layer_id() {
 }
 
 #[test]
-fn a_dry_run_shows_the_plan_and_runs_nothing() {
+fn a_dry_run_shows_the_plan_and_writes_a_report_with_every_layer_not_run() {
     let dir = dir_with(None);
     let out = nixtops(&["gate", dir.path().to_str().unwrap(), "--dry-run"]);
     assert_eq!(out.status.code(), Some(0));
     assert!(stdout(&out).starts_with("gate (dry run) in "));
     assert!(stdout(&out).contains("  eval\n"));
-    assert!(!dir.path().join(".nix-tops").exists());
+    let report: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(dir.path().join(".nix-tops/report.json")).unwrap(),
+    )
+    .unwrap();
+    let layers = report["layers"].as_array().unwrap();
+    assert_eq!(layers.len(), 7);
+    assert!(
+        layers
+            .iter()
+            .all(|l| l["verdict"] == "not-run" && l["reason"] == "dry run")
+    );
+}
+
+#[test]
+fn only_tier_one_is_built_and_any_other_max_tier_is_refused_with_a_report() {
+    for tier in ["0", "2", "3"] {
+        let dir = dir_with(None);
+        let out = nixtops(&["gate", dir.path().to_str().unwrap(), "--max-tier", tier]);
+        assert_eq!(out.status.code(), Some(4), "tier {tier}");
+        assert_eq!(
+            stderr(&out),
+            format!("nixtops gate: only tier 1 is built; --max-tier {tier} is refused\n")
+        );
+        let report: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(dir.path().join(".nix-tops/report.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(report["layers"][0]["verdict"], "not-run");
+        assert!(
+            report["layers"][0]["reason"]
+                .as_str()
+                .unwrap()
+                .contains("only tier 1")
+        );
+    }
+    let dir = dir_with(None);
+    let out = nixtops(&["gate", dir.path().to_str().unwrap(), "--max-tier", "1"]);
+    assert_eq!(
+        out.status.code(),
+        Some(2),
+        "tier 1 runs (and finds no config)"
+    );
+}
+
+#[test]
+fn a_command_line_that_does_not_parse_is_not_a_run_and_writes_no_report() {
+    for args in [
+        &["--only", "nonsense"][..],
+        &["--max-tier", "abc"][..],
+        &["--bogus"][..],
+    ] {
+        let dir = dir_with(None);
+        let mut line = vec!["gate", dir.path().to_str().unwrap()];
+        line.extend_from_slice(args);
+        let out = nixtops(&line);
+        assert!(matches!(out.status.code(), Some(2) | Some(4)), "{args:?}");
+        assert!(!dir.path().join(".nix-tops").exists(), "{args:?}");
+    }
 }
 
 #[test]

@@ -83,6 +83,10 @@ fn git(dir: &Path, args: &[&str]) {
 }
 
 /// A committed flake repository with a valid config, a lock and a fake host `nix` for the floor.
+fn rig_clean() -> Rig {
+    rig()
+}
+
 fn rig() -> Rig {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
@@ -394,16 +398,83 @@ fn keep_going_runs_gate_three_after_gate_one_failed() {
 }
 
 #[test]
-fn a_staged_not_committed_file_counts_as_untracked_and_direnv_is_exempt() {
+fn a_staged_not_committed_file_counts_as_untracked_and_an_ignored_direnv_is_exempt() {
     let rig = rig();
     rig.write("staged.nix", "{ }\n");
     git(rig.root(), &["add", "staged.nix"]);
+    rig.write(".gitignore", ".direnv\n");
+    git(rig.root(), &["add", ".gitignore"]);
+    // Only `.gitignore` is committed; `staged.nix` stays staged.
+    git(
+        rig.root(),
+        &["commit", "-q", "-m", "ignore direnv", "--", ".gitignore"],
+    );
     fs::create_dir_all(rig.root().join(".direnv")).unwrap();
     rig.write(".direnv/x.nix", "{ }\n");
     let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
     let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
     assert!(reason(&report, "source").contains("staged.nix is not tracked by git"));
     assert!(!reason(&report, "source").contains(".direnv"));
+}
+
+fn source_reason_with(rig: &Rig, files: &[&str]) -> String {
+    for file in files {
+        let path = rig.root().join(file);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, "{ }\n").unwrap();
+    }
+    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let (_, report) = run_json(rig, &rig.settings(), tools, &switched());
+    reason(&report, "source")
+}
+
+#[test]
+fn a_nix_file_inside_an_untracked_directory_is_found_at_any_depth() {
+    let rig = rig();
+    let text = source_reason_with(&rig, &["newdir/x.nix", "a/b/c/deep.nix"]);
+    assert!(
+        text.contains("newdir/x.nix is not tracked by git"),
+        "{text}"
+    );
+    assert!(
+        text.contains("a/b/c/deep.nix is not tracked by git"),
+        "{text}"
+    );
+}
+
+#[test]
+fn direnvx_is_not_direnv_and_an_untracked_direnv_is_exempt_only_when_ignored() {
+    let rig = rig();
+    let text = source_reason_with(&rig, &[".direnvx/x.nix"]);
+    assert!(
+        text.contains(".direnvx/x.nix is not tracked by git"),
+        "{text}"
+    );
+    // `.direnv` untracked and not ignored: not exempt.
+    let rig = rig_clean();
+    let text = source_reason_with(&rig, &[".direnv/x.nix"]);
+    assert!(
+        text.contains(".direnv/x.nix is not tracked by git"),
+        "{text}"
+    );
+    // `.direnv` ignored: exempt.
+    let rig = rig_clean();
+    rig.write(".gitignore", ".direnv/\n");
+    git(rig.root(), &["add", ".gitignore"]);
+    git(rig.root(), &["commit", "-q", "-m", "ignore"]);
+    let text = source_reason_with(&rig, &[".direnv/x.nix"]);
+    assert_eq!(text, "");
+}
+
+#[test]
+fn a_staged_rename_counts_by_its_new_path() {
+    let rig = rig();
+    git(rig.root(), &["mv", "flake.nix", "flake2.nix"]);
+    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    let text = reason(&report, "source");
+    assert!(text.contains("flake2.nix is not tracked by git"), "{text}");
+    assert!(!text.contains("flake.nix is not"), "{text}");
 }
 
 #[test]
@@ -739,27 +810,64 @@ fn only_runs_one_layer_and_the_rest_are_not_selected() {
 }
 
 #[test]
-fn the_system_filter_replaces_all_systems_and_keeps_only_that_systems_outputs() {
+fn selecting_a_system_never_passes_the_restricted_setting_to_the_judge() {
     let rig = rig();
-    let arms = vec![
-        (
-            "flake'*'check'*'--system x86_64-linux",
-            "all checks passed!",
-            "",
-            0,
-        ),
-        ("flake'*'check'*'--all-systems", "", "error: wrong scope", 1),
-    ];
-    let mut all = arms;
-    all.extend(judge_arms());
-    let tools = rig.tools(&all, &NEJ_PACKAGES);
+    // A daemon that does not trust the client warns about `--system` (and the table does not list
+    // that line): the gate must not send it.
+    let untrusted = (
+        "flake'*'check'*'--system",
+        "all checks passed!",
+        "warning: ignoring the client-specified setting 'system', because it is a restricted setting and you are not a trusted user",
+        0,
+    );
+    let mut arms = vec![untrusted];
+    arms.extend(with_check(CHECK_OK, judge_arms()));
+    let tools = rig.tools(&arms, &NEJ_PACKAGES);
     let settings = Settings {
         system: Some("x86_64-linux".into()),
         ..rig.settings()
     };
-    let (_, report) = run_json(&rig, &settings, tools, &switched());
+    let (exit, report) = run_json(&rig, &settings, tools, &switched());
+    assert_eq!(exit, Exit::Pass);
     assert_eq!(verdict(&report, "eval"), "pass");
+    assert_eq!(report["warnings"], serde_json::json!([]));
     assert_eq!(report["outputs"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn with_a_system_selected_a_check_failure_counts_only_when_it_is_about_that_system() {
+    let rig = rig();
+    let other = (
+        "flake'*'check",
+        "",
+        "error: checks.aarch64-darwin.cargo-tops failed",
+        1,
+    );
+    let mine = (
+        "flake'*'check",
+        "",
+        "error: checks.x86_64-linux.cargo-tops failed",
+        1,
+    );
+    let settings = Settings {
+        system: Some("x86_64-linux".into()),
+        ..rig.settings()
+    };
+    let tools = rig.tools(&with_check(other, judge_arms()), &NEJ_PACKAGES);
+    let (_, report) = run_json(&rig, &settings, tools, &switched());
+    assert_eq!(
+        verdict(&report, "eval"),
+        "pass",
+        "{}",
+        reason(&report, "eval")
+    );
+    let tools = rig.tools(&with_check(mine, judge_arms()), &NEJ_PACKAGES);
+    let (_, report) = run_json(&rig, &settings, tools, &switched());
+    assert_eq!(verdict(&report, "eval"), "Refuse");
+    // Without a selection the failure about another system counts.
+    let tools = rig.tools(&with_check(other, judge_arms()), &NEJ_PACKAGES);
+    let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert_eq!(verdict(&report, "eval"), "Refuse");
 }
 
 #[test]
@@ -1142,4 +1250,76 @@ fn an_output_that_is_not_a_derivation_is_reported_at_instantiated() {
             {"attr": "packages.x86_64-linux.default", "level": "evaluated"}
         ])
     );
+}
+
+const NO_INPUTS: &str =
+    r#"{"url":"fake:locked","locks":{"nodes":{"root":{}},"root":"root","version":7}}"#;
+const WITH_INPUTS: &str = r#"{"url":"fake:locked","locks":{"nodes":{"root":{"inputs":{"nixpkgs":"nixpkgs"}}},"root":"root","version":7}}"#;
+
+fn without_lock(rig: &Rig) {
+    git(rig.root(), &["rm", "-q", "-f", "flake.lock"]);
+    git(rig.root(), &["commit", "-q", "-m", "no lock"]);
+}
+
+#[test]
+fn a_flake_without_inputs_needs_no_lock_and_the_report_says_why() {
+    let rig = rig();
+    without_lock(&rig);
+    let mut arms: Vec<Arm> = vec![("flake'*'metadata", NO_INPUTS, "", 0)];
+    arms.extend(judge_arms());
+    let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
+    let (exit, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert_eq!(verdict(&report, "source"), "pass");
+    assert_eq!(
+        reason(&report, "source"),
+        "no flake.lock: the flake declares no inputs, so Nix writes none"
+    );
+    assert_eq!(exit, Exit::Pass);
+}
+
+#[test]
+fn a_flake_with_inputs_and_no_lock_still_fails_n05() {
+    let rig = rig();
+    without_lock(&rig);
+    let mut arms: Vec<Arm> = vec![("flake'*'metadata", WITH_INPUTS, "", 0)];
+    arms.extend(judge_arms());
+    let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
+    let (exit, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert_eq!(verdict(&report, "source"), "Refuse");
+    assert!(reason(&report, "source").contains("N-05: flake.lock is not committed"));
+    assert_eq!(exit, Exit::GateFailed);
+}
+
+#[test]
+fn an_exit_two_report_names_every_problem_key() {
+    let rig = rig();
+    let arms = vec![
+        (r##"#. --apply"##, "[]", "", 0),
+        (
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"u"}"#,
+            "",
+            0,
+        ),
+        ("hash file", "h", "", 0),
+        ("config show system", "s", "", 0),
+    ];
+    let tools = rig.tools(&with_check(CHECK_OK, arms), &[]);
+    let result = gate::run(&rig.settings(), Some(tools), &switched());
+    assert_eq!(result.exit, Exit::ConfigInvalid);
+    let report = serde_json::to_value(&result.report).unwrap();
+    assert!(result.problems.len() >= 2, "{:?}", result.problems);
+    for id in ["source", "eval", "laws"] {
+        let text = reason(&report, id);
+        for problem in &result.problems {
+            assert!(
+                text.contains(problem.as_str()),
+                "{id}: {text} lacks {problem}"
+            );
+        }
+        assert!(
+            text.contains("facets[0]") && text.contains("toolchain.systems"),
+            "{text}"
+        );
+    }
 }

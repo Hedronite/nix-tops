@@ -579,7 +579,9 @@ such. Eval cost is the uncached, normalized figure of §6.4.
 A layer that an earlier failed layer stopped is `not-run`, with a reason that names that layer;
 `--keep-going` runs it anyway. When a run stops before any layer (an invalid config, an environment
 error, or a `--dry-run` refused in CI), the report is still written, with every layer `not-run` and
-the reason.
+the reason. A `--dry-run` writes it too (reason `dry run`), and `--max-tier` other than 1 is refused (exit
+4: only tier 1 is built) with the report written. A command line the runner cannot parse is not a
+run and writes no report.
 
 ### 6.8 Enforcement modes
 

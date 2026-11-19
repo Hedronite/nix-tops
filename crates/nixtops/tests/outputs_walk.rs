@@ -121,7 +121,7 @@ fn judge_arms<'a>(template_dir: &'a str) -> Vec<Arm<'a>> {
             "",
             0,
         ),
-        ("toString t.path", template_dir, "", 0),
+        ("${t.path}", template_dir, "", 0),
         ("c.activationPackage.drvPath", "", "error: no activation", 1),
         (
             "c.config.system.build.toplevel.drvPath",

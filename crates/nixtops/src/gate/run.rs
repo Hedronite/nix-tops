@@ -319,10 +319,11 @@ fn stopped(
     exit: Exit,
     problems: Vec<String>,
 ) -> RunResult {
-    let reason = problems
-        .first()
-        .cloned()
-        .unwrap_or_else(|| "the run stopped before any layer".to_string());
+    let reason = if problems.is_empty() {
+        "the run stopped before any layer".to_string()
+    } else {
+        problems.join("\n")
+    };
     let report = stopped_report(settings, doc, &reason);
     let _ = write_report(&report_path(&settings.root, doc), &report);
     RunResult {

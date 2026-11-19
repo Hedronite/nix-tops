@@ -47,21 +47,41 @@ struct Pass {
 
 fn run_pass(session: &mut Session, input: &Input, abort_on_warn: bool) -> Pass {
     session.set_abort_on_warn(abort_on_warn);
-    let scope = match input.system {
-        Some(system) => vec!["--system", system],
-        None => vec!["--all-systems"],
-    };
-    let mut rest = vec!["--no-build", "--no-update-lock-file"];
-    rest.extend(scope);
-    rest.push(input.flake_ref);
+    // Always every system: `--system` is a restricted setting a daemon that does not trust the
+    // client refuses (with a warning no table lists), so one system is selected afterwards, by
+    // what the check says and by the inventory.
+    let rest = [
+        "--no-build",
+        "--no-update-lock-file",
+        "--all-systems",
+        input.flake_ref,
+    ];
     let run = session.judge(&["flake", "check"], &rest);
     let check_text = format!("{}\n{}", run.stdout, run.stderr);
     let inventory =
         inventory::collect(session, input.flake_ref).map(|inv| only_system(inv, input.system));
     Pass {
-        check_ok: run.ok,
+        check_ok: run.ok || !concerns(&run.stderr, input.system),
         check_text,
         inventory,
+    }
+}
+
+/// The systems the kit supports, and the one it dropped: how an error is told to be about one.
+const SYSTEMS: [&str; 4] = [
+    "aarch64-darwin",
+    "x86_64-linux",
+    "aarch64-linux",
+    "x86_64-darwin",
+];
+
+/// Whether a failure of `flake check` is about the selected system. With no selection every
+/// failure counts. With one, a failure that names only other systems does not; one that names it,
+/// or names no system at all, does.
+fn concerns(error: &str, system: Option<&str>) -> bool {
+    match system {
+        None => true,
+        Some(wanted) => error.contains(wanted) || !SYSTEMS.iter().any(|s| error.contains(s)),
     }
 }
 
@@ -366,6 +386,25 @@ mod tests {
             scrub("at /a/b/flake.nix:1 and git+file:///a/b?dir=x", "/a/b"),
             "at ./flake.nix:1 and git+file://.?dir=x"
         );
+    }
+
+    #[test]
+    fn a_failure_is_about_the_selected_system_when_it_names_it_or_names_none() {
+        assert!(concerns("error: boom", None));
+        assert!(concerns("error: packages.x86_64-darwin.a", None));
+        assert!(concerns(
+            "error: packages.x86_64-linux.a",
+            Some("x86_64-linux")
+        ));
+        assert!(concerns("error: no system named", Some("x86_64-linux")));
+        assert!(!concerns(
+            "error: checks.aarch64-darwin.a",
+            Some("x86_64-linux")
+        ));
+        assert!(concerns(
+            "error: a.aarch64-darwin and a.x86_64-linux",
+            Some("x86_64-linux")
+        ));
     }
 
     #[test]

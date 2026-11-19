@@ -94,7 +94,7 @@ pub fn configuration(leaf: &[&str]) -> String {
 
 /// A template: the path it is copied from and its description.
 pub fn template() -> String {
-    "t: { path = toString t.path; description = t.description or null; }".to_string()
+    "t: { path = \"${t.path}\"; description = t.description or null; }".to_string()
 }
 
 #[cfg(test)]
@@ -154,7 +154,10 @@ mod tests {
         let c = configuration(&["config", "system", "build", "toplevel"]);
         assert!(c.contains("c.config.system.build.toplevel.drvPath"));
         assert_eq!(config_warnings(), "c: c.config.warnings");
-        assert!(template().contains("toString t.path"));
+        // The path is interpolated, which puts the template's source in the store (a fresh source
+        // is not there yet, and `toString` would name a path that does not exist).
+        assert!(template().contains("\"${t.path}\""));
+        assert!(!template().contains("toString"));
     }
 
     #[test]
