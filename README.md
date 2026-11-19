@@ -7,14 +7,14 @@ Flakes, packages and overlays, NixOS and Home Manager modules and configurations
 
 ## Status
 
-Draft. Protocol **0.2.0**. The package is unreleased (0.0.0). There is no kit code yet; the only code is the spec checker.
+Draft. Protocol **0.2.0**. The package is unreleased (0.0.0).
 
-This repo is at milestone M0: the spec. `nixtops` does not exist yet, and nothing here is ready to copy into CI.
+This repo is at milestone M1: the runner. The kit is a flake (`nix run .#nixtops`). `check`, `init`, `gate` for the source and eval gates, `outputs`, `report` and `report.json` work; `baseline` and `laws` print that they are not built and exit 4. The kit gates itself with `hard` on those two gates; the other layers are switched off with a reason until they are built. Pre-1.0: no adopter has run `nixtops init` yet.
 
 | Milestone | Contents |
 |---|---|
 | **M0** spec | `NIX_TOPS.md`, schemas, six facet profiles (four launch, two specified and unproven), the laws as files, the AGENTS template |
-| M1 | Runner: `init`, `check`, `gate` for source and eval gates, `report.json` |
+| **M1** runner | `init`, `check`, `gate` for source and eval gates, `report.json`; the kit gates itself |
 | M2 | Sandbox checks (`lib.mkChecks`): nixfmt, statix, deadnix, gitleaks; baseline and ratchet; first adopter |
 | M3 | Laws v0.1: 29 of 49 judged; `nixtops-lint`; law fixtures |
 | M4 | Output coverage; closure and eval-cost budgets; VM tests; calibrated floors |
