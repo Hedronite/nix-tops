@@ -134,6 +134,27 @@ fn ledger_problems(doc: &Value, today: &str) -> Vec<Problem> {
         .collect()
 }
 
+/// A switched-off layer needs a reason that says something: whitespace alone is none.
+fn layer_problems(doc: &Value) -> Vec<Problem> {
+    let layers = doc.get("layers").and_then(Value::as_object);
+    layers
+        .into_iter()
+        .flatten()
+        .filter(|(_, layer)| {
+            layer
+                .get("reason")
+                .and_then(Value::as_str)
+                .is_some_and(|reason| reason.trim().is_empty())
+        })
+        .map(|(id, _)| {
+            Problem::new(
+                format!("layers.{id}.reason"),
+                "a blank reason is no reason; say why the layer is off".into(),
+            )
+        })
+        .collect()
+}
+
 /// A problem when the kit input follows nixpkgs, otherwise a note.
 fn lock_finding(lock: Option<&Value>) -> Result<String, Problem> {
     match lock.map(kit_follows_nixpkgs) {
@@ -155,6 +176,7 @@ pub fn check(doc: &Value, ctx: &Context<'_>) -> Findings {
         notes: facet_notes(doc),
     };
     out.problems.extend(ledger_problems(doc, ctx.today));
+    out.problems.extend(layer_problems(doc));
     match lock_finding(ctx.lock) {
         Ok(note) => out.notes.push(note),
         Err(problem) => out.problems.push(problem),
@@ -240,6 +262,26 @@ mod tests {
         let f = check(&d, &ctx("2026-11-18", None, false));
         assert_eq!(keys(&f), ["warnings.allow[0].until"]);
         assert!(f.problems[0].message.contains("not a calendar date"));
+    }
+
+    #[test]
+    fn a_blank_layer_reason_fails_naming_the_layer_and_a_real_one_passes() {
+        let mut d = doc();
+        d["layers"] = json!({"lint":{"enabled":false,"reason":" \t "},
+            "coverage":{"enabled":false,"reason":"not built in M1"}});
+        let f = check(&d, &ctx("2026-11-18", None, false));
+        assert_eq!(keys(&f), ["layers.lint.reason"]);
+        d["layers"]["lint"]["reason"] = json!("");
+        assert_eq!(
+            keys(&check(&d, &ctx("2026-11-18", None, false))),
+            ["layers.lint.reason"]
+        );
+        d["layers"]["lint"]["reason"] = json!("not built in M1");
+        assert!(
+            check(&d, &ctx("2026-11-18", None, false))
+                .problems
+                .is_empty()
+        );
     }
 
     fn lock(inner: Value) -> Value {

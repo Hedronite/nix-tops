@@ -164,6 +164,15 @@ fn lock(follows: bool) -> String {
 }
 
 #[test]
+fn a_blank_layer_reason_exits_2_naming_it_and_a_written_one_passes() {
+    let off =
+        |reason: &str| format!("{GOOD}\n[layers.lint]\nenabled = false\nreason = \"{reason}\"\n");
+    fails_naming(&off("   "), "layers.lint.reason");
+    let (_dir, out) = with(&off("not built in M1"));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+}
+
+#[test]
 fn a_kit_input_that_follows_nixpkgs_fails_and_one_that_does_not_passes() {
     for (follows, code) in [(true, 2), (false, 0)] {
         let dir = tempdir().expect("tempdir");
