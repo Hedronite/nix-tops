@@ -17,12 +17,7 @@ pub type Git<'a> = &'a dyn Fn(&[&str]) -> Option<GitRun>;
 pub fn real_git(dir: &Path) -> impl Fn(&[&str]) -> Option<GitRun> {
     let dir = dir.to_path_buf();
     move |args: &[&str]| {
-        let out = Command::new("git")
-            .arg("-C")
-            .arg(&dir)
-            .args(args)
-            .output()
-            .ok()?;
+        let out = crate::exec::output(Command::new("git").arg("-C").arg(&dir).args(args)).ok()?;
         Some(GitRun {
             ok: out.status.success(),
             stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
