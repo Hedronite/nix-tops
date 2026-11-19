@@ -66,6 +66,11 @@ class Trial(unittest.TestCase):
             if l.strip():
                 self.assertRegex(l.split()[1], r"^[0-9a-f]{40}$", l)
 
+    def test_only_four_rows_use_the_outputs_and_h3s_must_still_fail_on_packages(self):
+        self.assertIn("luminosi-ts|rust-tops|lapis-lattice|bezel) outputs_only=1", TRIAL)
+        self.assertRegex(TRIAL, r'"hedronetes-h3s": \{"exit": 1, "failing": 1,.*"requires": r"\^packages')
+        self.assertRegex(TRIAL, r'"hedronetes-h3s": \{"failing": 2, "names": r"\^devShells\\\.x86_64-linux\$"')
+
     def test_the_trial_switches_the_five_layers_off_with_its_reason(self):
         self.assertIn('"trial: eval only"', TRIAL)
         for k in ("lint", "build-test", "coverage", "facet-layers", "laws"):

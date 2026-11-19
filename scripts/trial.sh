@@ -6,11 +6,12 @@
 # For each line of docs/evidence/2026-11-16-gate3-trial/refs.txt (`owner/repo <40-hex commit>`):
 #   1. fetch that commit into a temporary directory (the ref itself is never edited);
 #   2. `nixtops outputs --json` gives the failing outputs: a failing output is one with an `error`;
-#   3. a flake with no failing output also goes through the gate: `nixtops init` writes a throwaway
+#   3. every flake but the four outputs-only rows (luminosi-ts, rust-tops, lapis-lattice, bezel) goes
+#      through the gate, whether or not an output fails: `nixtops init` writes a throwaway
 #      config there, the trial sets `enforce = "hard"`, drops the baseline key and switches `lint`,
 #      `build-test`, `coverage`, `facet-layers` and `laws` off with the reason "trial: eval only",
 #      commits it in the temporary directory, and `nixtops gate` runs (pinned judge, no build,
-#      no --impure). A flake whose outputs fail (the `x86_64-darwin` rows) cannot get a valid
+#      no --impure). The four outputs-only rows fail on `x86_64-darwin` outputs and cannot get a valid
 #      `[toolchain].systems`, so for those the failing set of step 2 is the result and the table says so.
 # The result is compared with EXPECTED below: the exit code, the number of failing outputs and the
 # shape of their names, never log text. A difference is a finding: the table prints it, the exit
@@ -41,7 +42,8 @@ try:
     r = json.load(open(sys.argv[1])); print(len([o for o in r["outputs"] if o.get("error")]))
 except Exception:
     print("x")' "$out/$name.outputs.json")
-  if [ "$failing" = 0 ]; then
+  case $name in luminosi-ts|rust-tops|lapis-lattice|bezel) outputs_only=1 ;; *) outputs_only=0 ;; esac
+  if [ "$failing" = 0 ] || [ $outputs_only = 0 ]; then
     method=gate
     ( cd "$dir" && "$bin" init >/dev/null 2>"$out/$name.init.err" ) || method="gate (init failed)"
     if [ "$method" = gate ]; then
@@ -81,7 +83,7 @@ EXPECTED = {
     "python-gate":    {"exit": 0, "failing": 0,    "names": None},
     "Omahedron":      {"exit": 0, "failing": 0,    "names": None},
     "lapis-lattice":  {"exit": 1, "failing": 5,    "names": DARWIN},
-    "hedronetes-h3s": {"exit": 1, "failing": None, "names": r"^packages\.x86_64-linux(\.|$)"},
+    "hedronetes-h3s": {"exit": 1, "failing": 1,    "names": r"^packages\.x86_64-linux(\.|$)", "requires": r"^packages\.x86_64-linux(\.|$)"},
     "facet":          {"exit": 0, "failing": 0,    "names": None},
     "bezel":          {"exit": 1, "failing": 29,   "names": DARWIN},
 }
@@ -93,14 +95,10 @@ KNOWN = {
         "the inventory also lists packages.x86_64-darwin, the whole-set record of the system's packages that the "
         "nixpkgs warning fails under abort-on-warn, besides the five attribute paths the README counted; all six are "
         "x86_64-darwin"},
-    "hedronetes-h3s": {"names": r"^(devShells\.x86_64-linux|devShells|nixosModules|packages)$", "cause":
-        "the flake sets packages.\"x86_64-linux\" and devShells.\"x86_64-linux\" to an unsupported-system throw "
-        "(flake.nix lines 156 and 163), and the README names only packages. On an aarch64-darwin host the "
-        "inventory lists the two per-system records. On the x86_64-linux runner it lists the whole-set records "
-        "devShells, nixosModules and packages instead (three, not two): the measured error of each is the same "
-        "throw from line 156 (\"does not support x86_64-linux; bundled runtime artifacts are aarch64-linux "
-        "only\"), including nixosModules, whose own definition is a module file the flake imports and does not "
-        "appear in the error. The difference depends on the host system, not on the flake's pin"},
+    "hedronetes-h3s": {"failing": 2, "names": r"^devShells\.x86_64-linux$", "cause":
+        "flake.nix line 163 sets devShells.\"x86_64-linux\" to the same unsupported-system throw as packages "
+        "(line 156), so two outputs fail, packages.x86_64-linux and devShells.x86_64-linux; the README names only "
+        "packages. The aarch64-linux outputs and nixosModules evaluate"},
 }
 rows, bad = [], 0
 for line in (out / "rows.tsv").read_text().splitlines():
@@ -111,7 +109,7 @@ for line in (out / "rows.tsv").read_text().splitlines():
     try:
         outs = json.loads((out / f"{name}.outputs.json").read_text())["outputs"]
         names = [o["attr"] for o in outs if o.get("error")]
-        errs = {o["attr"]: str(o["error"])[:6000] for o in outs if o.get("error")}
+        errs = {o["attr"]: str(o["error"])[:1500] for o in outs if o.get("error")}
     except Exception:
         problems.append("no outputs inventory" if method != "fetch failed" else "fetch failed")
     if method.startswith("gate"):
@@ -125,6 +123,8 @@ for line in (out / "rows.tsv").read_text().splitlines():
             problems.append(f"exit {exit_code}, expected {want['exit']}")
         if want["failing"] is not None and len(names) != want["failing"]:
             problems.append(f"{len(names)} failing outputs, expected {want['failing']}")
+        if want.get("requires") and not any(re.search(want["requires"], n) for n in names):
+            problems.append("no failing output matches the required shape " + want["requires"])
         if want["names"] and any(not re.search(want["names"], n) for n in names):
             problems.append("a failing output outside the expected shape: " + ", ".join(n for n in names if not re.search(want["names"], n))[:120])
     known = KNOWN.get(name, {})
