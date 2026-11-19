@@ -908,6 +908,8 @@ The drop-in workflow `.github/workflows/nix-tops.yml`:
 | `nightly` | `nixtops gate --max-tier 2` on a schedule. The kit's own workflow does not have this job yet |
 | `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option, a budget, a coverage floor or a layer switch, or adds, changes or extends a `[[warnings.allow]]` entry, without the `protocol-change` label. A change to any file under `NIX_TOPS.md`, `schema/`, `laws/`, `profiles/`, `.github/workflows/`, `scripts/law_diff.py` or `scripts/layers_ran.py` needs the label too, whether or not a key above moved. It checks out the base commit and runs that commit's `scripts/law_diff.py` on the PR's files, which it reads as data and never runs. When the base has no script it reports `vacuous` and passes. The label can be added after the run: adding or removing it runs the job again. The comparisons and the protected paths are listed at the top of `scripts/law_diff.py` |
 
+The kit has two workflows of its own besides the drop-in. `fixtures` runs the gate over `fixtures/corpus/` on every PR, on every push to `main` and on dispatch, on both legs (CppNix and Determinate Nix). `trial` runs gate 3 only, eval and nothing else, over the trial flakes: nightly, on dispatch, and on a PR that changes `trial.yml` or `scripts/trial.sh`.
+
 Known limit: a PR can change the workflow that runs `law-diff` and drop the job, so the job is only as strong as the branch protection that requires it. The kit's own `.github/workflows/nix-tops.yml` is `config/workflow.template.yml` (what `nixtops init` writes) with the layer check and the `law-diff` job added. The kit gates itself with `hard`: gates 1 and 3 run, and the layers that are not built are switched off in its `nix-tops.toml` with a reason.
 
 CI rules: `fetch-depth: 0` (diff laws need the merge base); actions pinned by commit SHA; minimal
@@ -1075,7 +1077,7 @@ nix-tops/
 ├── examples/quickstart/            # the adopter flake of §4 and a stub kit
 ├── docs/evidence/                  # the gate-3 trial, the warning-source fixtures and per-step evidence
 ├── changelog.d/                    # fragments for the next release (README only after a release)
-├── .github/workflows/              # spec, kit, rust-tops, nix-tops
+├── .github/workflows/              # spec, kit, rust-tops, nix-tops, fixtures, trial
 ├── flake.nix · flake.lock          # the kit: nixtops, apps.nixtops, devShells, formatter
 ├── nix/                            # nixtops.nix, tools.nix, devshell.nix
 ├── crates/nixtops/                 # the runner: every command of §12
