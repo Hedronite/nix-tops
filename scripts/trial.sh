@@ -103,10 +103,11 @@ for line in (out / "rows.tsv").read_text().splitlines():
     repo, sha, method, gate_exit, failing = line.split("\t")
     name = repo.split("/")[1]
     want = EXPECTED[name]
-    problems, names = [], []
+    problems, names, errs = [], [], {}
     try:
         outs = json.loads((out / f"{name}.outputs.json").read_text())["outputs"]
         names = [o["attr"] for o in outs if o.get("error")]
+        errs = {o["attr"]: str(o["error"])[:300] for o in outs if o.get("error")}
     except Exception:
         problems.append("no outputs inventory" if method != "fetch failed" else "fetch failed")
     if method.startswith("gate"):
@@ -136,7 +137,7 @@ for line in (out / "rows.tsv").read_text().splitlines():
     problems = kept
     bad += bool(problems)
     rows.append({"repo": repo, "commit": sha, "method": method, "exit": exit_code, "failing": names,
-                 "expected": want, "problems": problems, "known": sorted(set(notes))})
+                 "errors": errs, "expected": want, "problems": problems, "known": sorted(set(notes))})
 md = ["| Flake | Commit | Method | Exit | Failing outputs | Expected | Result |", "|---|---|---|---|---|---|---|"]
 for r in rows:
     w = r["expected"]
