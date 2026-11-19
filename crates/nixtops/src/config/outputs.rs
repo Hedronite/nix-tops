@@ -61,7 +61,7 @@ pub fn found(read: Read) -> Result<Structure, String> {
 
 /// The line of a Nix error that says what is wrong: the last `error:` line with text after it,
 /// else the first line with any text.
-fn first_line(text: &str) -> &str {
+pub fn first_line(text: &str) -> &str {
     let lines = || text.lines().map(str::trim).filter(|l| !l.is_empty());
     let said = |l: &&str| {
         l.strip_prefix("error:")

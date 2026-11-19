@@ -109,10 +109,17 @@ fn unreadable_outputs_exit_3_and_an_unlisted_output_exit_3() {
     assert_eq!(out.exit.code(), 3);
     assert!(out.stderr.contains("boom"));
     let mut s = flake();
-    s.insert_error("checks", "bad".into());
+    s.insert_error(
+        "checks",
+        "error:\n  … while evaluating\n\n  error: attribute missing\n".into(),
+    );
     let out = init_with(dir.path(), &args(&[], false), &|| Read::Found(s.clone()));
     assert_eq!(out.exit.code(), 3);
     assert!(out.stderr.contains("checks"));
+    assert_eq!(
+        out.stderr,
+        "nixtops init: cannot list the members of checks: error: attribute missing\n"
+    );
     assert_eq!(fs::read_dir(dir.path()).expect("ls").count(), 0);
 }
 

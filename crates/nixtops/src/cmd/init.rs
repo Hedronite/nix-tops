@@ -103,7 +103,10 @@ fn from_inventory(
     if let Some((name, error)) = structure.errors.iter().next() {
         return Err(Output::fail(
             Exit::Environment,
-            format!("nixtops init: cannot list the members of {name}: {error}\n"),
+            format!(
+                "nixtops init: cannot list the members of {name}: {}\n",
+                outputs::first_line(error)
+            ),
         ));
     }
     let derived: Vec<String> = inventory::derived_facets(structure)
