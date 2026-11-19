@@ -112,11 +112,19 @@ impl Structure {
         self.errors.insert(name.to_string(), error);
     }
 
+    /// Whether the flake exports something under `name` (protocol section 5.1: "exports
+    /// `nixosModules.*`"): at least one member. `lib` is the output itself. An output whose members
+    /// could not be listed counts, because its error is reported and the facet is not guessed away.
+    fn exports(&self, name: &str) -> bool {
+        match self.members.get(name) {
+            Some(members) => name == "lib" || !members.is_empty() || self.errors.contains_key(name),
+            None => false,
+        }
+    }
+
     /// The facets the outputs show.
     pub fn facets(&self) -> BTreeSet<Facet> {
-        let shown = FACET_OF
-            .iter()
-            .filter(|(name, _)| self.members.contains_key(*name));
+        let shown = FACET_OF.iter().filter(|(name, _)| self.exports(name));
         shown.map(|(_, facet)| *facet).collect()
     }
 
@@ -217,6 +225,34 @@ mod tests {
         assert_eq!(
             s.systems().into_iter().collect::<Vec<_>>(),
             ["x86_64-linux"]
+        );
+    }
+
+    #[test]
+    fn an_empty_set_of_outputs_does_not_derive_its_facet() {
+        let s = structure(&[
+            ("nixosModules", &[]),
+            ("devShells", &[]),
+            ("overlays", &[]),
+            ("packages", &["x86_64-linux"]),
+            ("lib", &[]),
+        ]);
+        let names: Vec<&str> = s.facets().into_iter().map(Facet::as_str).collect();
+        assert_eq!(names, ["package-set", "flake-lib"]);
+        let modules = structure(&[("nixosModules", &["m"])]);
+        assert_eq!(
+            modules.facets().into_iter().collect::<Vec<_>>(),
+            [Facet::NixosModule]
+        );
+    }
+
+    #[test]
+    fn an_output_that_could_not_be_listed_still_derives_its_facet() {
+        let mut s = Structure::default();
+        s.insert_error("nixosModules", "boom".to_string());
+        assert_eq!(
+            s.facets().into_iter().collect::<Vec<_>>(),
+            [Facet::NixosModule]
         );
     }
 

@@ -69,10 +69,11 @@ fn unique_dir() -> PathBuf {
 }
 
 fn run_program(program: &Path, args: &[String], cache: &Path) -> Run {
-    let output = Command::new(program)
-        .args(args)
-        .env("XDG_CACHE_HOME", cache)
-        .output();
+    let output = crate::exec::output(
+        Command::new(program)
+            .args(args)
+            .env("XDG_CACHE_HOME", cache),
+    );
     match output {
         Ok(out) => Run {
             ok: out.status.success(),
