@@ -172,11 +172,11 @@ fn output_entries(inv: &Inventory) -> Vec<OutputEntry> {
         .records
         .iter()
         .filter(|r| !r.is_error() && r.level != Level::Listed);
-    // The report's level enum has no `instantiated` yet; an instantiated output is reported as
-    // evaluated, which understates and never overstates.
+    // The level is the inventory's: `evaluated`, or `instantiated` for an output that is not a
+    // derivation (protocol section 6.1).
     ok.map(|r| OutputEntry {
         attr: r.attr.clone(),
-        level: "evaluated",
+        level: r.level.name(),
     })
     .collect()
 }

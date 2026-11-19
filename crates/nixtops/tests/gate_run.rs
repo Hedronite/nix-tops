@@ -1117,3 +1117,29 @@ fn a_configuration_that_failed_is_not_asked_for_warnings_and_other_outputs_never
         reason(&report, "eval").contains("nixosConfigurations.host failed: error: no toplevel")
     );
 }
+
+#[test]
+fn an_output_that_is_not_a_derivation_is_reported_at_instantiated() {
+    let rig = rig();
+    let mut arms: Vec<Arm> = vec![
+        (r##"#. --apply"##, r#"["overlays","packages"]"#, "", 0),
+        (r##"#"overlays" --apply"##, r#"["default"]"#, "", 0),
+        (
+            r##"#"overlays"."default" --apply"##,
+            r#"{"attrs":1}"#,
+            "",
+            0,
+        ),
+    ];
+    arms.extend(judge_arms());
+    let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
+    let (exit, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert_eq!(exit, Exit::Pass);
+    assert_eq!(
+        report["outputs"],
+        serde_json::json!([
+            {"attr": "overlays.default", "level": "instantiated"},
+            {"attr": "packages.x86_64-linux.default", "level": "evaluated"}
+        ])
+    );
+}

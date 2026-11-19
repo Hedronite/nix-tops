@@ -576,6 +576,11 @@ fails; a layer that config switches off (§9) is `skip` with the configured reas
 that is `not_evaluated` also counts as failed. An output re-evaluated with IFD on (N-07) is marked as
 such. Eval cost is the uncached, normalized figure of §6.4.
 
+A layer that an earlier failed layer stopped is `not-run`, with a reason that names that layer;
+`--keep-going` runs it anyway. When a run stops before any layer (an invalid config, an environment
+error, or a `--dry-run` refused in CI), the report is still written, with every layer `not-run` and
+the reason.
+
 ### 6.8 Enforcement modes
 
 The top-level key `enforce` sets how floors and budgets apply. Adopters default to `ratchet`.
