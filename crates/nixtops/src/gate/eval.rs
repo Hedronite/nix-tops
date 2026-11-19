@@ -497,7 +497,10 @@ mod tests {
             error_concerns(both, Some("x86_64-linux"))
                 && error_concerns(both, Some("aarch64-linux"))
         );
-        assert!(!error_concerns("error: 'a.x86_64-darwin.b'", Some("x86_64-linux")));
+        assert!(!error_concerns(
+            "error: 'a.x86_64-darwin.b'",
+            Some("x86_64-linux")
+        ));
     }
 
     /// QA's q4: another system's broken output quotes the selected system's name in its source

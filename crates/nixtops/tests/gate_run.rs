@@ -882,7 +882,7 @@ fn c18_a_throw_on_another_system_does_not_fail_a_run_that_selects_one() {
     let check = (
         "flake'*'check",
         "",
-        "checking derivation packages.x86_64-linux.default\nerror: qa broken on aarch64\n  while checking the derivation 'packages.aarch64-linux.default'",
+        "checking derivation packages.x86_64-linux.default\nerror: qa broken on aarch64\n  … while checking the derivation 'packages.aarch64-linux.default'",
         1,
     );
     let tools = rig.tools(
@@ -933,7 +933,7 @@ fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
         )
     };
     // The progress lines before the error name every attribute: they do not count.
-    let progress = "checking derivation packages.x86_64-linux.default\nerror: bad\n  while checking the derivation 'packages.aarch64-linux.default'";
+    let progress = "checking derivation packages.x86_64-linux.default\nerror: bad\n  … while checking the derivation 'packages.aarch64-linux.default'";
     let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(progress), &switched());
     assert_eq!(
         verdict(&report, "eval"),
@@ -942,7 +942,7 @@ fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
         reason(&report, "eval")
     );
     // One that names the selected system, or no attribute at all, counts.
-    let mine = "error: bad\n  while checking the derivation 'packages.x86_64-linux.default'";
+    let mine = "error: bad\n  … while checking the derivation 'packages.x86_64-linux.default'";
     let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(mine), &switched());
     assert_eq!(verdict(&report, "eval"), "Refuse");
     let none = "error: something broke";
