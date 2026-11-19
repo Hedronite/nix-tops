@@ -1,8 +1,11 @@
 """Structure checks for fixtures/corpus/*: every flake has what the runner and the gate need."""
 
 import json
+import os
 import re
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -15,7 +18,10 @@ CORPUS = REPO / "fixtures" / "corpus"
 NAMES = sorted(p.name for p in CORPUS.iterdir() if p.is_dir())
 FACETS = {"dev-flake", "package-set", "nixos-module", "flake-lib"}
 LAYERS = {"source", "lint", "eval", "build-test", "coverage", "facet-layers", "laws"}
-VERDICTS = {"pass", "fail"}
+VERDICTS = {"pass", "Refuse", "Ack", "skip", "not-run", "not-evaluated", "deferred", "vacuous"}
+OFF = ["lint", "build-test", "coverage", "facet-layers", "laws"]
+EXIT2_NAMES = {"toolchain.systems", "facets[0]"}
+RUNNER = REPO / "scripts" / "fixtures.sh"
 KIT_REV = json.loads((REPO / "flake.lock").read_text())["nodes"]["nixpkgs"]["locked"]["rev"]
 
 
@@ -33,26 +39,46 @@ class Corpus(unittest.TestCase):
             d = CORPUS / n
             for f in ("flake.nix", "nix-tops.toml", "expected.json"):
                 self.assertTrue((d / f).is_file(), f"{n}: no {f}")
-            if n != "src-lock-missing" and not (d / "setup.sh").exists():
-                inputs = re.search(r"\binputs\.", (d / "flake.nix").read_text())
-                self.assertEqual(bool(inputs), (d / "flake.lock").is_file(), f"{n}: flake.lock iff it has inputs")
+            # N-05: a flake with inputs carries a committed lock. A flake with none has nothing to
+            # lock and carries none, except ctl-flake-lib, kept as the control that both shapes pass.
+            # src-lock-missing has none by design; src-lock-stale builds its stale lock in setup.sh.
+            has_inputs = "inputs" in (d / "flake.nix").read_text()
+            if n in ("src-lock-missing", "src-lock-stale"):
+                want = False
+            else:
+                want = has_inputs or n == "ctl-flake-lib"
+            self.assertEqual((d / "flake.lock").is_file(), want, f"{n}: flake.lock")
+
+    def test_layers_block_switches_the_five_off_and_leaves_gates_one_and_three(self):
+        for n in NAMES:
+            text = (CORPUS / n / "nix-tops.toml").read_text()
+            self.assertIn("[layers]", text, n)
+            for k in OFF:
+                self.assertRegex(text, rf'(?m)^{k} = \{{ enabled = false, reason = "[^"]+" \}}$', f"{n}: {k}")
+            self.assertNotRegex(text, r"(?m)^(source|eval) =", n)
 
     def test_expected_json_shape(self):
         for n in NAMES:
             e = json.loads((CORPUS / n / "expected.json").read_text())
             self.assertIn(e["exit"], (0, 1, 2), n)
-            self.assertTrue(set(e["layers"]) <= LAYERS, n)
+            # every layer is present (section 6.7), with the verdict the gate reports
+            self.assertEqual(set(e["layers"]), LAYERS, n)
             self.assertTrue(set(e["layers"].values()) <= VERDICTS, n)
             self.assertIn(e["raw"]["exit"], (0, 1), n)
             self.assertTrue(e["note"], n)
             if e["exit"] == 2:
-                # an invalid configuration stops the gate before any layer runs
-                self.assertEqual(e["layers"], {}, n)
-                self.assertEqual(e["named"], "toolchain.systems", n)
+                # an invalid configuration stops the gate before any layer runs: every layer is not-run
+                self.assertEqual(set(e["layers"].values()), {"not-run"}, n)
+                for key in ([e["named"]] if isinstance(e["named"], str) else e["named"]):
+                    self.assertIn(key, EXIT2_NAMES, n)
             else:
-                self.assertIn("source", e["layers"], n)
-                # exit 0 means no layer failed
-                self.assertEqual(e["exit"] == 0, "fail" not in e["layers"].values(), n)
+                for k in OFF:
+                    self.assertEqual(e["layers"][k], "skip", f"{n}: {k}")
+                self.assertIn(e["layers"]["source"], ("pass", "Refuse"), n)
+                self.assertEqual(e["exit"] == 0, "Refuse" not in e["layers"].values(), n)
+                if e["layers"]["source"] == "Refuse":
+                    # gate 1 stops the run; gate 3 is not-run
+                    self.assertEqual(e["layers"]["eval"], "not-run", n)
 
     def test_gate_one_cases_are_scratch_cases(self):
         for n in NAMES:
@@ -75,8 +101,9 @@ class Corpus(unittest.TestCase):
                 self.assertEqual(rev, KIT_REV, n)
             lock = CORPUS / n / "flake.lock"
             if lock.is_file():
-                data = json.loads(lock.read_text())
-                self.assertEqual(data["nodes"]["nixpkgs"]["locked"]["rev"], KIT_REV, n)
+                node = json.loads(lock.read_text())["nodes"].get("nixpkgs")
+                if node:
+                    self.assertEqual(node["locked"]["rev"], KIT_REV, n)
 
     def test_configs_validate(self):
         cmd = sc.check_jsonschema_cmd()
@@ -85,3 +112,94 @@ class Corpus(unittest.TestCase):
         for n in NAMES:
             r = sc.validate(cmd, REPO / sc.SCHEMA, CORPUS / n / "nix-tops.toml")
             self.assertEqual(r.returncode, 0, f"{n}: {r.stdout}{r.stderr}")
+
+
+STUB = """#!/bin/sh
+# A stand-in for `nixtops gate`: prints STUB_REPORT and exits with STUB_EXIT.
+cat "$STUB_REPORT"
+exit "$STUB_EXIT"
+"""
+
+
+class GateRunner(unittest.TestCase):
+    """scripts/fixtures.sh gate compares the exit, each layer's verdict and `named` with expected.json."""
+
+    def run_gate(self, name, mutate=None):
+        e = json.loads((CORPUS / name / "expected.json").read_text())
+        layers = dict(e["layers"])
+        if mutate:
+            mutate(layers)
+        nm = e.get("named") or ""
+        reason = " ".join(nm) if isinstance(nm, list) else nm.split("|")[0]
+        report = {"layers": [{"id": k, "verdict": v, "reason": reason} for k, v in layers.items()]}
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = Path(tmp) / "nixtops"
+            stub.write_text(STUB)
+            stub.chmod(0o755)
+            rep = Path(tmp) / "report.json"
+            rep.write_text(json.dumps(report))
+            env = dict(os.environ, NIXTOPS=str(stub), STUB_REPORT=str(rep), STUB_EXIT=str(e["exit"]))
+            r = subprocess.run(["bash", str(RUNNER), "gate", name], env=env, capture_output=True, text=True)
+        return r
+
+    def test_a_matching_report_passes(self):
+        for n in ["ctl-dev-flake", "src-lock-missing", "eval-one-system-throws", "eval-zero-outputs"]:
+            r = self.run_gate(n)
+            self.assertEqual(r.returncode, 0, n + r.stdout + r.stderr)
+            self.assertIn("ok", r.stdout)
+
+    def test_a_changed_verdict_fails_and_names_the_layer(self):
+        r = self.run_gate("ctl-dev-flake", lambda l: l.update(eval="Refuse"))
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("DIFF", r.stdout)
+        self.assertIn("eval Refuse, expected pass", r.stdout)
+
+    def test_a_switched_off_layer_that_is_not_skip_fails(self):
+        r = self.run_gate("ctl-dev-flake", lambda l: l.update(laws="pass"))
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("laws pass, expected skip", r.stdout)
+
+    def test_a_missing_name_fails(self):
+        e = json.loads((CORPUS / "src-lock-missing" / "expected.json").read_text())
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = Path(tmp) / "nixtops"
+            stub.write_text(STUB)
+            stub.chmod(0o755)
+            rep = Path(tmp) / "report.json"
+            rep.write_text(json.dumps({"layers": [{"id": k, "verdict": v} for k, v in e["layers"].items()]}))
+            env = dict(os.environ, NIXTOPS=str(stub), STUB_REPORT=str(rep), STUB_EXIT="1")
+            r = subprocess.run(["bash", str(RUNNER), "gate", "src-lock-missing"], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("does not name 'N-05'", r.stdout)
+
+    def test_a_list_of_names_needs_every_one(self):
+        e = json.loads((CORPUS / "eval-zero-outputs" / "expected.json").read_text())
+        self.assertEqual(e["named"], ["facets[0]", "toolchain.systems"])
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = Path(tmp) / "nixtops"
+            stub.write_text(STUB)
+            stub.chmod(0o755)
+            rep = Path(tmp) / "report.json"
+            rep.write_text(json.dumps({"layers": [{"id": k, "verdict": v, "reason": "facets[0] only"} for k, v in e["layers"].items()]}))
+            env = dict(os.environ, NIXTOPS=str(stub), STUB_REPORT=str(rep), STUB_EXIT="2")
+            r = subprocess.run(["bash", str(RUNNER), "gate", "eval-zero-outputs"], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("does not name 'toolchain.systems'", r.stdout)
+        self.assertNotIn("does not name 'facets[0]'", r.stdout)
+
+    def test_a_changed_exit_fails(self):
+        e = json.loads((CORPUS / "ctl-dev-flake" / "expected.json").read_text())
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = Path(tmp) / "nixtops"
+            stub.write_text(STUB)
+            stub.chmod(0o755)
+            rep = Path(tmp) / "report.json"
+            rep.write_text(json.dumps({"layers": [{"id": k, "verdict": v} for k, v in e["layers"].items()]}))
+            env = dict(os.environ, NIXTOPS=str(stub), STUB_REPORT=str(rep), STUB_EXIT="1")
+            r = subprocess.run(["bash", str(RUNNER), "gate", "ctl-dev-flake"], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("exit 1, expected 0", r.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()

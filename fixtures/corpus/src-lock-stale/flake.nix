@@ -3,6 +3,6 @@
   inputs.extra.url = "github:NixOS/nixpkgs/04906337b6d53e8bb0eaf0470ae9f070a4d4eb55";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/04906337b6d53e8bb0eaf0470ae9f070a4d4eb55";
   outputs = { self, nixpkgs }: {
-    checks.x86_64-linux.stub = nixpkgs.legacyPackages.x86_64-linux.runCommand "stub" { } "echo ok > $out";
+    packages.x86_64-linux.default = nixpkgs.legacyPackages.x86_64-linux.runCommand "stub" { } "echo ok > $out";
   };
 }

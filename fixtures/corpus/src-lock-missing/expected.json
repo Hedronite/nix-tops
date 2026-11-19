@@ -1,7 +1,13 @@
 {
   "exit": 1,
   "layers": {
-    "source": "fail"
+    "source": "Refuse",
+    "lint": "skip",
+    "eval": "not-run",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
   },
   "named": "N-05",
   "scratch": true,

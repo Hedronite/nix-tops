@@ -1,0 +1,76 @@
+name: fixtures
+
+# Runs the kit's own gate over every flake in fixtures/corpus/ and fixtures/gates/ and fails when a
+# verdict, an exit code or a named finding differs from its expected.json. Eval only: no build of the
+# fixtures, no --impure, locks never updated. Each fixture runs in a scratch directory that is its own
+# git repository. The runner is built from the pull request, so this workflow runs code from it:
+# never use pull_request_target here.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  corpus-linux:
+    name: gate over the fixtures (CppNix, x86_64-linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
+        with:
+          extra_nix_config: |
+            sandbox = true
+            experimental-features = nix-command flakes
+      - name: Build the runner
+        run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
+      - name: Raw evaluation of the corpus (gate 3's options, no gate)
+        run: scripts/fixtures.sh raw
+      - name: The gate over every fixture
+        env:
+          NIXTOPS: ${{ github.workspace }}/result/bin/nixtops
+          FIXTURES_LOGS: ${{ runner.temp }}/fixture-logs
+        run: scripts/fixtures.sh gate
+      - name: Keep the reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fixture-reports-cppnix
+          path: ${{ runner.temp }}/fixture-logs
+          if-no-files-found: ignore
+
+  corpus-determinate:
+    name: gate over the fixtures (Determinate Nix)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/determinate-nix-action@16f94ba7aae399b9f9077c254b6719ec6de7e3e3 # v3.24.2
+      - name: Build the runner
+        run: nix build .#nixtops --no-update-lock-file --no-accept-flake-config -L
+      - name: Raw evaluation of the corpus (gate 3's options, no gate)
+        run: scripts/fixtures.sh raw
+      - name: The gate over every fixture
+        env:
+          NIXTOPS: ${{ github.workspace }}/result/bin/nixtops
+          FIXTURES_LOGS: ${{ runner.temp }}/fixture-logs
+        run: scripts/fixtures.sh gate
+      - name: Keep the reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fixture-reports-determinate
+          path: ${{ runner.temp }}/fixture-logs
+          if-no-files-found: ignore

@@ -2,7 +2,12 @@
   "exit": 0,
   "layers": {
     "source": "pass",
-    "eval": "pass"
+    "lint": "skip",
+    "eval": "pass",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
   },
   "note": "checks exists for one system and packages for three. Under --all-systems neither daemon omits a system or prints D-04/D-05 (raw run, both daemons), so this is a plain pass.",
   "raw": {

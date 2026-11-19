@@ -2,9 +2,14 @@
   "exit": 1,
   "layers": {
     "source": "pass",
-    "eval": "fail"
+    "lint": "skip",
+    "eval": "Refuse",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
   },
-  "named": "N-08",
+  "named": "packages.x86_64-linux.default",
   "failing_outputs": [
     "packages.x86_64-linux.default"
   ],
