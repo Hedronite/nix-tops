@@ -39,3 +39,9 @@ slow-timeout = { period = "10s", terminate-after = 6 }
 [[profile.ci.overrides]]
 filter = "test(=a_dry_run_runs_nothing_and_never_passes)"
 slow-timeout = { period = "10s", terminate-after = 4 }
+
+# The gate, doctor and inventory tests start many processes (git, shell scripts that stand in for
+# nix). On a loaded build host a test of them can pass 20 s without being stuck; these get 60 s.
+[[profile.ci.overrides]]
+filter = 'binary(gate_run) | binary(doctor) | binary(outputs_walk) | binary(gate_cli)'
+slow-timeout = { period = "10s", terminate-after = 6 }
