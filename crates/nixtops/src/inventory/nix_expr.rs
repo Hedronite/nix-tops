@@ -17,16 +17,16 @@ fn flake(reference: &str) -> String {
     format!("(builtins.getFlake {})", quote(reference))
 }
 
-/// An attribute path for `nix eval <url>#<path>`: every name quoted, `.` for the flake itself.
+/// An attribute path for `nix eval <url>#<path>`: every name quoted, and anchored at the flake's
+/// outputs with a leading `.` (`#."devShells"`), `.` alone for the flake itself. Without the dot
+/// nix tries `packages.<host>.<name>` and the other search paths first, so a throwing
+/// `packages.<host>` hides every output and a member named like an output shadows it.
 pub fn attr_path(path: &[&str]) -> String {
-    if path.is_empty() {
-        return ".".to_string();
-    }
     let quoted: Vec<String> = path
         .iter()
         .map(|name| format!("\"{}\"", name.replace('\\', "\\\\").replace('"', "\\\"")))
         .collect();
-    quoted.join(".")
+    format!(".{}", quoted.join("."))
 }
 
 /// The installable for the value at `path` below the flake at `url`.
@@ -115,11 +115,11 @@ mod tests {
         assert_eq!(attr_path(&[]), ".");
         assert_eq!(
             attr_path(&["packages", "x86_64-linux"]),
-            "\"packages\".\"x86_64-linux\""
+            ".\"packages\".\"x86_64-linux\""
         );
         assert_eq!(
             attr_path(&["a.b", "c\"d", "e\\f"]),
-            "\"a.b\".\"c\\\"d\".\"e\\\\f\""
+            ".\"a.b\".\"c\\\"d\".\"e\\\\f\""
         );
     }
 
@@ -127,7 +127,7 @@ mod tests {
     fn an_installable_is_the_reference_a_hash_and_the_path() {
         assert_eq!(
             installable("git+file:///r?dir=x", &["apps", "s"]),
-            "git+file:///r?dir=x#\"apps\".\"s\""
+            "git+file:///r?dir=x#.\"apps\".\"s\""
         );
         assert_eq!(installable("u", &[]), "u#.");
     }

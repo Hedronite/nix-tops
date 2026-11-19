@@ -52,6 +52,10 @@ fn eval_options(abort_on_warn: bool) -> Vec<String> {
         "--option",
         "allow-import-from-derivation",
         "false",
+        // An earlier failure is never replayed from the cache as "cached failure".
+        "--option",
+        "eval-cache",
+        "false",
     ];
     options.iter().map(|option| option.to_string()).collect()
 }
