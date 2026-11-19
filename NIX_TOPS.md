@@ -902,11 +902,13 @@ The drop-in workflow `.github/workflows/nix-tops.yml`:
 
 | Job | Content |
 |---|---|
-| `gate` | Install Nix (action pinned by commit SHA); `sandbox = true`; `nix run .#nixtops -- gate --max-tier 1` on `x86_64-linux`. It fails if fewer layers ran than are enabled in range. Gate 3 uses `--all-systems`, so evaluation for every declared system runs here and needs no other runner |
-| `determinate` | The same gate, evaluating with Determinate Nix (the named leg of §2), `lazy-trees false` and `eval-cores 1` (§2) |
-| `build-matrix` | Tier 2, and where `deferred` outputs build: `ubuntu-24.04` (x86_64), `ubuntu-24.04-arm` (aarch64) and an aarch64-darwin runner, per declared systems. VM tests run on x86_64 only |
-| `nightly` | `nixtops gate --max-tier 2` on a schedule |
-| `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option or a budget without the `protocol-change` label. It runs the base branch's script, never the PR's |
+| `gate` | Install Nix (action pinned by commit SHA); `sandbox = true`; `nix run .#nixtops -- gate --max-tier 1` on `x86_64-linux`. After the gate, `scripts/layers_ran.py` reads `nix-tops.toml` and `.nix-tops/report.json` and fails the job if a layer is missing from the report, an enabled layer did not run, or a layer that is switched off does not show `skip` with its reason. Gate 3 uses `--all-systems`, so evaluation for every declared system runs here and needs no other runner |
+| `determinate` | The same gate and the same layer check, with `--evaluator host` (§12) so Determinate Nix evaluates (the named leg of §2), `lazy-trees false` and `eval-cores 1` (§2) |
+| `build-matrix` | Tier 2, and where `deferred` outputs build: `ubuntu-24.04` (x86_64), `ubuntu-24.04-arm` (aarch64) and an aarch64-darwin runner, per declared systems. VM tests run on x86_64 only. The kit's own workflow does not have this job until the tier 2 layers exist |
+| `nightly` | `nixtops gate --max-tier 2` on a schedule. The kit's own workflow does not have this job yet |
+| `law-diff` | Fails a PR that weakens or removes a law, a lint setting, an eval option, a budget, a coverage floor or a layer switch, or adds, changes or extends a `[[warnings.allow]]` entry, without the `protocol-change` label. It checks out the base commit and runs that commit's `scripts/law_diff.py` on the PR's files, which it reads as data and never runs. When the base has no script it reports `vacuous` and passes. The label can be added after the run: adding or removing it runs the job again. The comparisons are listed at the top of `scripts/law_diff.py` |
+
+The kit's own `.github/workflows/nix-tops.yml` is `config/workflow.template.yml` (what `nixtops init` writes) with the layer check and the `law-diff` job added. The kit gates itself with `hard`: gates 1 and 3 run, and the layers that are not built are switched off in its `nix-tops.toml` with a reason.
 
 CI rules: `fetch-depth: 0` (diff laws need the merge base); actions pinned by commit SHA; minimal
 `permissions:`; `--dry-run` refused; empty reports fail. Every `nix` command passes
@@ -1060,7 +1062,7 @@ report; an agent contract.
 
 ## 17. Repository layout
 
-As built at 0.2.0. The repo is a spec repo: no runner and no kit flake yet.
+As built at M1: the spec, the kit flake and the `nixtops` runner.
 
 ```
 nix-tops/
@@ -1068,32 +1070,29 @@ nix-tops/
 ├── laws/                           # N-NN.toml (49), diagnostics.toml, README.md
 ├── profiles/                       # one TOML per facet (six)
 ├── schema/                         # nix-tops, gate-report and law schemas; core/ (shared definitions)
-├── config/                         # AGENTS.template.md
-├── scripts/                        # spec_check.py, rules_gen.py, tests/
+├── config/                         # AGENTS.template.md, workflow.template.yml
+├── scripts/                        # spec_check.py, rules_gen.py, fixtures.sh, layers_ran.py, law_diff.py, tests/
 ├── examples/quickstart/            # the adopter flake of §4 and a stub kit
 ├── docs/evidence/                  # the gate-3 trial and the warning-source fixtures
 ├── changelog.d/                    # fragments for the next release (README only after a release)
-├── .github/workflows/spec.yml      # the one job, `spec`
+├── .github/workflows/              # spec, kit, rust-tops, nix-tops
+├── flake.nix · flake.lock          # the kit: nixtops, apps.nixtops, devShells, formatter
+├── nix/                            # nixtops.nix, tools.nix, devshell.nix
+├── crates/nixtops/                 # the runner: every command of §12
+├── fixtures/                       # corpus/ (one flake per case) and gates/
+├── nix-tops.toml                   # Nix-TOPS gates itself, hard
+├── Cargo.toml · Cargo.lock · rust-toolchain.toml · rust-tops.yaml · rust-tops.lock · RUST-TOPS.md · deny.toml
 ├── AGENTS.md · CLAUDE.md · CHANGELOG.md · README.md
 └── LICENSE · LICENSE-MIT · LICENSE-APACHE
 ```
 
-The `spec` job runs the unit tests for the scripts, then `spec_check.py all` (intra-repo links, the
+The `kit` workflow builds the flake and runs its eval options on three legs; `rust-tops` gates the runner's Rust; `nix-tops` is the kit's own gate (§11). The `spec` job runs the unit tests for the scripts, then `spec_check.py all` (intra-repo links, the
 law count and judged count against §8.2, §19 and the README, `laws/`, every schema and profile, and
 internal decision labels) and `rules_gen.py check` (the copies of §3.4).
 
-Planned from M1, when the kit becomes a flake. It gates itself with its own protocol, and its Rust
-analyzer with Rust-TOPS:
+Still planned, from M2: `lib.mkChecks` and `lib.formatter` in the flake, `nix/checks.nix` (the sandbox plane), `crates/nixtops-lint/` (the rnix analyzer: N-01, N-02, N-03, N-10, N-11, N-15, N-25, …) and `fixtures/laws/` (one deliberate violation per law, with expect markers).
 
-```
-├── flake.nix · flake.lock          # nixtops, nixtops-lint, lib.mkChecks, lib.formatter
-├── nix/                            # checks.nix (sandbox plane), runner.nix, profiles.nix
-├── crates/nixtops-lint/            # rnix analyzer: N-01, N-02, N-03, N-10, N-11, N-15, N-25, …
-├── fixtures/laws/                  # one deliberate violation per law, with expect markers
-└── nix-tops.toml                   # Nix-TOPS gates itself, hard
-```
-
-Self-hosting: the kit runs `hard` and passes its own tier-1 gate before any release.
+Self-hosting: the kit runs `hard` and passes its own tier-1 gate, which in M1 is gates 1 and 3; the other layers are switched off in `nix-tops.toml` with the reason "not built in M1", and `law-diff` stops a later change from switching a built layer off without the `protocol-change` label. The kit has no `lib` output yet, so its facets are `package-set` and `dev-flake`; `flake-lib` comes with `lib.mkChecks`.
 
 ---
 
@@ -1132,7 +1131,7 @@ Python 3.10 or later. Schema precedence (§3.4): when the prose and a schema dis
 | Milestone | Contents | Exit criterion |
 |---|---|---|
 | **M0** | Spec 0.2.0, the draft made true: schemas, six facet profiles (four launch, two specified and unproven), the laws as files, the agent template, one rule list with checked copies, and the `spec` job that checks them | Merged on `main` with the `spec` check required; §20 matches the trial |
-| **M1** | Honest runner: the kit flake with a pinned nixpkgs and CppNix, the `nixtops` binary (`version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `report.json`), CI on x86_64 Linux, aarch64-darwin and Determinate Nix | The kit's own flake gates green on gates 1 and 3; the 2026-11 trial reproduces from the kit's command |
+| **M1** | Honest runner: the kit flake with a pinned nixpkgs and CppNix, the `nixtops` binary (`version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `report.json`), CI on x86_64 Linux, aarch64-darwin and Determinate Nix | The kit's own flake gates green on gates 1 and 3; the 2026-11 trial reproduces from the kit's command. As built: the kit gates itself `hard` on x86_64 Linux and under Determinate Nix, with gates 2, 4, 5 and 6 and the laws switched off with a reason, and no `lib` output yet (its facets are `package-set` and `dev-flake`) |
 | **M2** | Sandbox plane (`lib.mkChecks` with nixfmt, statix, deadnix, gitleaks), gate 4, baseline and modes with expiring acks, kit distribution, first adopter | A deliberate deadnix finding fails under `hard` and passes as baseline under `ratchet`; the `rust-tops` flake passes gates 1 to 4 at tier 1 |
 | **M3** | Laws v0.1: `nixtops-lint` and readers, 29 judged; `fixtures/laws`; a probe of how many planted mistakes the laws catch | Report shows "29 of 49 judged"; the catch rate is recorded |
 | **M4** | Output coverage with evidence kinds; closure and eval-cost budgets; the VM-test layer; option and call coverage (advisory); one floor per facet calibrated from measurement | A `nixos-module` example fails when its VM test is removed; floors calibrated on three flakes |

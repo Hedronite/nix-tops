@@ -9,9 +9,7 @@ The protocol text is [`NIX_TOPS.md`](NIX_TOPS.md). This file is the harness for 
 
 ## State
 
-Milestone M0: the spec. There is no `flake.nix`, no runner and no analyzer yet. `nixtops` does not exist. The one workflow, `spec`, runs `scripts/spec_check.py` and `scripts/rules_gen.py` on the spec itself. Do not document, run or claim a command that has not landed.
-
-Once code lands, the kit is a flake that gates itself `hard` with its own protocol (§17), and its Rust analyzer is gated by Rust-TOPS.
+Milestone M1: the runner. The kit is a flake with `nixtops`: `version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `outputs`, `report` and `report.json` work; `baseline` and `laws` exit 4 as not built. Workflows: spec, kit, rust-tops, nix-tops. The kit gates itself `hard` (§11, §17); gates 2, 4, 5 and 6 and the laws are switched off with a reason until they are built. The `nixtops-lint` analyzer does not exist yet. Do not document, run or claim a command that has not landed.
 
 Points from 0.2.0 that code must follow:
 
