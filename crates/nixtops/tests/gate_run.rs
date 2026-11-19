@@ -1430,3 +1430,22 @@ fn an_exit_two_report_names_every_problem_key() {
         );
     }
 }
+
+#[test]
+fn r15_a_selected_system_with_no_outputs_is_a_run_with_no_output_evaluated() {
+    let rig = rig();
+    // A valid config, and a system the flake does not export: every record is for another system,
+    // nothing failed, and nothing was evaluated. That is not a pass.
+    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let settings = Settings {
+        system: Some("riscv64-linux".into()),
+        ..rig.settings()
+    };
+    let result = gate::run(&settings, Some(tools), &switched());
+    assert_eq!(result.exit, Exit::GateFailed);
+    let report = serde_json::to_value(&result.report).unwrap();
+    assert_valid(&report);
+    assert_eq!(verdict(&report, "eval"), "Refuse");
+    assert_eq!(reason(&report, "eval"), "no output evaluated");
+    assert_eq!(report["outputs"], serde_json::json!([]));
+}
