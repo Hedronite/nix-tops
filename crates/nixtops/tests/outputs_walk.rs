@@ -606,3 +606,70 @@ fn modules_without_a_module_system_in_the_lock_stay_evaluated_with_a_reason() {
     );
     assert_eq!(find(&r, "nixosModules.m")["note"], Value::Null);
 }
+
+#[test]
+fn an_empty_per_system_set_exports_no_system_and_derives_no_facet() {
+    let dir = tempfile::tempdir().unwrap();
+    let arms: Vec<Arm> = vec![
+        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
+        ("removeAttrs", r#"["devShells","packages"]"#, "", 0),
+        (r#"[ "devShells" "aarch64-linux" ]"#, "[]", "", 0),
+        (r#"[ "devShells" "x86_64-linux" ]"#, "[]", "", 0),
+        (
+            r#"[ "devShells" ]"#,
+            r#"["aarch64-linux","x86_64-linux"]"#,
+            "",
+            0,
+        ),
+        (r#"[ "packages" "x86_64-linux" ]"#, r#"["default"]"#, "", 0),
+        (r#"[ "packages" "aarch64-linux" ]"#, "[]", "", 0),
+        (
+            r#"[ "packages" ]"#,
+            r#"["aarch64-linux","x86_64-linux"]"#,
+            "",
+            0,
+        ),
+    ];
+    let tools = Tools {
+        judge: script(dir.path(), "judge", &arms),
+        eval_jobs: dir.path().join("nej"),
+        nixpkgs: "n".into(),
+    };
+    let session = Session::new(tools).unwrap();
+    let structure = inventory::structure_of(&session, ".").unwrap();
+    assert!(structure.members["devShells"].is_empty());
+    assert_eq!(structure.members["packages"], ["x86_64-linux"]);
+    let systems: Vec<String> = inventory::exported_systems(&structure)
+        .into_iter()
+        .collect();
+    assert_eq!(systems, ["x86_64-linux"]);
+    let facets: Vec<&str> = inventory::derived_facets(&structure)
+        .into_iter()
+        .map(Facet::as_str)
+        .collect();
+    assert_eq!(facets, ["package-set"]);
+}
+
+#[test]
+fn a_set_that_cannot_be_listed_keeps_its_system() {
+    let dir = tempfile::tempdir().unwrap();
+    let arms: Vec<Arm> = vec![
+        ("--no-update-lock-file", r#"{"url":"u"}"#, "", 0),
+        ("removeAttrs", r#"["packages"]"#, "", 0),
+        (
+            r#"[ "packages" "x86_64-linux" ]"#,
+            "",
+            "error: cannot list",
+            1,
+        ),
+        (r#"[ "packages" ]"#, r#"["x86_64-linux"]"#, "", 0),
+    ];
+    let tools = Tools {
+        judge: script(dir.path(), "judge", &arms),
+        eval_jobs: dir.path().join("nej"),
+        nixpkgs: "n".into(),
+    };
+    let session = Session::new(tools).unwrap();
+    let structure = inventory::structure_of(&session, ".").unwrap();
+    assert_eq!(structure.members["packages"], ["x86_64-linux"]);
+}

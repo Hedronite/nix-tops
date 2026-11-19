@@ -13,7 +13,7 @@ pub fn nix_bin() -> String {
 
 /// Runs `nix <args>` and returns trimmed stdout, or `None` when it cannot run or exits non-zero.
 pub fn run(nix: &str, args: &[&str]) -> Option<String> {
-    let out = Command::new(nix).args(args).output().ok()?;
+    let out = crate::exec::output(Command::new(nix).args(args)).ok()?;
     out.status
         .success()
         .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())

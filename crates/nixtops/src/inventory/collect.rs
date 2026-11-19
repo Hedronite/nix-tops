@@ -77,7 +77,28 @@ fn member_names(session: &Session, url: &str, name: &str) -> Result<Vec<String>,
     if name == "lib" || shape_of(name) == Shape::Unknown {
         return Ok(Vec::new());
     }
-    eval_json(session, &expr::attr_names(url, &[name])).map(names)
+    let listed = eval_json(session, &expr::attr_names(url, &[name])).map(names)?;
+    match shape_of(name) {
+        Shape::PerSystem(kind) if lists_members(kind) => Ok(listed
+            .into_iter()
+            .filter(|system| has_members(session, url, name, system))
+            .collect()),
+        _ => Ok(listed),
+    }
+}
+
+/// A formatter is a derivation per system and `legacyPackages` is the whole of nixpkgs; neither
+/// is listed to see whether a system's set is empty.
+fn lists_members(kind: Kind) -> bool {
+    !matches!(kind, Kind::Formatter | Kind::LegacyPackages)
+}
+
+/// Whether the set of `name` at `system` has anything in it. `devShells.aarch64-linux = { }`
+/// exports nothing: the system is not exported, and an output with no non-empty set derives no
+/// facet. A set that cannot be listed counts as non-empty (its error shows when it is walked).
+fn has_members(session: &Session, url: &str, name: &str, system: &str) -> bool {
+    let listed = eval_json(session, &expr::attr_names(url, &[name, system]));
+    listed.map_or(true, |value| !names(value).is_empty())
 }
 
 fn drv_record(attr: &str, kind: Kind, system: Option<&str>, value: &Value) -> Record {
