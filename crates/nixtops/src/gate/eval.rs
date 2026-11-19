@@ -503,6 +503,18 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn only_trace_lines_and_error_lines_name_attributes() {
+        assert!(names_attribute("  … while checking the derivation 'a'"));
+        assert!(names_attribute(
+            "error: flake attribute 'a' is not a derivation"
+        ));
+        // A trace line that is not about checking or evaluating, and code that says "while".
+        assert!(!names_attribute("  … at 'packages.x86_64-linux.a'"));
+        assert!(!names_attribute("   5|  x = \"while 'x86_64-linux'\";"));
+        assert!(!names_attribute("   at /s/flake.nix:5:3: 'x86_64-linux'"));
+    }
+
     /// QA's q4: another system's broken output quotes the selected system's name in its source
     /// excerpt (CppNix prints no per-attribute lines, so the trace lines decide).
     #[test]
