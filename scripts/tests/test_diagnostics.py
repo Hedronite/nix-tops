@@ -8,7 +8,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 TABLE = tomllib.loads((REPO / "laws" / "diagnostics.toml").read_text(encoding="utf-8"))
 ENTRIES = TABLE["diagnostic"]
-SETTINGS = ["eval-cores", "lazy-trees", "bash-prompt-prefix", "upgrade-nix-store-path-url"]
+SETTINGS = ["eval-cores", "lazy-trees", "bash-prompt-prefix", "upgrade-nix-store-path-url", "build-provenance-tags"]
 
 
 def classify(line):
@@ -30,11 +30,11 @@ class Table(unittest.TestCase):
             self.assertIn(e["effect"], ("report", "fail"), e["id"])
 
     def test_the_table_version_moved_with_the_new_entries(self):
-        self.assertEqual(TABLE["table_version"], 2)
+        self.assertEqual(TABLE["table_version"], 3)
 
 
 class HostSettings(unittest.TestCase):
-    def test_the_four_names_classify_as_report(self):
+    def test_the_five_names_classify_as_report(self):
         for n in SETTINGS:
             hits = classify(f"warning: unknown setting '{n}'")
             self.assertEqual(len(hits), 1, n)
