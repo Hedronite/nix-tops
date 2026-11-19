@@ -90,12 +90,13 @@ EXPECTED = {
 # edited to make a row agree.
 KNOWN = {
     "rust-tops": {"failing": 6, "cause":
-        "the inventory lists every failing attribute path (six, all x86_64-darwin, including packages.x86_64-darwin "
-        "and apps.x86_64-darwin.cargo-tops, which the nixpkgs warning fails under abort-on-warn); the README counted "
-        "the five failing lines Determinate prints"},
+        "the inventory also lists packages.x86_64-darwin, the whole-set record of the system's packages that the "
+        "nixpkgs warning fails under abort-on-warn, besides the five attribute paths the README counted; all six are "
+        "x86_64-darwin"},
     "hedronetes-h3s": {"names": r"^devShells\.x86_64-linux$", "cause":
-        "devShells.x86_64-linux fails with a cached failure of the same throw as packages.x86_64-linux, so the "
-        "inventory lists it too; the README names only packages"},
+        "flake.nix line 163 sets devShells.\"x86_64-linux\" to the same unsupported-system throw as packages, so two "
+        "outputs fail on a cold cache too (the second reads as a cached failure within one evaluation); the README "
+        "names only packages"},
 }
 rows, bad = [], 0
 for line in (out / "rows.tsv").read_text().splitlines():
