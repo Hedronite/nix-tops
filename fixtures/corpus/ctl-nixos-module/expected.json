@@ -2,7 +2,12 @@
   "exit": 0,
   "layers": {
     "source": "pass",
-    "eval": "pass"
+    "lint": "skip",
+    "eval": "pass",
+    "build-test": "skip",
+    "coverage": "skip",
+    "facet-layers": "skip",
+    "laws": "skip"
   },
   "note": "nixosModules.default; checks.<system>.module-eval forces a configuration's toplevel drvPath (eval only). No nixosConfigurations, so no nixos-host facet. Systems are linux only: a NixOS configuration does not exist on darwin.",
   "raw": {

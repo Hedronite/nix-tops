@@ -3,11 +3,11 @@
 set -eu
 d=$1
 here=$(cd "$(dirname "$0")" && pwd)
-cp "$here/flake.nix" "$here/nix-tops.toml" "$d/"
+cp "$here/flake.nix" "$here/flake.lock" "$here/nix-tops.toml" "$d/"
 cp "$here/extra.nix.in" "$d/extra.nix.in"
 cd "$d"
 git init -q .
-git add flake.nix nix-tops.toml
+git add flake.nix flake.lock nix-tops.toml
 git -c user.name=fixture -c user.email=fixture@example.invalid commit -q -m base
 cp extra.nix.in extra.nix
 rm extra.nix.in
