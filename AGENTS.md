@@ -9,7 +9,7 @@ The protocol text is [`NIX_TOPS.md`](NIX_TOPS.md). This file is the harness for 
 
 ## State
 
-Milestone M1: the runner. The kit is a flake with `nixtops`: `version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `outputs`, `report` and `report.json` work; `baseline` and `laws` exit 4 as not built. Workflows: spec, kit, rust-tops, nix-tops. The kit gates itself `hard` (§11, §17); gates 2, 4, 5 and 6 and the laws are switched off with a reason until they are built. The `nixtops-lint` analyzer does not exist yet. Do not document, run or claim a command that has not landed.
+Milestone M1: the runner. The kit is a flake with `nixtops`: `version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `outputs`, `report` and `report.json` work; `baseline` and `laws` exit 4 as not built. Workflows: spec, kit, rust-tops, nix-tops, fixtures, trial. The kit gates itself `hard` (§11, §17); gates 2, 4, 5 and 6 and the laws are switched off with a reason until they are built. The `nixtops-lint` analyzer does not exist yet. Do not document, run or claim a command that has not landed.
 
 Points from 0.2.0 that code must follow:
 
