@@ -30,15 +30,19 @@ fn judge(dir: &Path, arms: &[(&str, &str, i32)]) -> PathBuf {
 }
 
 const OK: [(&str, &str, i32); 4] = [
-    ("--no-update-lock-file", r#"{"url":"fake:locked"}"#, 0),
-    ("removeAttrs", r#"["devShells","packages"]"#, 0),
     (
-        r#"[ "devShells" ]"#,
+        "flake'*'metadata'*'--no-update-lock-file",
+        r#"{"url":"fake:locked"}"#,
+        0,
+    ),
+    (r##"#. --apply"##, r#"["devShells","packages"]"#, 0),
+    (
+        r##"#"devShells" --apply"##,
         r#"["aarch64-linux","x86_64-linux"]"#,
         0,
     ),
     (
-        r#"[ "packages" ]"#,
+        r##"#"packages" --apply"##,
         r#"["aarch64-linux","x86_64-linux"]"#,
         0,
     ),
@@ -54,7 +58,10 @@ const GOOD: &str = "protocol = \"0.2.0\"\nfacets = [\"dev-flake\"]\nenforce = \"
 fn read_reports_no_judge_a_failing_judge_and_a_found_structure() {
     let dir = tempdir().expect("tempdir");
     assert_eq!(outputs::read_with(None, dir.path()), Read::NoJudge);
-    let bad = judge(dir.path(), &[("--no-update-lock-file", "", 1)]);
+    let bad = judge(
+        dir.path(),
+        &[("flake'*'metadata'*'--no-update-lock-file", "", 1)],
+    );
     assert!(matches!(
         outputs::read_with(tools(bad), dir.path()),
         Read::Failed(_)
@@ -103,7 +110,10 @@ fn check_runs_end_to_end_with_stand_in_tools() {
     let none = check::run_with(&args(dir.path()), "2026-11-18", nix, None);
     assert_eq!(none.exit.code(), 3);
     assert!(none.stderr.contains("outputs") && none.stderr.contains("no pinned judge"));
-    let down = judge(dir.path(), &[("--no-update-lock-file", "", 1)]);
+    let down = judge(
+        dir.path(),
+        &[("flake'*'metadata'*'--no-update-lock-file", "", 1)],
+    );
     let failed = check::run_with(&args(dir.path()), "2026-11-18", nix, tools(down));
     assert_eq!(failed.exit.code(), 3);
 }

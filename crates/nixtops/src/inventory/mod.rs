@@ -11,10 +11,11 @@ mod record;
 mod structure;
 mod tools;
 
-pub use collect::{Inventory, Listed, collect, locked_url, read_structure};
+pub use collect::{Inventory, Listed, collect, eval_json, locked_url, read_structure};
+pub use nix_expr::config_warnings;
 pub use record::{COVERAGE, Kind, Level, Record};
 pub use structure::{Facet, Shape, Structure, shape_of};
-pub use tools::{Run, Session, Tools};
+pub use tools::{Backend, Run, Session, Tools};
 
 use std::collections::BTreeSet;
 

@@ -41,20 +41,47 @@ impl Tools {
     }
 }
 
-/// Gate 3's evaluation options (protocol section 3.1): warnings fatal, no import from derivation.
-const EVAL_OPTIONS: [&str; 6] = [
+/// Gate 3's evaluation options (protocol section 3.1): warnings fatal (unless a collect re-run asks
+/// for them to be listed), no import from derivation.
+fn eval_options(abort_on_warn: bool) -> Vec<String> {
+    let abort = if abort_on_warn { "true" } else { "false" };
+    let options = [
+        "--option",
+        "abort-on-warn",
+        abort,
+        "--option",
+        "allow-import-from-derivation",
+        "false",
+    ];
+    options.iter().map(|option| option.to_string()).collect()
+}
+
+/// The Determinate-only settings the gate turns off (protocol section 2).
+const DETERMINATE_OPTIONS: [&str; 6] = [
     "--option",
-    "abort-on-warn",
-    "true",
-    "--option",
-    "allow-import-from-derivation",
+    "lazy-trees",
     "false",
+    "--option",
+    "eval-cores",
+    "1",
 ];
+
+/// How per-derivation outputs are listed: with `nix-eval-jobs` (the kit's lock), or one `nix eval`
+/// per attribute with the judge (used when the judge is the host's Nix, which `nix-eval-jobs`
+/// does not link).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Backend {
+    Jobs,
+    PerAttribute,
+}
 
 /// A run with its own cache directory and scratch space, removed when it is dropped.
 pub struct Session {
     tools: Tools,
     dir: PathBuf,
+    abort_on_warn: bool,
+    backend: Backend,
+    determinate: bool,
 }
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -92,7 +119,32 @@ impl Session {
     pub fn new(tools: Tools) -> io::Result<Self> {
         let dir = unique_dir();
         fs::create_dir_all(dir.join("cache"))?;
-        Ok(Self { tools, dir })
+        Ok(Self {
+            tools,
+            dir,
+            abort_on_warn: true,
+            backend: Backend::Jobs,
+            determinate: false,
+        })
+    }
+
+    /// Whether a warning is fatal in the runs that follow. True except in a collect re-run.
+    pub fn set_abort_on_warn(&mut self, abort_on_warn: bool) {
+        self.abort_on_warn = abort_on_warn;
+    }
+
+    /// Turns the Determinate-only settings off in the runs that follow (`lazy-trees false`,
+    /// `eval-cores 1`, protocol section 2). For a judge that is the host's Determinate Nix.
+    pub fn set_determinate(&mut self, determinate: bool) {
+        self.determinate = determinate;
+    }
+
+    pub fn set_backend(&mut self, backend: Backend) {
+        self.backend = backend;
+    }
+
+    pub fn backend(&self) -> Backend {
+        self.backend
     }
 
     pub fn nixpkgs(&self) -> &str {
@@ -112,7 +164,10 @@ impl Session {
         ];
         args.extend(subcommand.iter().chain(rest).map(|a| a.to_string()));
         args.push("--no-accept-flake-config".to_string());
-        args.extend(EVAL_OPTIONS.iter().map(|a| a.to_string()));
+        args.extend(eval_options(self.abort_on_warn));
+        if self.determinate {
+            args.extend(DETERMINATE_OPTIONS.iter().map(|a| a.to_string()));
+        }
         run_program(&self.tools.judge, &args, &self.dir.join("cache"))
     }
 
@@ -129,7 +184,7 @@ impl Session {
             .map(|a| a.to_string())
             .collect();
         args.extend(features.iter().map(|a| a.to_string()));
-        args.extend(EVAL_OPTIONS.iter().map(|a| a.to_string()));
+        args.extend(eval_options(self.abort_on_warn));
         run_program(&self.tools.eval_jobs, &args, &self.dir.join("cache"))
     }
 }

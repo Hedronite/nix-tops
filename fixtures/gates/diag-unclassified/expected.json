@@ -1,0 +1,9 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "Refuse"
+  },
+  "named": "unclassified diagnostic",
+  "note": "nix prints a line laws/diagnostics.toml does not list: unclassified, so gate 3 fails."
+}

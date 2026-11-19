@@ -1,0 +1,9 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "Refuse"
+  },
+  "named": "config-warnings",
+  "note": "A NixOS option nixpkgs renamed: nixpkgs puts the notice in config.warnings (warning source 2), which the gate reads as data; abort-on-warn does not stop it."
+}

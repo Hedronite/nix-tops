@@ -4,9 +4,9 @@
 use super::{
     jobs::{self, Target, clean},
     nix_expr as expr,
-    record::{Kind, Level, Record},
+    record::{Kind, Level, Record, prune_meta},
     structure::{Shape, Structure, shape_of},
-    tools::Session,
+    tools::{Backend, Session},
 };
 use serde_json::Value;
 use std::{fs, io, path::Path};
@@ -20,8 +20,20 @@ pub struct Inventory {
     pub records: Vec<Record>,
 }
 
-fn eval_json(session: &Session, expression: &str) -> Result<Value, String> {
-    let run = session.judge(&["eval", "--json", "--expr", expression], &[]);
+/// `nix eval --json <url>#<path> --apply <apply>` with the judge. The flake is read through its
+/// own reference, not `builtins.getFlake`, so a dirty git tree evaluates the way `nix flake
+/// check` reads it: tracked files only (an untracked file is invisible, as N-04 says).
+pub fn eval_json(
+    session: &Session,
+    url: &str,
+    path: &[&str],
+    apply: &str,
+) -> Result<Value, String> {
+    let target = expr::installable(url, path);
+    let run = session.judge(
+        &["eval", "--json", &target, "--apply", apply],
+        &["--no-update-lock-file"],
+    );
     if !run.ok {
         return Err(clean(&run.stderr));
     }
@@ -65,7 +77,7 @@ pub type Listed = Vec<(String, Result<Vec<String>, String>)>;
 
 /// The top-level output names and, for each, its members.
 pub fn read_structure(session: &Session, url: &str) -> Result<Listed, String> {
-    let top = eval_json(session, &expr::output_names(url))?;
+    let top = eval_json(session, url, &[], &expr::names())?;
     let listed = names(top).into_iter().map(|name| {
         let members = member_names(session, url, &name);
         (name, members)
@@ -77,7 +89,7 @@ fn member_names(session: &Session, url: &str, name: &str) -> Result<Vec<String>,
     if name == "lib" || shape_of(name) == Shape::Unknown {
         return Ok(Vec::new());
     }
-    let listed = eval_json(session, &expr::attr_names(url, &[name])).map(names)?;
+    let listed = eval_json(session, url, &[name], &expr::names()).map(names)?;
     match shape_of(name) {
         Shape::PerSystem(kind) if lists_members(kind) => Ok(listed
             .into_iter()
@@ -97,13 +109,14 @@ fn lists_members(kind: Kind) -> bool {
 /// exports nothing: the system is not exported, and an output with no non-empty set derives no
 /// facet. A set that cannot be listed counts as non-empty (its error shows when it is walked).
 fn has_members(session: &Session, url: &str, name: &str, system: &str) -> bool {
-    let listed = eval_json(session, &expr::attr_names(url, &[name, system]));
+    let listed = eval_json(session, url, &[name, system], &expr::names());
     listed.map_or(true, |value| !names(value).is_empty())
 }
 
 fn drv_record(attr: &str, kind: Kind, system: Option<&str>, value: &Value) -> Record {
     Record::new(attr, kind, system, Level::Evaluated)
         .with_drv(text(value, "drvPath"), text(value, "name"))
+        .with_meta(value.get("meta").and_then(prune_meta))
 }
 
 fn single_drv(
@@ -114,7 +127,7 @@ fn single_drv(
     system: Option<&str>,
 ) -> Record {
     let attr = path.join(".");
-    match eval_json(session, &expr::derivation(url, path)) {
+    match eval_json(session, url, path, &expr::derivation()) {
         Ok(value) => drv_record(&attr, kind, system, &value),
         Err(error) => Record::failed(&attr, kind, system, error),
     }
@@ -128,8 +141,11 @@ fn derivation_set(
     kind: Kind,
 ) -> Vec<Record> {
     let base = format!("{name}.{system}");
+    if session.backend() == Backend::PerAttribute {
+        return per_attribute(session, url, &[name, system], kind, system);
+    }
     let run = session.eval_jobs(&format!("{url}#{base}"));
-    jobs::records(
+    let mut found = jobs::records(
         &Target {
             base: &base,
             kind,
@@ -138,12 +154,70 @@ fn derivation_set(
         run.ok,
         &run.stdout,
         &run.stderr,
-    )
+    );
+    found.extend(missing_members(session, url, &[name, system], kind, &found));
+    found
+}
+
+/// A member of a per-system output that `nix-eval-jobs` says nothing about is not a derivation (it
+/// lists derivations and the sets it descends into, and passes over the rest): `packages.<s>.bad
+/// = 42`. That is an error record, never a silent gap. When the whole set failed there is nothing
+/// to add: its own record says why.
+fn missing_members(
+    session: &Session,
+    url: &str,
+    base: &[&str],
+    kind: Kind,
+    found: &[Record],
+) -> Vec<Record> {
+    let (base_attr, system) = (base.join("."), base[1]);
+    if found.iter().any(|r| r.attr == base_attr) {
+        return Vec::new();
+    }
+    let Ok(listed) = eval_json(session, url, base, &expr::names()).map(names) else {
+        return Vec::new();
+    };
+    let said = |member: &str| {
+        let full = format!("{base_attr}.{member}");
+        let below = format!("{full}.");
+        found
+            .iter()
+            .any(|r| r.attr == full || r.attr.starts_with(&below))
+    };
+    let silent = listed.into_iter().filter(|member| !said(member));
+    silent
+        .map(|member| {
+            let full = format!("{base_attr}.{member}");
+            let error = format!("{full} is not a derivation");
+            Record::failed(&full, kind, Some(system), error)
+        })
+        .collect()
+}
+
+/// The derivations of one attribute set, one `nix eval` each: a failing attribute is an error
+/// record and the others still evaluate.
+fn per_attribute(
+    session: &Session,
+    url: &str,
+    base: &[&str],
+    kind: Kind,
+    system: &str,
+) -> Vec<Record> {
+    match eval_json(session, url, base, &expr::names()).map(names) {
+        Err(error) => vec![Record::failed(&base.join("."), kind, Some(system), error)],
+        Ok(list) => list
+            .iter()
+            .map(|n| {
+                let path: Vec<&str> = base.iter().copied().chain([n.as_str()]).collect();
+                single_drv(session, url, &path, kind, Some(system))
+            })
+            .collect(),
+    }
 }
 
 fn app(session: &Session, url: &str, path: &[&str], system: &str) -> Record {
     let attr = path.join(".");
-    let checked = eval_json(session, &expr::app(url, path)).and_then(|value| {
+    let checked = eval_json(session, url, path, &expr::app()).and_then(|value| {
         match text(&value, "type").as_deref() {
             Some("app") if text(&value, "program").is_some() => Ok(()),
             other => Err(format!(
@@ -162,7 +236,7 @@ fn app(session: &Session, url: &str, path: &[&str], system: &str) -> Record {
 
 fn apps(session: &Session, url: &str, system: &str) -> Vec<Record> {
     let base = format!("apps.{system}");
-    let listed = eval_json(session, &expr::attr_names(url, &["apps", system])).map(names);
+    let listed = eval_json(session, url, &["apps", system], &expr::names()).map(names);
     match listed {
         Err(error) => vec![Record::failed(&base, Kind::App, Some(system), error)],
         Ok(list) => list
@@ -199,7 +273,9 @@ fn overlay(session: &Session, url: &str, name: &str, system: &str) -> Record {
     let attr = path.join(".");
     match eval_json(
         session,
-        &expr::overlay(url, session.nixpkgs(), system, &path),
+        url,
+        &path,
+        &expr::overlay(session.nixpkgs(), system),
     ) {
         Ok(_) => Record::new(&attr, Kind::Overlay, None, Level::Instantiated),
         Err(error) => Record::failed(&attr, Kind::Overlay, None, error),
@@ -216,14 +292,14 @@ fn module(session: &Session, url: &str, top: &str, name: &str) -> Record {
     let path = [top, name];
     let attr = path.join(".");
     if top != "nixosModules" {
-        return match eval_json(session, &expr::module_value(url, &path)) {
+        return match eval_json(session, url, &path, &expr::module_value()) {
             Ok(_) => {
                 Record::new(&attr, Kind::Module, None, Level::Evaluated).with_note(NO_MODULE_SYSTEM)
             }
             Err(error) => Record::failed(&attr, Kind::Module, None, error),
         };
     }
-    match eval_json(session, &expr::nixos_module(url, session.nixpkgs(), &path)) {
+    match eval_json(session, url, &path, &expr::nixos_module(session.nixpkgs())) {
         Ok(_) => Record::new(&attr, Kind::Module, None, Level::Instantiated),
         Err(error) => Record::failed(&attr, Kind::Module, None, error),
     }
@@ -248,7 +324,7 @@ fn template(session: &Session, url: &str, name: &str) -> Record {
     let path = ["templates", name];
     let attr = path.join(".");
     let fail = |error: String| Record::failed(&attr, Kind::Template, None, error);
-    let value = match eval_json(session, &expr::template(url, &path)) {
+    let value = match eval_json(session, url, &path, &expr::template()) {
         Ok(value) => value,
         Err(error) => return fail(error),
     };
@@ -285,7 +361,7 @@ fn configuration(session: &Session, url: &str, top: &str, name: &str) -> Record 
     };
     let path = [top, name];
     let attr = path.join(".");
-    match eval_json(session, &expr::configuration(url, &path, leaf)) {
+    match eval_json(session, url, &path, &expr::configuration(leaf)) {
         Ok(value) => drv_record(&attr, Kind::Configuration, None, &value),
         Err(error) => Record::failed(&attr, Kind::Configuration, None, error),
     }

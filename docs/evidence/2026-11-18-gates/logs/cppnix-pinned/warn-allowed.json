@@ -1,0 +1,95 @@
+{
+  "protocol": "0.2.0",
+  "enforce": "hard",
+  "baseline_identity": {
+    "implementation": "cppnix",
+    "version": "2.35.6",
+    "system": "aarch64-darwin",
+    "lock_hash": "sha256-1/Jdj8JrlKYs4UQ3aycTzd2njPNeVWVZ0wTCVEA2kHk="
+  },
+  "facets": [
+    "package-set"
+  ],
+  "passed": true,
+  "counts": {
+    "verdicts": {
+      "ack": 1,
+      "deferred": 0,
+      "not_evaluated": 0,
+      "not_run": 0,
+      "pass": 2,
+      "refuse": 0,
+      "skip": 5,
+      "vacuous": 0
+    },
+    "failed": 0
+  },
+  "layers": [
+    {
+      "id": "source",
+      "verdict": "pass"
+    },
+    {
+      "id": "lint",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "eval",
+      "verdict": "pass"
+    },
+    {
+      "id": "build-test",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "coverage",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "facet-layers",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "laws",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    }
+  ],
+  "laws": [],
+  "outputs": [
+    {
+      "attr": "packages.x86_64-linux.default",
+      "level": "evaluated"
+    }
+  ],
+  "warnings": [
+    {
+      "source": "builtins-warn",
+      "message": "the fixture package has been renamed",
+      "verdict": "Ack",
+      "entry": {
+        "kind": "ledger",
+        "match": "has been renamed",
+        "reason": "upstream rename; fixed in the next lock update",
+        "until": "2099-12-31",
+        "expired": false
+      }
+    }
+  ],
+  "acks": {
+    "count": 1,
+    "entries": [
+      {
+        "kind": "ledger",
+        "match": "has been renamed",
+        "reason": "upstream rename; fixed in the next lock update",
+        "until": "2099-12-31",
+        "expired": false
+      }
+    ]
+  }
+}

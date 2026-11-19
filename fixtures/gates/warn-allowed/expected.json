@@ -1,0 +1,9 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "named": "has been renamed",
+  "note": "A builtins.warn matched by an unexpired ledger entry: Ack, the gate passes and the report names the entry and its expiry."
+}
