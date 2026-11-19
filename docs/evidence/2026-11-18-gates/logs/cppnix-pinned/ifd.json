@@ -37,7 +37,7 @@
     {
       "id": "eval",
       "verdict": "Refuse",
-      "reason": "N-07: import from derivation is off and an output needs it\nflake check failed: error: path '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv' is not valid\npackages.x86_64-linux.default failed: error: cannot build '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv^out' during evaluation because the option 'allow-import-from-derivation' is disabled"
+      "reason": "N-07: import from derivation is off and an output needs it\nflake check failed: error: cannot build '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv^out' during evaluation because the option 'allow-import-from-derivation' is disabled\npackages.x86_64-linux.default failed: error: cannot build '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv^out' during evaluation because the option 'allow-import-from-derivation' is disabled"
     },
     {
       "id": "build-test",

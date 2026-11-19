@@ -11,7 +11,7 @@ The kit's own command, `nixtops gate`, run over `fixtures/gates/` on three evalu
 
 ## Verdicts
 
-`source` and `eval` for each fixture; the three evaluators that run to a verdict agree on every row. The exit is 1 on every row that is not config-invalid because `lint`, `build-test`, `coverage`, `facet-layers` and `laws` are on and not built in this version, so they are `not-run` and `not-run` fails (the layers-gap decision is open). `expected.json` states the exit with those five switched off; the Rust test `tests/gate_fixtures.rs` runs the gate with them switched off through the test-only seam and compares each fixture with `expected.json` on both the pinned judge and `--evaluator host`.
+`source` and `eval` for each fixture; the four runs agree on every row. The exit is 1 on every row that is not config-invalid (exit 2) because `lint`, `build-test`, `coverage`, `facet-layers` and `laws` are on and not built in this version, so they are `not-run` and `not-run` fails (the layers-gap decision is open). `expected.json` states the exit with those five switched off; the Rust test `tests/gate_fixtures.rs` runs the gate with them switched off through the test-only seam and compares each fixture with `expected.json` on both the pinned judge and `--evaluator host`.
 
 | Fixture | `source` | `eval` | What the report says |
 |---|---|---|---|
@@ -23,7 +23,7 @@ The kit's own command, `nixtops gate`, run over `fixtures/gates/` on three evalu
 | `warn-allowed` | pass | pass | a `builtins-warn` entry, verdict `Ack`, with its ledger entry and expiry; `acks.count` 1 |
 | `warn-expired` | not-run | not-run | exit 2: the config check refuses an expired entry before any layer; the report is written with every layer `not-run` and the reason |
 | `diag-unclassified` | pass | Refuse | `warning: ignoring untrusted flake configuration setting 'extra-substituters'.` is in no table entry: an unclassified diagnostic |
-| `omitted-system` | pass | pass | passes today: the systems check of the config step reads the outputs and is not merged; `expected.json` carries the exit 2 it will give and a `pending` note |
+| `omitted-system` | not-run | not-run | exit 2: the config check reads the outputs (`evaluate_with_outputs`) and `aarch64-linux`, declared in `[toolchain].systems`, is not exported; the report is written with every layer `not-run` and the reason |
 
 ## The Determinate host's own settings
 
@@ -31,7 +31,7 @@ The Determinate installer's `/etc/nix/nix.conf` sets `eval-cores` and `lazy-tree
 
 ## What the tests add
 
-- `tests/gate_run.rs` (stand-in judge, real `git`): the stop rule and `--keep-going`, N-04 (untracked, staged, ignored, `.direnv`), N-05 (not committed, modified, not current), the clean-tree rule in CI, the ledger, the collect re-run, `config.warnings`, `--only`, `--system`, a layer switched off by the config's `[layers]` (through the seam) and a host below the floor; every report it produces is validated against `schema/gate-report.schema.json`.
+- `tests/gate_run.rs` (stand-in judge, real `git`): the stop rule and `--keep-going`, N-04 (untracked, staged, ignored, `.direnv`), N-05 (not committed, modified, not current), the clean-tree rule in CI, the ledger, the collect re-run, `config.warnings`, `--only`, `--system`, a layer switched off by the config's `[layers]` (through the seam) and a host below the floor and a flake with no outputs; every report it produces is validated against `schema/gate-report.schema.json`.
 - `tests/gate_fixtures.rs`: the nine fixtures with the real tools (set `NIXTOPS_FX_*`; skipped otherwise), and a dirty git tree: a tracked file edited and not committed is evaluated, an untracked `.nix` file is not read and gate 1 still refuses it.
 - Dirty trees: the inventory reads the flake through its own reference (`nix eval <ref>#<path> --apply`), not `builtins.getFlake`, which refuses an unlocked reference. That keeps the way `nix flake check` reads a dirty tree: tracked files only.
 
