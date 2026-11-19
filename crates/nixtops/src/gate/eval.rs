@@ -189,10 +189,20 @@ fn error_texts(pass: &Pass) -> Vec<String> {
     records.filter_map(|r| r.error.clone()).collect()
 }
 
-/// Whether `abort-on-warn` is what stopped this pass.
+/// Whether `abort-on-warn` is what stopped this pass: nix says so, or (the text differs on a cold
+/// store) an evaluation warning was printed in an error's text.
 fn stopped_by_warning(pass: &Pass) -> bool {
-    pass.check_text.contains(ABORT_MARKER)
-        || error_texts(pass).iter().any(|e| e.contains(ABORT_MARKER))
+    let says = |text: &str| text.contains(ABORT_MARKER) || text.contains(WARNING_PREFIX);
+    says(&pass.check_text) || error_texts(pass).iter().any(|e| says(e))
+}
+
+/// Whether a text says an output needs a derivation built during evaluation. Warm, nix says
+/// `import-from-derivation`; on a cold store it says the derivation `path '...-x.drv' is not valid`.
+fn needs_build_during_evaluation(text: &str) -> bool {
+    text.contains(IFD_MARKER)
+        || text
+            .lines()
+            .any(|l| l.contains(".drv") && l.contains("is not valid"))
 }
 
 /// Every `evaluation warning:` line of a text, in order, once each.
@@ -325,8 +335,11 @@ fn root_cause(text: &str) -> String {
 }
 
 fn ifd_failure(pass: &Pass) -> Option<String> {
-    let in_check = pass.check_text.contains(IFD_MARKER);
-    let ifd = in_check || error_texts(pass).iter().any(|e| e.contains(IFD_MARKER));
+    let in_check = needs_build_during_evaluation(&pass.check_text);
+    let ifd = in_check
+        || error_texts(pass)
+            .iter()
+            .any(|e| needs_build_during_evaluation(e));
     ifd.then(|| "N-07: import from derivation is off and an output needs it".to_string())
 }
 
