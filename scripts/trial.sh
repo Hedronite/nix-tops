@@ -107,7 +107,7 @@ for line in (out / "rows.tsv").read_text().splitlines():
     try:
         outs = json.loads((out / f"{name}.outputs.json").read_text())["outputs"]
         names = [o["attr"] for o in outs if o.get("error")]
-        errs = {o["attr"]: str(o["error"])[:300] for o in outs if o.get("error")}
+        errs = {o["attr"]: str(o["error"])[:6000] for o in outs if o.get("error")}
     except Exception:
         problems.append("no outputs inventory" if method != "fetch failed" else "fetch failed")
     if method.startswith("gate"):
