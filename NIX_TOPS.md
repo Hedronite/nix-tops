@@ -188,7 +188,7 @@ escape: dropping `x86_64-darwin` (§2) removes the `rust-tops` case that motivat
 | `pass` | Evaluated and satisfied | none |
 | `Refuse` | Hard rule violated | **Fails the gate** |
 | `Ack` | Soft rule; needs a recorded acknowledgement (see Acks below) | Fails if unacknowledged |
-| `skip` | The facet's artifact is absent (the reason names it), or config sets `enabled = false` | Printed with the reason |
+| `skip` | The facet's artifact is absent (the reason names it), or config switches the layer off with `enabled = false` and a reason (§9) | Printed with the reason |
 | `not-run` | The layer is enabled but has no command mapped | **Fails the gate** |
 | `not-evaluated` | The reader or tool could not judge, or its config is off | Reported; never a pass. **Fails the gate under `hard` and `ratchet` when the law is required** |
 | `deferred` | The output cannot be built on this host and a `build-matrix` leg owns it (§11) | Printed locally. **CI fails while any output is `deferred` that no leg built** |
@@ -201,6 +201,11 @@ artifact exists (§5.1, §8.2). `not-evaluated` on a required law fails the gate
 `ratchet` the baseline stores the set of judged law IDs, and losing one from the set fails. Laws
 outside the required set are reported `not-evaluated` and do not block. A broken upstream tool
 therefore blocks merges until it is fixed or exempted; that is the intent.
+
+When the `laws` layer itself is switched off (§9), no law is evaluated in that run, no law is
+*required* for it, and the report prints the layer as `skip` with its reason and says that laws are
+not enforced. The switch is a protocol decision: a pull request that changes it needs the
+`protocol-change` label, which the `law-diff` job (§11) checks.
 
 `not-evaluated` is the verdict and `not_evaluated` is its key in the JSON report (§6.7): one name
 for one thing, with the hyphen written as an underscore. The same holds for `not-run` and `not_run`.
@@ -416,7 +421,7 @@ requires (§3.3) is derived from the artifacts present.
 
 ### 5.4 Narrowing
 
-`nix-tops.toml` may list `facets = [...]`. The list must be a subset of the derived facets;
+`nix-tops.toml` lists `facets = [...]`. The list must be a subset of the derived facets;
 `nixtops check` refuses a facet the outputs do not show. Narrowing drops the dropped facet's floors,
 and the report lists the outputs left without a floor. It never removes a law.
 
@@ -566,7 +571,8 @@ law it fails under `hard` and `ratchet` (§3.3). The report names each law's rea
 
 `nixtops gate` always writes `.nix-tops/report.json` and prints text. The schema is
 `schema/gate-report.schema.json`. Every layer is present; `skip` carries a reason; `not-run`
-fails; `not_evaluated`, `deferred` and `vacuous` are each counted on their own, and a required law
+fails; a layer that config switches off (§9) is `skip` with the configured reason, never absent;
+`not_evaluated`, `deferred` and `vacuous` are each counted on their own, and a required law
 that is `not_evaluated` also counts as failed. An output re-evaluated with IFD on (N-07) is marked as
 such. Eval cost is the uncached, normalized figure of §6.4.
 
@@ -834,6 +840,11 @@ vm_tests = { enabled = false }
 rebuild = { enabled = false }
 vulnix = { enabled = false }
 custom = []
+lint = { enabled = false, reason = "not built yet" }
+build-test = { enabled = false, reason = "not built yet" }
+coverage = { enabled = false, reason = "not built yet" }
+facet-layers = { enabled = false, reason = "not built yet" }
+laws = { enabled = false, reason = "not built yet" }
 
 [laws]
 enable = "default"
@@ -851,6 +862,12 @@ path = ".nix-tops/report.json"
 - `abort_on_warn` and `allow_ifd` are fixed at `true` and `false`; they appear in the file so a reader
   sees them. `allow_ifd` is the default for the whole flake. Import-from-derivation is allowed one
   output at a time, by an N-07 ack: the acked output is re-evaluated with it on, and the report says so.
+- `[layers]` can switch off the report's layers `lint`, `build-test`, `coverage`, `facet-layers` and
+  `laws`, each as `{ enabled = false, reason = "..." }`; the reason is required and `enabled` can only
+  be `false`. The report shows such a layer as `skip` with that reason (§6.7). `source` and `eval`
+  (gates 1 and 3) cannot be switched off. A layer that is on and has no command mapped is `not-run` and
+  fails the gate (§3.3); switching it off with a reason is the one way to run without it. Switching
+  off `laws` is allowed under every mode, and the report then says laws are not enforced (§3.3).
 - Each `[[warnings.allow]]` entry is an ack with an expiry (§3.1). `match`, `reason` and `until` are all
   required.
 - There is no `version` or `flake` key: the package version is the kit's (`nixtops version`), and the
