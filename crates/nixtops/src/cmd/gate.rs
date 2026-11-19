@@ -105,33 +105,47 @@ fn refuse(settings: &Settings, reason: &str) -> Output {
 }
 
 /// Runs the gate with the given inputs; the caller chooses the date, CI flag and tools.
-pub fn run_with(args: &Args, ci: bool, tools: Option<Tools>, seams: &Seams) -> Output {
-    let only = match args.only.as_deref().map(LayerId::parse) {
-        Some(None) => {
-            let layers: Vec<&str> = crate::report::ALL_LAYERS
-                .iter()
-                .map(|l| l.as_str())
-                .collect();
-            let message = format!("nixtops gate: --only takes one of {}\n", layers.join(", "));
-            return Output::fail(Exit::Refused, message);
-        }
-        Some(layer) => layer,
-        None => None,
+/// `--only <layer>`: the layer, or the refusal (an unknown name is not a run; no report).
+fn parse_only(args: &Args) -> Result<Option<LayerId>, Output> {
+    let Some(name) = args.only.as_deref() else {
+        return Ok(None);
     };
-    let settings = settings_of(args, only, ci);
+    LayerId::parse(name).map(Some).ok_or_else(|| {
+        let layers: Vec<&str> = crate::report::ALL_LAYERS
+            .iter()
+            .map(|l| l.as_str())
+            .collect();
+        let message = format!("nixtops gate: --only takes one of {}\n", layers.join(", "));
+        Output::fail(Exit::Refused, message)
+    })
+}
+
+/// The runs that stop before any layer: a tier that is not built, and a dry run.
+fn before_any_layer(args: &Args, settings: &Settings, ci: bool) -> Option<Output> {
     if args.max_tier != BUILT_TIER {
         let reason = format!(
             "only tier {BUILT_TIER} is built; --max-tier {} is refused",
             args.max_tier
         );
-        return refuse(&settings, &reason);
+        return Some(refuse(settings, &reason));
     }
     if args.dry_run && ci {
-        return refuse(&settings, "--dry-run is refused when CI is set");
+        return Some(refuse(settings, "--dry-run is refused when CI is set"));
     }
-    if args.dry_run {
-        write_stopped(&settings, "dry run");
-        return Output::ok(plan(&settings));
+    args.dry_run.then(|| {
+        write_stopped(settings, "dry run");
+        Output::ok(plan(settings))
+    })
+}
+
+pub fn run_with(args: &Args, ci: bool, tools: Option<Tools>, seams: &Seams) -> Output {
+    let only = match parse_only(args) {
+        Ok(only) => only,
+        Err(refusal) => return refusal,
+    };
+    let settings = settings_of(args, only, ci);
+    if let Some(output) = before_any_layer(args, &settings, ci) {
+        return output;
     }
     let result = gate::run(&settings, tools, seams);
     let stderr: String = result.problems.iter().map(|p| format!("{p}\n")).collect();
