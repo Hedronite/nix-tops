@@ -635,6 +635,80 @@ fn import_from_derivation_is_named_n07() {
     assert!(reason(&report, "eval").contains("N-07: import from derivation is off"));
 }
 
+/// The text of a cold store: the derivation is not in the store, and nix says so.
+#[test]
+fn import_from_derivation_on_a_cold_store_is_named_n07_too() {
+    let rig = rig();
+    let check = (
+        "flake'*'check",
+        "",
+        "error: path '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv' is not valid",
+        1,
+    );
+    let tools = rig.tools(&with_check(check, judge_arms()), &NEJ_PACKAGES);
+    let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert!(reason(&report, "eval").contains("N-07: import from derivation is off"));
+    let nej = [(
+        "fake:locked#packages",
+        r#"{"attr":"default","attrPath":["default"],"error":"error:\n… while evaluating the 'name' attribute of a derivation\nerror: path '/nix/store/aaa-value.drv' is not valid"}"#,
+        "",
+        0,
+    )];
+    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &nej);
+    let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert!(reason(&report, "eval").contains("N-07"));
+    // A path that is not valid, and not a derivation, is not an import from derivation.
+    let other = (
+        "flake'*'check",
+        "",
+        "error: path '/nix/store/aaa-source' is not valid",
+        1,
+    );
+    let tools = rig.tools(&with_check(other, judge_arms()), &NEJ_PACKAGES);
+    let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert!(!reason(&report, "eval").contains("N-07"));
+}
+
+/// The text of a cold store: a warning stopped the evaluation, and nix does not say `abort-on-warn
+/// is set` (the error is only a trace). The warning is still collected, and the re-run happens.
+#[test]
+fn a_warning_that_stopped_the_run_without_nixs_abort_text_is_still_collected() {
+    let rig = rig();
+    let strict = (
+        "flake'*'check'*'abort-on-warn true",
+        "",
+        "evaluation warning: the package has been renamed\nerror:\n       … while evaluating attribute 'drvPath'\n         at «string»:1:6:",
+        1,
+    );
+    let mut arms = vec![LENIENT_WITH_WARNING, strict];
+    arms.extend(judge_arms());
+    let tools = rig.tools(&arms, &NEJ_PACKAGES);
+    let (exit, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert_eq!(exit, Exit::GateFailed);
+    let warnings = report["warnings"].as_array().unwrap();
+    assert_eq!(warnings.len(), 2, "{report}");
+    assert!(reason(&report, "eval").contains("builtins.warn: the package has been renamed"));
+    // The same when only the inventory's record carries the warning text.
+    let nej = [
+        (
+            "abort-on-warn'*'true",
+            r#"{"attr":"default","attrPath":["default"],"error":"evaluation warning: renamed\nerror:\n… while evaluating attribute 'drvPath'"}"#,
+            "",
+            0,
+        ),
+        (
+            "abort-on-warn'*'false",
+            r#"{"attr":"default","attrPath":["default"],"drvPath":"/d","name":"p"}"#,
+            "",
+            0,
+        ),
+    ];
+    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &nej);
+    let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
+    assert_eq!(verdict(&report, "eval"), "pass");
+    assert_eq!(report["outputs"].as_array().unwrap().len(), 1);
+}
+
 const STRICT_STOPPED: Arm = (
     "flake'*'check'*'abort-on-warn true",
     "",
@@ -882,7 +956,7 @@ fn c18_a_throw_on_another_system_does_not_fail_a_run_that_selects_one() {
     let check = (
         "flake'*'check",
         "",
-        "checking derivation packages.x86_64-linux.default\nerror: qa broken on aarch64\n  while checking the derivation 'packages.aarch64-linux.default'",
+        "checking derivation packages.x86_64-linux.default\nerror: qa broken on aarch64\n  … while checking the derivation 'packages.aarch64-linux.default'",
         1,
     );
     let tools = rig.tools(
@@ -933,7 +1007,7 @@ fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
         )
     };
     // The progress lines before the error name every attribute: they do not count.
-    let progress = "checking derivation packages.x86_64-linux.default\nerror: bad\n  while checking the derivation 'packages.aarch64-linux.default'";
+    let progress = "checking derivation packages.x86_64-linux.default\nerror: bad\n  … while checking the derivation 'packages.aarch64-linux.default'";
     let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(progress), &switched());
     assert_eq!(
         verdict(&report, "eval"),
@@ -942,7 +1016,7 @@ fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
         reason(&report, "eval")
     );
     // One that names the selected system, or no attribute at all, counts.
-    let mine = "error: bad\n  while checking the derivation 'packages.x86_64-linux.default'";
+    let mine = "error: bad\n  … while checking the derivation 'packages.x86_64-linux.default'";
     let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(mine), &switched());
     assert_eq!(verdict(&report, "eval"), "Refuse");
     let none = "error: something broke";

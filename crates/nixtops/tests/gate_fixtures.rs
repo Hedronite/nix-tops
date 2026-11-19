@@ -371,3 +371,47 @@ fn a_non_derivation_member_fails_only_on_the_selected_system_with_the_real_tools
         assert_eq!(other["verdict"], "pass", "{output}: {other}");
     }
 }
+
+/// QA's q4: the other system's broken output quotes the selected system's name in its source
+/// excerpt. That must not make the error the selected system's, with the real tools.
+#[test]
+fn a_system_quoted_in_the_excerpt_of_another_systems_error_does_not_refuse_the_run() {
+    let Some(tools) = tools() else {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    };
+    let clean = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/gates/clean");
+    let repo = scratch_repo(&clean);
+    let flake = repo.path().join("flake.nix");
+    let text = fs::read_to_string(&flake).unwrap();
+    let needle = "packages.aarch64-linux.default = ";
+    let start = text.find(needle).unwrap();
+    let end = text[start..].find(";\n").unwrap() + start;
+    let mut edited = text.clone();
+    edited.replace_range(
+        start + needle.len()..end,
+        "throw \"qa broken\" /* 'x86_64-linux' */",
+    );
+    fs::write(&flake, edited).unwrap();
+    git(repo.path(), &["add", "-A"]);
+    git(repo.path(), &["commit", "-q", "-m", "throw"]);
+    let settings = Settings {
+        root: repo.path().to_path_buf(),
+        keep_going: true,
+        only: None,
+        system: Some("x86_64-linux".to_string()),
+        evaluator: evaluator(),
+        ci: false,
+        today: gate::run::today(),
+        nix: nixtops::probe::nix_bin(),
+    };
+    let result = gate::run(&settings, Some(tools), &Seams::default());
+    let report = serde_json::to_value(&result.report).unwrap();
+    let eval = report["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["id"] == "eval")
+        .unwrap();
+    assert_eq!(eval["verdict"], "pass", "{eval}");
+}

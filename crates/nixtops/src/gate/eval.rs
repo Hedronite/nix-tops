@@ -117,16 +117,23 @@ fn error_block(stderr: &str) -> String {
     lines[first.unwrap_or(0)..].join("\n")
 }
 
-/// The systems of the attributes an error names between single quotes (`'packages.aarch64-linux.a'`,
-/// as in "while checking the derivation '...'"). The source excerpts nix prints under an error
-/// name other systems too, so only what the error itself quotes is read.
+/// Whether a line of an error names an attribute: a trace line (`… while checking the derivation
+/// 'packages.aarch64-linux.default'`) or an `error:` line. The source excerpts under them are
+/// code and may quote anything, so they are not read.
+fn names_attribute(line: &str) -> bool {
+    let line = line.trim_start();
+    line.starts_with("error:") || (line.starts_with('…') && line.contains("while "))
+}
+
+/// The systems of the attributes an error names between single quotes, on those lines only.
 fn quoted_attribute_systems(error: &str) -> Vec<&'static str> {
-    let quoted = error.split('\'').skip(1).step_by(2);
     let mut found: Vec<&'static str> = Vec::new();
-    for token in quoted {
-        for part in token.split('.') {
-            if let Some(system) = SYSTEMS.iter().find(|s| **s == part) {
-                found.push(system);
+    for line in error.lines().filter(|l| names_attribute(l)) {
+        for token in line.split('\'').skip(1).step_by(2) {
+            for part in token.split('.') {
+                if let Some(system) = SYSTEMS.iter().find(|s| **s == part) {
+                    found.push(system);
+                }
             }
         }
     }
@@ -182,10 +189,20 @@ fn error_texts(pass: &Pass) -> Vec<String> {
     records.filter_map(|r| r.error.clone()).collect()
 }
 
-/// Whether `abort-on-warn` is what stopped this pass.
+/// Whether `abort-on-warn` is what stopped this pass: nix says so, or (the text differs on a cold
+/// store) an evaluation warning was printed in an error's text.
 fn stopped_by_warning(pass: &Pass) -> bool {
-    pass.check_text.contains(ABORT_MARKER)
-        || error_texts(pass).iter().any(|e| e.contains(ABORT_MARKER))
+    let says = |text: &str| text.contains(ABORT_MARKER) || text.contains(WARNING_PREFIX);
+    says(&pass.check_text) || error_texts(pass).iter().any(|e| says(e))
+}
+
+/// Whether a text says an output needs a derivation built during evaluation. Warm, nix says
+/// `import-from-derivation`; on a cold store it says the derivation `path '...-x.drv' is not valid`.
+fn needs_build_during_evaluation(text: &str) -> bool {
+    text.contains(IFD_MARKER)
+        || text
+            .lines()
+            .any(|l| l.contains(".drv") && l.contains("is not valid"))
 }
 
 /// Every `evaluation warning:` line of a text, in order, once each.
@@ -318,8 +335,11 @@ fn root_cause(text: &str) -> String {
 }
 
 fn ifd_failure(pass: &Pass) -> Option<String> {
-    let in_check = pass.check_text.contains(IFD_MARKER);
-    let ifd = in_check || error_texts(pass).iter().any(|e| e.contains(IFD_MARKER));
+    let in_check = needs_build_during_evaluation(&pass.check_text);
+    let ifd = in_check
+        || error_texts(pass)
+            .iter()
+            .any(|e| needs_build_during_evaluation(e));
     ifd.then(|| "N-07: import from derivation is off and an output needs it".to_string())
 }
 
@@ -485,12 +505,38 @@ mod tests {
         let none = "error: something broke at packages.x86_64-linux.a";
         assert!(error_concerns(none, Some("aarch64-linux")));
         assert!(error_concerns("", Some("x86_64-linux")));
-        let both = "'checks.x86_64-linux.a' and 'checks.aarch64-linux.b'";
+        let both = "error: 'checks.x86_64-linux.a' and 'checks.aarch64-linux.b'";
         assert!(
             error_concerns(both, Some("x86_64-linux"))
                 && error_concerns(both, Some("aarch64-linux"))
         );
-        assert!(!error_concerns("'a.x86_64-darwin.b'", Some("x86_64-linux")));
+        assert!(!error_concerns(
+            "error: 'a.x86_64-darwin.b'",
+            Some("x86_64-linux")
+        ));
+    }
+
+    #[test]
+    fn only_trace_lines_and_error_lines_name_attributes() {
+        assert!(names_attribute("  … while checking the derivation 'a'"));
+        assert!(names_attribute(
+            "error: flake attribute 'a' is not a derivation"
+        ));
+        // A trace line that is not about checking or evaluating, and code that says "while".
+        assert!(!names_attribute("  … at 'packages.x86_64-linux.a'"));
+        assert!(!names_attribute("   5|  x = \"while 'x86_64-linux'\";"));
+        assert!(!names_attribute("   at /s/flake.nix:5:3: 'x86_64-linux'"));
+    }
+
+    /// QA's q4: another system's broken output quotes the selected system's name in its source
+    /// excerpt (CppNix prints no per-attribute lines, so the trace lines decide).
+    #[test]
+    fn a_system_quoted_in_a_source_excerpt_does_not_make_the_error_the_selected_systems() {
+        let q4 = "error:\n       … while checking the derivation 'packages.aarch64-linux.default'\n         at /s/flake.nix:6:5:\n            5|     packages.aarch64-linux.default = throw \"x\"; /* 'x86_64-linux' */\n            6|     packages.x86_64-linux.default = a;\n\n       error: x";
+        assert!(!error_concerns(q4, Some("x86_64-linux")));
+        assert!(error_concerns(q4, Some("aarch64-linux")));
+        let message = "error: flake attribute 'checks.aarch64-linux.bad' is not a derivation";
+        assert!(!error_concerns(message, Some("x86_64-linux")));
     }
 
     #[test]
