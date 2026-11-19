@@ -840,11 +840,6 @@ vm_tests = { enabled = false }
 rebuild = { enabled = false }
 vulnix = { enabled = false }
 custom = []
-lint = { enabled = false, reason = "not built yet" }
-build-test = { enabled = false, reason = "not built yet" }
-coverage = { enabled = false, reason = "not built yet" }
-facet-layers = { enabled = false, reason = "not built yet" }
-laws = { enabled = false, reason = "not built yet" }
 
 [laws]
 enable = "default"
@@ -863,7 +858,7 @@ path = ".nix-tops/report.json"
   sees them. `allow_ifd` is the default for the whole flake. Import-from-derivation is allowed one
   output at a time, by an N-07 ack: the acked output is re-evaluated with it on, and the report says so.
 - `[layers]` can switch off the report's layers `lint`, `build-test`, `coverage`, `facet-layers` and
-  `laws`, each as `{ enabled = false, reason = "..." }`; the reason is required and `enabled` can only
+  `laws`, each as `{ enabled = false, reason = "..." }` (for example `lint = { enabled = false, reason = "..." }`); the reason is required and `enabled` can only
   be `false`. The report shows such a layer as `skip` with that reason (§6.7). `source` and `eval`
   (gates 1 and 3) cannot be switched off. A layer that is on and has no command mapped is `not-run` and
   fails the gate (§3.3); switching it off with a reason is the one way to run without it. Switching

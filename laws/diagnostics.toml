@@ -14,7 +14,8 @@
 #
 # Fixture provenance for D-06 to D-11: measured on 2026-11-18 with the pinned judge (CppNix 2.35.6 and
 #   nix-eval-jobs 2.35.4) reading the nix.conf a Determinate Nix 3.22.3 installation writes, and on
-#   Determinate Nix 3.22.3 for the dirty-tree line. The setting names are matched exactly, one entry
+#   Determinate Nix 3.22.3 for the dirty-tree line. D-10 was also measured on CppNix 2.35.2 as a host
+#   evaluator, so both versions are listed; only measured versions are listed. The setting names are matched exactly, one entry
 #   each, so an unknown setting with any other name stays unclassified and fails. The path in the
 #   dirty-tree lines is matched as a pattern.
 #
@@ -116,7 +117,7 @@ id = "D-10"
 kind = "dirty-tree"
 implementation = "cppnix"
 effect = "report"
-versions = ["2.35.6"]
+versions = ["2.35.2", "2.35.6"]
 match = "^warning: Git tree '[^']+' is dirty$"
 fixture = "warning: Git tree '/home/user/flake' is dirty"
 
