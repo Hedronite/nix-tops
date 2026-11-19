@@ -107,6 +107,28 @@ fn only_tier_one_is_built_and_any_other_max_tier_is_refused_with_a_report() {
 }
 
 #[test]
+fn a_base_is_refused_with_a_report_because_no_diff_law_is_built() {
+    let dir = dir_with(None);
+    let out = nixtops(&["gate", dir.path().to_str().unwrap(), "--base", "main"]);
+    assert_eq!(out.status.code(), Some(4));
+    assert_eq!(
+        stderr(&out),
+        "nixtops gate: the diff laws that use --base are not built in M1\n"
+    );
+    let report: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(dir.path().join(".nix-tops/report.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(report["layers"][0]["verdict"], "not-run");
+    assert!(
+        report["layers"][0]["reason"]
+            .as_str()
+            .unwrap()
+            .contains("--base")
+    );
+}
+
+#[test]
 fn a_command_line_that_does_not_parse_is_not_a_run_and_writes_no_report() {
     for args in [
         &["--only", "nonsense"][..],
