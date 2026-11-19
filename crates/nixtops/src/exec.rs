@@ -18,18 +18,16 @@ fn is_busy(error: &io::Error) -> bool {
     error.kind() == ErrorKind::ExecutableFileBusy
 }
 
-/// Calls `run` until it does not fail with "busy", at most `ATTEMPTS` times, pausing in between.
+/// Calls `run`, and again while it fails with "busy", `ATTEMPTS` calls in all, pausing in between.
+/// The loop is bounded by its range, so no change to the checks inside it can make it run forever.
 fn retry<T>(mut run: impl FnMut() -> io::Result<T>, pause: Duration) -> io::Result<T> {
-    let mut attempt = 1;
-    loop {
+    for _ in 1..ATTEMPTS {
         match run() {
-            Err(error) if is_busy(&error) && attempt < ATTEMPTS => {
-                attempt += 1;
-                thread::sleep(pause);
-            }
+            Err(error) if is_busy(&error) => thread::sleep(pause),
             other => return other,
         }
     }
+    run()
 }
 
 /// `command.output()`, tried again while the program is busy.
