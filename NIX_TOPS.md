@@ -1,4 +1,4 @@
-# Nix-TOPS: Nix Testing and Optimization Protocol Suite
+# Nix-TOPS: Nix Testing and Optimization Protocol Suite 
 
 **Spec status:** Draft 0.2.0 · **Date:** 2026-11-17 · **Owner:** Hedronite
 **Modeled on:** [Rust-TOPS](https://github.com/Hedronite/rust-tops), [Go-TOPS](https://github.com/Hedronite/go-tops) 0.3.0 and [Web-TOPS](https://github.com/Hedronite/web-tops) 0.2.0
