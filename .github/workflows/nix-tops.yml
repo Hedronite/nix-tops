@@ -42,8 +42,6 @@ jobs:
             experimental-features = nix-command flakes
       - name: Gate
         run: nix run .#nixtops --no-update-lock-file --no-accept-flake-config -- gate --max-tier 1
-      - name: Plant (throwaway) drop a layer from the report
-        run: python3 -c "import json;p='.nix-tops/report.json';d=json.load(open(p));d['layers']=[l for l in d['layers'] if l['id']!='eval'];json.dump(d,open(p,'w'))"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
