@@ -834,40 +834,144 @@ fn selecting_a_system_never_passes_the_restricted_setting_to_the_judge() {
     assert_eq!(report["outputs"].as_array().unwrap().len(), 1);
 }
 
-#[test]
-fn with_a_system_selected_a_check_failure_counts_only_when_it_is_about_that_system() {
+fn two_system_rig() -> Rig {
     let rig = rig();
-    let other = (
-        "flake'*'check",
+    rig.set_config(&CONFIG.replace(
+        "systems = [\"x86_64-linux\"]",
+        "systems = [\"aarch64-linux\", \"x86_64-linux\"]",
+    ));
+    rig
+}
+
+const OK_LINE: &str =
+    r#"{"attr":"default","attrPath":["default"],"drvPath":"/nix/store/d.drv","name":"p-1"}"#;
+const THROW_LINE: &str = r#"{"attr":"default","attrPath":["default"],"error":"error: qa broken"}"#;
+
+fn two_system_arms<'a>() -> Vec<Arm<'a>> {
+    let mut arms: Vec<Arm> = vec![(
+        r##"#"packages" --apply"##,
+        r#"["aarch64-linux","x86_64-linux"]"#,
         "",
-        "error: checks.aarch64-darwin.cargo-tops failed",
-        1,
-    );
-    let mine = (
-        "flake'*'check",
-        "",
-        "error: checks.x86_64-linux.cargo-tops failed",
-        1,
-    );
-    let settings = Settings {
+        0,
+    )];
+    arms.extend(judge_arms());
+    arms
+}
+
+fn nej_two<'a>(aarch64: &'a str, x86: &'a str) -> Vec<Arm<'a>> {
+    vec![
+        ("fake:locked#packages.aarch64-linux", aarch64, "", 0),
+        ("fake:locked#packages.x86_64-linux", x86, "", 0),
+    ]
+}
+
+fn x86_only(rig: &Rig) -> Settings {
+    Settings {
         system: Some("x86_64-linux".into()),
         ..rig.settings()
-    };
-    let tools = rig.tools(&with_check(other, judge_arms()), &NEJ_PACKAGES);
-    let (_, report) = run_json(&rig, &settings, tools, &switched());
-    assert_eq!(
-        verdict(&report, "eval"),
-        "pass",
-        "{}",
-        reason(&report, "eval")
+    }
+}
+
+#[test]
+fn c18_a_throw_on_another_system_does_not_fail_a_run_that_selects_one() {
+    let rig = two_system_rig();
+    // `flake check` fails on the aarch64 throw and its text names no system.
+    let check = ("flake'*'check", "", "error: qa broken on aarch64", 1);
+    let tools = rig.tools(
+        &with_check(check, two_system_arms()),
+        &nej_two(THROW_LINE, OK_LINE),
     );
-    let tools = rig.tools(&with_check(mine, judge_arms()), &NEJ_PACKAGES);
-    let (_, report) = run_json(&rig, &settings, tools, &switched());
-    assert_eq!(verdict(&report, "eval"), "Refuse");
-    // Without a selection the failure about another system counts.
-    let tools = rig.tools(&with_check(other, judge_arms()), &NEJ_PACKAGES);
+    let (exit, report) = run_json(&rig, &x86_only(&rig), tools, &switched());
+    assert_eq!(exit, Exit::Pass, "{}", reason(&report, "eval"));
+    assert_eq!(verdict(&report, "eval"), "pass");
+    assert_eq!(
+        report["outputs"],
+        serde_json::json!([{"attr": "packages.x86_64-linux.default", "level": "evaluated"}])
+    );
+    // The same flake without a selection fails on the aarch64 output.
+    let tools = rig.tools(
+        &with_check(check, two_system_arms()),
+        &nej_two(THROW_LINE, OK_LINE),
+    );
     let (_, report) = run_json(&rig, &rig.settings(), tools, &switched());
     assert_eq!(verdict(&report, "eval"), "Refuse");
+    assert!(reason(&report, "eval").contains("packages.aarch64-linux.default failed"));
+}
+
+#[test]
+fn c19_the_same_throw_on_the_selected_system_still_fails() {
+    let rig = two_system_rig();
+    let check = ("flake'*'check", "", "error: qa broken on x86", 1);
+    let tools = rig.tools(
+        &with_check(check, two_system_arms()),
+        &nej_two(OK_LINE, THROW_LINE),
+    );
+    let (exit, report) = run_json(&rig, &x86_only(&rig), tools, &switched());
+    assert_eq!(exit, Exit::GateFailed);
+    assert_eq!(verdict(&report, "eval"), "Refuse");
+    assert!(
+        reason(&report, "eval").contains("packages.x86_64-linux.default failed: error: qa broken")
+    );
+}
+
+#[test]
+fn a_failing_check_is_not_judged_by_its_text_when_a_system_is_selected() {
+    let rig = two_system_rig();
+    // Any text, even one naming the selected system: the records decide.
+    let check = (
+        "flake'*'check",
+        "",
+        "error: something about x86_64-linux",
+        1,
+    );
+    let tools = rig.tools(
+        &with_check(check, two_system_arms()),
+        &nej_two(OK_LINE, OK_LINE),
+    );
+    let (_, report) = run_json(&rig, &x86_only(&rig), tools, &switched());
+    assert_eq!(verdict(&report, "eval"), "pass");
+}
+
+fn warning_arms<'a>() -> Vec<Arm<'a>> {
+    let strict = (
+        "flake'*'check'*'abort-on-warn true",
+        "",
+        "evaluation warning: packages.aarch64-linux.default is deprecated\nerror: aborting to reveal stack trace of warning, as abort-on-warn is set",
+        1,
+    );
+    let lenient = (
+        "flake'*'check'*'abort-on-warn false",
+        "",
+        "evaluation warning: packages.aarch64-linux.default is deprecated\nevaluation warning: a warning that names no output",
+        0,
+    );
+    let mut arms = vec![lenient, strict];
+    arms.extend(two_system_arms());
+    arms
+}
+
+#[test]
+fn c20_a_warning_that_names_an_output_on_another_system_is_narrowed_out() {
+    let rig = two_system_rig();
+    let tools = rig.tools(&warning_arms(), &nej_two(OK_LINE, OK_LINE));
+    let (_, report) = run_json(&rig, &x86_only(&rig), tools, &switched());
+    let messages: Vec<&str> = report["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["message"].as_str().unwrap())
+        .collect();
+    // The warning that cannot be tied to an output still counts.
+    assert_eq!(messages, ["a warning that names no output"]);
+    assert_eq!(verdict(&report, "eval"), "Refuse");
+    // Selecting the system the warning names keeps both.
+    let tools = rig.tools(&warning_arms(), &nej_two(OK_LINE, OK_LINE));
+    let aarch64 = Settings {
+        system: Some("aarch64-linux".into()),
+        ..rig.settings()
+    };
+    let (_, report) = run_json(&rig, &aarch64, tools, &switched());
+    assert_eq!(report["warnings"].as_array().unwrap().len(), 2);
 }
 
 #[test]

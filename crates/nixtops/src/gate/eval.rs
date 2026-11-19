@@ -61,7 +61,10 @@ fn run_pass(session: &mut Session, input: &Input, abort_on_warn: bool) -> Pass {
     let inventory =
         inventory::collect(session, input.flake_ref).map(|inv| only_system(inv, input.system));
     Pass {
-        check_ok: run.ok || !concerns(&run.stderr, input.system),
+        // With a system selected, `flake check` stands for every system and says nothing about
+        // one: what fails for the selected system is read from the inventory's records, never
+        // from the text of the check.
+        check_ok: run.ok || input.system.is_some(),
         check_text,
         inventory,
     }
@@ -75,20 +78,39 @@ const SYSTEMS: [&str; 4] = [
     "x86_64-darwin",
 ];
 
-/// Whether a failure of `flake check` is about the selected system. With no selection every
-/// failure counts. With one, a failure that names only other systems does not; one that names it,
-/// or names no system at all, does.
-fn concerns(error: &str, system: Option<&str>) -> bool {
+/// Whether a warning is about the selected system. With no selection every warning counts. With
+/// one, a warning that names only other systems does not (it is about an output on another
+/// system); one that names the selected system, or names no system at all (it cannot be tied to
+/// an output), does.
+fn concerns(text: &str, system: Option<&str>) -> bool {
     match system {
         None => true,
-        Some(wanted) => error.contains(wanted) || !SYSTEMS.iter().any(|s| error.contains(s)),
+        Some(wanted) => text.contains(wanted) || !SYSTEMS.iter().any(|s| text.contains(s)),
     }
+}
+
+/// The system a record is for: its own, or, for an output kept per system, the second component
+/// of its attribute path (`packages.<system>.<name>`).
+fn record_system(record: &Record) -> Option<&str> {
+    if record.system.is_some() {
+        return record.system.as_deref();
+    }
+    let per_system = !matches!(
+        record.kind,
+        Kind::Overlay
+            | Kind::Template
+            | Kind::Module
+            | Kind::Lib
+            | Kind::Configuration
+            | Kind::Unknown
+    );
+    per_system.then(|| record.attr.split('.').nth(1)).flatten()
 }
 
 fn only_system(mut inv: Inventory, system: Option<&str>) -> Inventory {
     if let Some(wanted) = system {
         inv.records
-            .retain(|r| r.system.as_deref().is_none_or(|s| s == wanted));
+            .retain(|r| record_system(r).is_none_or(|s| s == wanted));
     }
     inv
 }
@@ -295,7 +317,10 @@ pub fn run(session: &mut Session, input: &Input) -> Outcome {
     let pass = lenient.unwrap_or(strict);
     let mut acks = Vec::new();
     let mut warnings: Vec<WarningEntry> = Vec::new();
-    for message in evaluation_warnings(&pass.check_text) {
+    for message in evaluation_warnings(&pass.check_text)
+        .into_iter()
+        .filter(|m| concerns(m, input.system))
+    {
         warnings.push(judged(
             WarningSource::BuiltinsWarn,
             message,
@@ -307,6 +332,7 @@ pub fn run(session: &mut Session, input: &Input) -> Outcome {
         .inventory
         .iter()
         .flat_map(|inv| configuration_warnings(session, inv))
+        .filter(|m| concerns(m, input.system))
     {
         warnings.push(judged(
             WarningSource::ConfigWarnings,
@@ -389,7 +415,41 @@ mod tests {
     }
 
     #[test]
-    fn a_failure_is_about_the_selected_system_when_it_names_it_or_names_none() {
+    fn a_records_system_is_its_own_or_the_second_part_of_a_per_system_path() {
+        let own = Record::new(
+            "packages.aarch64-linux.a",
+            Kind::Package,
+            Some("x86_64-linux"),
+            Level::Evaluated,
+        );
+        assert_eq!(record_system(&own), Some("x86_64-linux"));
+        let derived = Record::new("checks.aarch64-linux.a", Kind::Check, None, Level::Error);
+        assert_eq!(record_system(&derived), Some("aarch64-linux"));
+        let apps = Record::new(
+            "apps.x86_64-linux.default",
+            Kind::App,
+            None,
+            Level::Evaluated,
+        );
+        assert_eq!(record_system(&apps), Some("x86_64-linux"));
+        for (attr, kind) in [
+            ("overlays.default", Kind::Overlay),
+            ("nixosModules.m", Kind::Module),
+            ("templates.t", Kind::Template),
+            ("lib", Kind::Lib),
+            ("nixosConfigurations.h", Kind::Configuration),
+            ("fooBar", Kind::Unknown),
+        ] {
+            assert_eq!(
+                record_system(&Record::new(attr, kind, None, Level::Evaluated)),
+                None,
+                "{attr}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_warning_is_about_the_selected_system_when_it_names_it_or_names_none() {
         assert!(concerns("error: boom", None));
         assert!(concerns("error: packages.x86_64-darwin.a", None));
         assert!(concerns(

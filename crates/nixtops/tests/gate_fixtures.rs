@@ -263,3 +263,57 @@ fn a_template_in_a_fresh_source_is_copied_from_the_store() {
     let outputs = report["outputs"].to_string();
     assert!(outputs.contains("templates.default"), "{outputs}");
 }
+
+/// `--system` narrows: a throw on `aarch64-linux` does not fail a run that selects `x86_64-linux`,
+/// and the same throw on the selected system still does.
+#[test]
+fn a_selected_system_narrows_the_run_with_the_real_tools() {
+    let Some(tools) = tools() else {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    };
+    let clean = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/gates/clean");
+    let verdict_for = |broken: &str, selected: &str| {
+        let repo = scratch_repo(&clean);
+        let flake = repo.path().join("flake.nix");
+        let text = fs::read_to_string(&flake).unwrap();
+        let needle = format!("packages.{broken}.default = ");
+        let start = text.find(&needle).unwrap();
+        let end = text[start..].find(";\n").unwrap() + start;
+        let mut edited = text.clone();
+        edited.replace_range(start + needle.len()..end, "throw \"qa broken\"");
+        fs::write(&flake, edited).unwrap();
+        git(repo.path(), &["add", "-A"]);
+        git(repo.path(), &["commit", "-q", "-m", "throw"]);
+        let settings = Settings {
+            root: repo.path().to_path_buf(),
+            keep_going: true,
+            only: None,
+            system: Some(selected.to_string()),
+            evaluator: evaluator(),
+            ci: false,
+            today: gate::run::today(),
+            nix: nixtops::probe::nix_bin(),
+        };
+        let result = gate::run(&settings, Some(tools.clone()), &Seams::default());
+        let report = serde_json::to_value(&result.report).unwrap();
+        report["layers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|l| l["id"] == "eval")
+            .unwrap()
+            .clone()
+    };
+    let other = verdict_for("aarch64-linux", "x86_64-linux");
+    assert_eq!(other["verdict"], "pass", "{other}");
+    let same = verdict_for("x86_64-linux", "x86_64-linux");
+    assert_eq!(same["verdict"], "Refuse", "{same}");
+    assert!(
+        same["reason"]
+            .as_str()
+            .unwrap()
+            .contains("packages.x86_64-linux.default failed"),
+        "{same}"
+    );
+}
