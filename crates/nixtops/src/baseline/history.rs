@@ -1,5 +1,6 @@
-//! What git says before `nixtops baseline` may write. An existing baseline must be the committed
-//! one, and a missing one must never have been committed: deleting it is not a reset.
+//! What git says about the baseline: whether `nixtops baseline` may write (an existing one must
+//! be the committed one, a missing one must never have been committed), which files are unchanged
+//! since a commit, and the committed version before the current one.
 
 use crate::config::baseline::{self, Git, State};
 
@@ -50,6 +51,86 @@ pub fn may_write(git: Git<'_>, path: &str, exists: bool) -> Result<(), String> {
     } else {
         absent(git, path)
     }
+}
+
+/// The commits that touched `path`, newest first.
+fn commits(git: Git<'_>, path: &str) -> Vec<String> {
+    let spec = format!(":(literal){path}");
+    let log = output(git, &["log", "--format=%H", "--", &spec]).unwrap_or_default();
+    log.lines().map(str::to_string).collect()
+}
+
+/// The commit that last wrote `path`.
+pub fn last_write(git: Git<'_>, path: &str) -> Option<String> {
+    commits(git, path).into_iter().next()
+}
+
+fn object(commit: &str, path: &str) -> String {
+    format!("{commit}:./{path}")
+}
+
+fn exists_at(git: Git<'_>, commit: &str, path: &str) -> bool {
+    output(git, &["cat-file", "-e", &object(commit, path)]).is_some()
+}
+
+/// A shallow clone's boundary commit looks like the first one, so what came before it is hidden.
+fn truncated(git: Git<'_>, commit: &str) -> bool {
+    if output(git, &["rev-parse", "--is-shallow-repository"]).as_deref() == Some("false") {
+        return false;
+    }
+    let parents = output(git, &["rev-list", "--parents", "-n", "1", commit]);
+    parents.is_none_or(|line| line.split_whitespace().count() < 2)
+}
+
+fn same(git: Git<'_>, revisions: &[&str], path: &str) -> bool {
+    let spec = format!(":(literal){path}");
+    let mut args = vec!["diff", "--quiet", "--no-ext-diff"];
+    args.extend_from_slice(revisions);
+    args.extend_from_slice(&["--", &spec]);
+    output(git, &args).is_some()
+}
+
+/// `path` existed at `from` and is the same at `to`, or, with no `to`, in both the index and the
+/// working tree. Never true where history is cut off.
+pub fn unchanged(git: Git<'_>, from: &str, to: Option<&str>, path: &str) -> bool {
+    if !exists_at(git, from, path) || truncated(git, from) {
+        return false;
+    }
+    match to {
+        Some(to) => same(git, &[from, to], path),
+        None => same(git, &[from], path) && same(git, &["--cached", from], path),
+    }
+}
+
+/// The version of the baseline before the one now committed.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Prior {
+    /// The commit that wrote the earlier version.
+    pub commit: String,
+    /// The commit that wrote the current one.
+    pub current: String,
+    pub text: String,
+}
+
+/// `None` when `path` was written once. A commit that deleted it is passed over, so deleting and
+/// adding again is still held against what was there.
+pub fn prior(git: Git<'_>, path: &str) -> Result<Option<Prior>, String> {
+    let mut found = commits(git, path).into_iter();
+    let Some(current) = found.next() else {
+        return Ok(None);
+    };
+    let Some(commit) = found.find(|commit| exists_at(git, commit, path)) else {
+        return Ok(None);
+    };
+    let run = git(&["show", &object(&commit, path)]).filter(|run| run.ok);
+    let text = run
+        .map(|run| run.stdout)
+        .ok_or_else(|| format!("cannot read {path} at {commit}"))?;
+    Ok(Some(Prior {
+        commit,
+        current,
+        text,
+    }))
 }
 
 #[cfg(test)]
@@ -103,6 +184,105 @@ mod tests {
         assert!(why(&fake(answer(true, "false"), true, None)).contains("cannot be read"));
         assert!(why(&fake(answer(false, ""), true, Some(""))).contains("not a git repository"));
         assert!(why(&fake(None, true, Some(""))).contains("not a git repository"));
+    }
+
+    fn real(dir: &std::path::Path, args: &[&str]) {
+        let mut all = vec!["-c", "user.name=n", "-c", "user.email=a@b"];
+        all.extend_from_slice(args);
+        let ok = baseline::real_git(dir)(&all).is_some_and(|run| run.ok);
+        assert!(ok, "git {args:?}");
+    }
+
+    fn save(dir: &std::path::Path, files: &[(&str, &str)]) {
+        for (name, text) in files {
+            std::fs::write(dir.join(name), text).expect("write");
+        }
+        real(dir, &["add", "-A"]);
+        real(dir, &["commit", "-q", "--allow-empty", "-m", "c"]);
+    }
+
+    #[test]
+    fn a_file_is_unchanged_only_when_no_commit_index_or_tree_edit_touched_it() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        real(root, &["init", "-q", "."]);
+        let git = baseline::real_git(root);
+        assert_eq!(last_write(&git, "b"), None);
+        assert_eq!(prior(&git, "b"), Ok(None));
+        save(
+            root,
+            &[("b", "1"), ("keep", "k"), ("edit", "e"), ("a[1]", "g")],
+        );
+        let base = last_write(&git, "b").expect("written");
+        for name in ["keep", "edit", "a[1]"] {
+            assert!(unchanged(&git, &base, None, name), "{name}");
+        }
+        assert!(!unchanged(&git, &base, None, "absent"));
+        std::fs::write(root.join("edit"), "f").expect("write");
+        assert!(!unchanged(&git, &base, None, "edit"), "unstaged");
+        real(root, &["add", "edit"]);
+        std::fs::write(root.join("edit"), "e").expect("write");
+        assert!(!unchanged(&git, &base, None, "edit"), "staged only");
+        real(root, &["add", "edit"]);
+        real(root, &["rm", "-q", "--cached", "keep"]);
+        assert!(!unchanged(&git, &base, None, "keep"), "untracked now");
+        save(root, &[("new", "n"), ("edit", "g")]);
+        assert!(!unchanged(&git, &base, None, "new"), "added since");
+        assert!(!unchanged(&git, &base, None, "edit"), "committed since");
+        let head = output(&git, &["rev-parse", "HEAD"]).expect("head");
+        assert!(!unchanged(&git, &base, Some(&head), "edit"));
+        assert!(unchanged(&git, &base, Some(&head), "a[1]"));
+
+        let shallow = tempfile::tempdir().expect("tempdir");
+        let from = format!("file://{}", root.display());
+        real(shallow.path(), &["clone", "-q", "--depth", "1", &from, "c"]);
+        let clone = shallow.path().join("c");
+        let cut = baseline::real_git(&clone);
+        let tip = last_write(&cut, "a[1]").expect("the boundary commit");
+        assert!(!unchanged(&cut, &tip, None, "a[1]"));
+
+        // Two deep, the tip still has its parent, so what it holds can be trusted.
+        real(shallow.path(), &["clone", "-q", "--depth", "2", &from, "d"]);
+        let deeper = shallow.path().join("d");
+        let git = baseline::real_git(&deeper);
+        let tip = output(&git, &["rev-parse", "HEAD"]).expect("head");
+        assert!(unchanged(&git, &tip, None, "a[1]"));
+    }
+
+    #[test]
+    fn the_prior_version_is_the_last_one_before_the_current_even_across_a_deletion() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        real(root, &["init", "-q", "."]);
+        let git = baseline::real_git(root);
+        save(root, &[("b", "one")]);
+        assert_eq!(prior(&git, "b"), Ok(None));
+        let first = last_write(&git, "b").expect("first");
+        save(root, &[("other", "x")]);
+        save(root, &[("b", "two")]);
+        let got = prior(&git, "b").expect("reads").expect("a prior");
+        assert_eq!(
+            (got.commit.as_str(), got.text.as_str()),
+            (first.as_str(), "one")
+        );
+        assert_eq!(Some(got.current), last_write(&git, "b"));
+        real(root, &["rm", "-q", "b"]);
+        save(root, &[]);
+        save(root, &[("b", "three")]);
+        assert_eq!(
+            prior(&git, "b").expect("reads").expect("a prior").text,
+            "two"
+        );
+        let broken = |args: &[&str]| match args[0] {
+            "log" => answer(true, "c2\nc1\n"),
+            "cat-file" => answer(true, ""),
+            _ => answer(false, ""),
+        };
+        assert!(
+            prior(&broken, "b")
+                .unwrap_err()
+                .contains("cannot read b at c1")
+        );
     }
 
     #[test]

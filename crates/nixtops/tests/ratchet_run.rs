@@ -93,14 +93,20 @@ impl Rig {
 
     /// A judge whose findings are `deadnix` findings in `flake.nix`.
     fn tools(&self, deadnix: usize) -> Tools {
+        self.tools_finding(&[("deadnix", "flake.nix", deadnix)])
+    }
+
+    /// A judge with these findings: tool, file and count.
+    fn tools_finding(&self, found: &[(&str, &str, usize)]) -> Tools {
         let mut outputs = Vec::new();
         for tool in TOOLS {
-            let items: Vec<u32> = (0..if tool == "deadnix" { deadnix as u32 } else { 0 }).collect();
-            let files = if items.is_empty() {
-                serde_json::json!({})
-            } else {
-                serde_json::json!({"flake.nix": items})
-            };
+            let mut files = serde_json::Map::new();
+            for (_, file, count) in found.iter().filter(|(t, _, n)| *t == tool && *n > 0) {
+                files.insert(
+                    (*file).to_string(),
+                    (0..*count).collect::<Vec<usize>>().into(),
+                );
+            }
             let payload = serde_json::json!({
                 "tool": tool, "version": "1", "config_hash": self.hash(tool), "files": files,
             });
@@ -402,4 +408,132 @@ fn a_shallow_clone_or_no_repository_cannot_write_a_first_baseline() {
         "{}",
         out.stderr
     );
+}
+
+/// A rig whose baseline was taken with a lint disabled and one deadnix finding.
+fn narrow_rig() -> Rig {
+    let rig = Rig::new(CONFIG);
+    rig.write("statix.toml", "disabled = [\"empty_pattern\"]\n");
+    rig.write("old.nix", "{ }\n");
+    rig.write("edited.nix", "{ }\n");
+    rig.commit("narrow from the start");
+    assert_eq!(rig.baseline(0).exit, Exit::Pass);
+    rig.commit("baseline");
+    rig.write("statix.toml", "disabled = []\n");
+    rig
+}
+
+impl Rig {
+    fn gate_finding(&self, found: &[(&str, &str, usize)]) -> (Exit, String) {
+        let got = gate::run(
+            &self.settings(false),
+            Some(self.tools_finding(found)),
+            &Seams::default(),
+        );
+        let report = serde_json::to_value(&got.report).unwrap();
+        let text = format!("{}{}", render_text(&report), got.problems.join("\n"));
+        (got.exit, text)
+    }
+
+    fn baseline_finding(&self, found: &[(&str, &str, usize)]) -> Output {
+        cmd::baseline::run_with(
+            &self.settings(true),
+            Some(self.tools_finding(found)),
+            &Seams::default(),
+        )
+    }
+}
+
+#[test]
+fn a_wider_config_does_not_excuse_a_new_or_changed_file() {
+    let rig = narrow_rig();
+    rig.write("s1.nix", "{ }\n");
+    rig.write("edited.nix", "{ x = 1; }\n");
+    rig.commit("widen and add findings");
+    for file in ["s1.nix", "edited.nix"] {
+        let found = [("statix", file, 1)];
+        let (exit, text) = rig.gate_finding(&found);
+        assert_eq!(exit, Exit::GateFailed, "{file}: {text}");
+        let named = format!("statix: {file}: 1 finding(s), baseline 0");
+        assert!(text.contains(&named), "{text}");
+        let out = rig.baseline_finding(&found);
+        assert_eq!(out.exit, Exit::GateFailed, "{file}: {}", out.stderr);
+        assert_eq!(rig.recorded(), Some(0), "{file}");
+    }
+}
+
+#[test]
+fn a_wider_config_records_what_it_finds_in_an_unchanged_file() {
+    let rig = narrow_rig();
+    rig.commit("widen");
+    let found = [("statix", "old.nix", 2)];
+    let (exit, text) = rig.gate_finding(&found);
+    assert_eq!(exit, Exit::Pass, "{text}");
+    assert!(text.contains("re-baseline"), "{text}");
+    let out = rig.baseline_finding(&found);
+    assert_eq!(out.exit, Exit::Pass, "{}{}", out.stdout, out.stderr);
+    assert_eq!(rig.recorded(), Some(2));
+    rig.commit("re-baseline");
+    // The committed rise is held against the version before it, and passes for the same reason.
+    let (exit, text) = rig.gate_finding(&found);
+    assert_eq!(exit, Exit::Pass, "{text}");
+}
+
+#[test]
+fn a_committed_hand_edit_that_raises_a_count_fails_the_gate() {
+    let rig = Rig::based(1);
+    let path = rig.root().join(BASELINE);
+    let edit = |from: &str, to: &str| {
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains(from), "{text}");
+        fs::write(&path, text.replace(from, to)).unwrap();
+    };
+    edit("\"flake.nix\": 1", "\"flake.nix\": 5");
+    rig.commit("hand edit");
+    let (exit, text) = rig.gate(3);
+    assert_eq!(exit, Exit::GateFailed, "{text}");
+    assert!(text.contains("is looser than its version at"), "{text}");
+    assert!(
+        text.contains("deadnix: flake.nix: 5 finding(s), baseline 1"),
+        "{text}"
+    );
+    let out = rig.baseline(3);
+    assert_eq!(out.exit, Exit::GateFailed, "{}", out.stderr);
+    assert_eq!(rig.recorded(), Some(5), "nothing is written");
+
+    // A committed lower count is only stricter.
+    edit("\"flake.nix\": 5", "\"flake.nix\": 1");
+    rig.commit("back");
+    edit("\"flake.nix\": 1", "\"flake.nix\": 0");
+    assert!(fs::read_to_string(&path).unwrap().contains(": 0"));
+    edit("\"flake.nix\": 0", "");
+    rig.commit("lowered by hand");
+    let (exit, text) = rig.gate(0);
+    assert_eq!(exit, Exit::Pass, "{text}");
+}
+
+#[test]
+fn an_unreadable_earlier_baseline_fails_closed() {
+    let rig = Rig::based(0);
+    let path = rig.root().join(BASELINE);
+    let good = fs::read_to_string(&path).unwrap();
+    fs::write(&path, "{}\n").unwrap();
+    rig.commit("broken");
+    fs::write(&path, good).unwrap();
+    rig.commit("repaired by hand");
+    let (exit, text) = rig.gate(0);
+    assert_eq!(exit, Exit::GateFailed, "{text}");
+    assert!(text.contains("is not a valid baseline"), "{text}");
+}
+
+#[test]
+fn a_report_stopped_by_an_invalid_exemption_names_the_stated_mode() {
+    let config = format!(
+        "{}\n[advisory]\nreason = \"r\"\nuntil = \"2026-11-24\"\n",
+        CONFIG.replace("ratchet", "advisory")
+    );
+    let rig = Rig::new(&config);
+    let got = gate::run(&rig.settings(false), Some(rig.tools(0)), &Seams::default());
+    assert_eq!(got.exit, Exit::ConfigInvalid);
+    assert_eq!(got.report.enforce, "advisory");
 }

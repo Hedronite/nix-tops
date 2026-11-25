@@ -343,6 +343,17 @@ fn session_for(settings: &Settings, tools: Tools) -> std::io::Result<Session> {
     Ok(session)
 }
 
+/// The mode a config states, read without validating it: a run stopped by an invalid config
+/// still reports the mode the file names, when it names one.
+fn stated_mode(root: &Path) -> Option<String> {
+    let text = fs::read_to_string(root.join("nix-tops.toml")).ok()?;
+    let doc = config::parse(&text).ok()?;
+    let mode = doc.get("enforce").and_then(Value::as_str)?;
+    ["hard", "ratchet", "advisory"]
+        .contains(&mode)
+        .then(|| mode.to_string())
+}
+
 fn stopped(
     settings: &Settings,
     doc: Option<&Value>,
@@ -354,7 +365,10 @@ fn stopped(
     } else {
         problems.join("\n")
     };
-    let report = stopped_report(settings, doc, &reason);
+    let mut report = stopped_report(settings, doc, &reason);
+    if doc.is_none() {
+        report.enforce = stated_mode(&settings.root).unwrap_or(report.enforce);
+    }
     let _ = write_report(&report_path(&settings.root, doc), &report);
     RunResult {
         report,
@@ -509,6 +523,23 @@ mod tests {
         assert_eq!(run_exit(&r), Exit::GateFailed);
         r.enforce = "advisory".into();
         assert_eq!(run_exit(&r), Exit::Pass);
+    }
+
+    #[test]
+    fn the_stated_mode_is_read_from_a_config_that_does_not_validate() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(stated_mode(dir.path()), None);
+        let mode = |text: &str| {
+            fs::write(dir.path().join("nix-tops.toml"), text).unwrap();
+            stated_mode(dir.path())
+        };
+        for known in ["hard", "ratchet", "advisory"] {
+            let got = mode(&format!("enforce = \"{known}\"\n"));
+            assert_eq!(got.as_deref(), Some(known));
+        }
+        assert_eq!(mode("enforce = \"lenient\"\n"), None);
+        assert_eq!(mode("facets = []\n"), None);
+        assert_eq!(mode("enforce = "), None);
     }
 
     #[test]

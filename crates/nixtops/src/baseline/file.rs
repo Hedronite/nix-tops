@@ -91,7 +91,7 @@ impl Baseline {
 }
 
 /// The file's text as a baseline, or why it is not one.
-fn parse(text: &str) -> Result<Baseline, String> {
+pub fn parse(text: &str) -> Result<Baseline, String> {
     let value: Value = serde_json::from_str(text).map_err(|e| format!("not JSON: {e}"))?;
     let problems = schema::problems(&schema::validator(BASELINE_SCHEMA), &value);
     if let Some(first) = problems.first() {

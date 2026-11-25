@@ -3,7 +3,7 @@
 //! after a baseline was deleted, and to record anything looser than the baseline it replaces.
 
 use crate::{
-    baseline::{compare, file, file::Baseline, history},
+    baseline::{compare, file, file::Baseline, history, since_last_write},
     build_info,
     cmd::gate::EvaluatorArg,
     config::{self, baseline::real_git, semantic},
@@ -15,7 +15,11 @@ use crate::{
 };
 use clap::Args as ClapArgs;
 use serde_json::Value;
-use std::{ffi::OsString, fs, path::PathBuf};
+use std::{
+    ffi::OsString,
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, ClapArgs)]
 pub struct Args {
@@ -70,8 +74,8 @@ fn written(path: &str, new: &Baseline) -> Output {
 }
 
 /// What `old` refuses in `new`, in every enforcement mode.
-fn looser(doc: &Value, old: Option<&Baseline>, new: &Baseline) -> Result<(), Output> {
-    let found = old.map(|old| compare::judge(doc, old, new));
+fn looser(root: &Path, doc: &Value, old: Option<&Baseline>, new: &Baseline) -> Result<(), Output> {
+    let found = old.map(|old| compare::judge(doc, old, new, &since_last_write(root, doc)));
     match found.filter(|f| !f.failures.is_empty()) {
         Some(found) => {
             let why = format!("not written, looser than the baseline: {}", found.all());
@@ -94,7 +98,7 @@ fn record(
         return Err(not_written(&result));
     }
     let new = Baseline::of(&settings.root, doc, &result.report);
-    looser(doc, old.as_ref(), &new)?;
+    looser(&settings.root, doc, old.as_ref(), &new)?;
     file::write(&settings.root.join(path), &new)
         .map_err(|e| fail(Exit::Environment, &format!("cannot write {path}: {e}")))?;
     Ok(written(path, &new))

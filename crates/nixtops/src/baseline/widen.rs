@@ -125,13 +125,29 @@ fn deadnix(old: &Inputs, new: &Inputs) -> Change {
     }
 }
 
-fn by_allowances(old: (Allowances, Value), new: (Allowances, Value)) -> Change {
-    if old.1 != new.1 {
-        return Change::Narrower("a setting other than an allow list changed".into());
+/// What differs outside the allow lists, in words. A gitleaks config that does not extend the
+/// default one replaces its rules, which is worth saying by name.
+fn other_setting(tool: &str, new: &Value) -> &'static str {
+    let defaults = new.pointer("/extend/useDefault") == Some(&Value::Bool(true));
+    if tool == "gitleaks" && !defaults {
+        "extend.useDefault is not true, which turns the default rules off"
+    } else {
+        "a setting other than an allow list changed"
     }
+}
+
+/// The added allowances are named first, then anything else that moved.
+fn by_allowances(tool: &str, old: (Allowances, Value), new: (Allowances, Value)) -> Change {
     let added: Vec<&str> = new.0.difference(&old.0).map(String::as_str).collect();
+    let mut why = Vec::new();
     if !added.is_empty() {
-        return Change::Narrower(format!("added {}", added.join(", ")));
+        why.push(format!("added {}", added.join(", ")));
+    }
+    if old.1 != new.1 {
+        why.push(other_setting(tool, &new.1).to_string());
+    }
+    if !why.is_empty() {
+        return Change::Narrower(why.join("; "));
     }
     if new.0 == old.0 {
         Change::Same
@@ -146,7 +162,7 @@ pub fn classify(tool: &str, old: &Inputs, new: &Inputs) -> Change {
         return deadnix(old, new);
     }
     match (shape(tool, old), shape(tool, new)) {
-        (Some(before), Some(after)) => by_allowances(before, after),
+        (Some(before), Some(after)) => by_allowances(tool, before, after),
         _ => Change::Narrower("a config file is not valid TOML".into()),
     }
 }
@@ -245,7 +261,15 @@ mod tests {
             );
         }
         let no_defaults = change("gitleaks", None, Some("title = 't'\n"));
-        assert!(narrower(&no_defaults).contains("other than"));
+        assert!(narrower(&no_defaults).contains("turns the default rules off"));
+        let bare = change("gitleaks", None, Some("[allowlist]\npaths = ['p']\n"));
+        assert_eq!(
+            narrower(&bare),
+            "added allowlist:paths:p; extend.useDefault is not true, which turns the default rules off"
+        );
+        let titled = format!("title = 't'\n{base}");
+        let found = change("gitleaks", None, Some(&titled));
+        assert!(narrower(&found).contains("other than an allow list"));
         let ignore = |text: &str| {
             let mut inputs = config(None);
             inputs.insert("ignore".into(), Some(text.into()));
