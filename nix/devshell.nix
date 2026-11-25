@@ -14,5 +14,6 @@ mkShell {
     pkgs.clippy
     pkgs.rustfmt
     pkgs.nixfmt-tree
-  ] ++ builtins.attrValues kit.tools;
+  ]
+  ++ builtins.attrValues kit.tools;
 }

@@ -4,6 +4,7 @@
 //! not built yet says so and exits 4 ([`cmd::not_built`]). The modules below `cmd` that are
 //! empty today are the homes of later steps.
 
+pub mod baseline;
 pub mod build_info;
 pub mod cmd;
 pub mod config;

@@ -61,15 +61,19 @@ things need the world outside it. Nix-TOPS splits the work that way:
 
 | Plane | What runs there | Why |
 |---|---|---|
-| **Sandbox** (`checks.<system>.nixtops-*`) | format, statix, deadnix, the `nixtops-lint` analyzer, secrets scan, nix-unit, VM tests, closure-size reader | Hermetic and cacheable. A check that passed for a given input is not rerun |
+| **Sandbox** (`checks.<system>.nixtops-*`) | format, statix, deadnix, secrets scan (`nixtops-lint` analyzer waits for M3), nix-unit, VM tests, closure-size reader | Hermetic and cacheable. A check that passed for a given input is not rerun |
 | **Runner** (`nixtops gate`) | git-tracked files, lock state, pure evaluation of every output on every system with `abort-on-warn`, the `config.warnings` and diagnostics reads (§3.1), eval-cost counters, diff-based laws, the report | These need git, the evaluator's own flags, or the diff. None of them can run in a derivation |
 
 `nix flake check` alone runs the sandbox plane. It is useful, but it is not the gate: it does not
 know about untracked files, does not set `abort-on-warn`, and does not write a report.
 
 The kit's `lib.mkChecks` returns an attrset per system (`checks.<system>.nixtops-*`) that the
-adopter merges with its own checks (§4). The lint checks exist for one system only: they read
-source, which does not depend on the system, so they are built once.
+adopter merges with its own checks (§4): two checks per tool (`nixtops-<tool>-findings`, which
+always succeeds and writes findings JSON to `$out`, and `nixtops-<tool>`, which fails on findings)
+for nixfmt, statix, deadnix, and gitleaks on the first supported system in `systems` (`{}` on the
+others). Source passes through a `.nix`-and-config filter for the Nix linters, and the tracked tree
+feeds gitleaks. When the host system differs from the check system, `nixtops gate` builds the
+findings on the host system (via `passthru.forSystem` or the kit's pinned `nix/lib`).
 
 ---
 
@@ -108,7 +112,7 @@ Gates run in this order. A failing gate stops the run unless `--keep-going` is s
 | # | Gate | Command(s) | Pass condition |
 |---|---|---|---|
 | 1 | **Source** | runner: every `.nix` file under the flake root is tracked by git; `flake.lock` is committed; evaluation runs with `--no-update-lock-file`; the tree is clean in CI | Every `.nix` tracked; lock current |
-| 2 | **Lint** | sandbox: `checks.<system>.nixtops-lint` runs `treefmt --ci` (nixfmt), `statix check`, `deadnix --fail`, `nixtops-lint`, `gitleaks` | All clean, or within ratchet |
+| 2 | **Lint** | sandbox: `checks.<system>.nixtops-<tool>{,-findings}` runs `treefmt --ci` (nixfmt), `statix check`, `deadnix`, `gitleaks` (`nixtops-lint` waits for M3); runner reads findings JSON into `report.json` | All clean, or within ratchet |
 | 3 | **Eval** | runner, three warning sources. (a) `nix flake check --no-build --all-systems --no-update-lock-file --option abort-on-warn true --option allow-import-from-derivation false`, then each configuration's build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`) under the same options; `abort-on-warn` makes every `builtins.warn` fatal. (b) `config.warnings` of every NixOS, Home Manager and nix-darwin configuration, read as data. (c) the `nix` command's own diagnostics, captured and classified by `laws/diagnostics.toml`. Then record eval-cost counters (§6.4) | No error; no warning from any source that `[[warnings.allow]]` does not match; no IFD |
 | 4 | **Build and test** | `nix flake check` (builds every `checks` derivation: nix-unit, module eval tests, VM tests) and `nix build` of every `packages`, `devShells` and configuration build root for the host system. Linux runs with `sandbox = true` | Everything builds; every test passes |
 | 5 | **Output coverage** | runner: maps each exported output to the checks that exercise it (§6.1) | Facet floor or ratchet met |

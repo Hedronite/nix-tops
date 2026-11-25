@@ -15,6 +15,8 @@
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
     in
     {
+      lib = import ./nix/lib { inherit nixpkgs; };
+
       packages = forAllSystems (pkgs: rec {
         nixtops = pkgs.callPackage ./nix/nixtops.nix { nixpkgsInput = nixpkgs; };
         default = nixtops;
@@ -27,6 +29,16 @@
           meta.description = "Gate a Nix flake against the Nix-TOPS protocol";
         };
       });
+
+      # Frozen evidence, the verbatim quickstart example, and deliberate lint fixtures stay untouched.
+      checks = self.lib.mkChecks {
+        inherit self systems;
+        exclude = [
+          "docs/evidence"
+          "examples/quickstart"
+          "fixtures"
+        ];
+      };
 
       devShells = forAllSystems (pkgs: {
         default = pkgs.callPackage ./nix/devshell.nix { };

@@ -1,5 +1,6 @@
-//! The text form of a report: one line per layer, the warnings, the verdict of the run. It reads
-//! the report as JSON so `nixtops report` can render a file written by an earlier run.
+//! The text form of a report: one line per layer, the lint tools, the warnings, the verdict of
+//! the run. It reads the report as JSON so `nixtops report` can render a file written by an
+//! earlier run.
 
 use serde_json::Value;
 
@@ -39,6 +40,32 @@ fn items<'a>(report: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
         .flatten()
 }
 
+fn lint_lines(report: &Value) -> Vec<String> {
+    let Some(lint) = report.get("lint").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    let system = lint.get("system").and_then(Value::as_str).unwrap_or("");
+    let mut out = vec![format!("lint ({system})")];
+    for tool in lint
+        .get("tools")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        let name = str_of(tool, "tool");
+        let version = str_of(tool, "version");
+        let count: usize = tool
+            .get("files")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+            .filter_map(|(_, v)| v.as_u64())
+            .sum::<u64>() as usize;
+        out.push(format!("  {name} {version}: {count} finding(s)"));
+    }
+    out
+}
+
 /// The laws layer is `skip`: no law was judged, and the text says so.
 fn laws_switched_off(report: &Value) -> bool {
     items(report, "layers").any(|l| str_of(l, "id") == "laws" && str_of(l, "verdict") == "skip")
@@ -50,6 +77,7 @@ pub fn render_text(report: &Value) -> String {
     if laws_switched_off(report) {
         lines.push("laws are not enforced in this run: the laws layer is switched off".to_string());
     }
+    lines.extend(lint_lines(report));
     let warnings: Vec<String> = items(report, "warnings").map(warning_line).collect();
     if !warnings.is_empty() {
         lines.push("warnings".to_string());
@@ -92,6 +120,25 @@ mod tests {
         assert_eq!(
             render_text(&report),
             "warnings\n  Ack [builtins-warn] x\n1 outputs evaluated\ngate: passed\n"
+        );
+    }
+
+    #[test]
+    fn lint_summary_lists_each_tool_and_count() {
+        let report = json!({
+            "layers": [],
+            "passed": true,
+            "lint": {
+                "system": "x86_64-linux",
+                "tools": [
+                    {"tool": "deadnix", "version": "9.9.9", "config_hash": "h", "files": {"flake.nix": 2}}
+                ]
+            }
+        });
+        let text = render_text(&report);
+        assert!(
+            text.contains("lint (x86_64-linux)\n  deadnix 9.9.9: 2 finding(s)\n"),
+            "{text}"
         );
     }
 

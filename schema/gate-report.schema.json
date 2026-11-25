@@ -49,6 +49,31 @@
         "count": { "$ref": "core/core.schema.json#/$defs/count" },
         "entries": { "type": "array", "items": { "$ref": "core/core.schema.json#/$defs/ack" } }
       }
+    },
+    "lint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "tools"],
+      "properties": {
+        "system": { "type": "string", "minLength": 1 },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool", "version", "config_hash", "files"],
+            "properties": {
+              "tool": { "enum": ["nixfmt", "statix", "deadnix", "gitleaks"] },
+              "version": { "type": "string", "minLength": 1 },
+              "config_hash": { "type": "string", "minLength": 1 },
+              "files": {
+                "type": "object",
+                "additionalProperties": { "$ref": "core/core.schema.json#/$defs/count" }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

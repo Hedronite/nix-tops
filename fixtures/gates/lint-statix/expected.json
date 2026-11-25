@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "lint": "Refuse",
+    "eval": "not-run"
+  },
+  "named": "statix",
+  "note": "A statix finding fails gate 2 under hard and stops gate 3."
+}

@@ -1,7 +1,7 @@
 //! The gate run: config first, then the layers in order, then the report.
 
 use super::{
-    diag, eval, layer, ledger,
+    diag, eval, layer, ledger, lint,
     source::{self, Input as SourceInput},
 };
 use crate::{
@@ -12,8 +12,8 @@ use crate::{
     host,
     inventory::{self, Backend, Session, Tools},
     report::{
-        ALL_LAYERS, AckEntry, BaselineIdentity, Layer, LayerId, OutputEntry, Parts, Report,
-        Verdict, WarningEntry,
+        ALL_LAYERS, AckEntry, BaselineIdentity, Layer, LayerId, LintReport, OutputEntry, Parts,
+        Report, Verdict, WarningEntry,
     },
 };
 use serde_json::Value;
@@ -128,6 +128,7 @@ fn make_report(
         outputs: body.outputs,
         warnings: body.warnings,
         acks: body.acks,
+        lint: body.lint,
     })
 }
 
@@ -143,6 +144,7 @@ pub fn stopped_report(settings: &Settings, doc: Option<&Value>, reason: &str) ->
         outputs: Vec::new(),
         warnings: Vec::new(),
         acks: Vec::new(),
+        lint: None,
     };
     make_report(
         settings_enforce(doc),
@@ -201,6 +203,7 @@ struct Collected {
     outputs: Vec<OutputEntry>,
     warnings: Vec<WarningEntry>,
     acks: Vec<AckEntry>,
+    lint: Option<LintReport>,
 }
 
 fn skipped(settings: &Settings, id: LayerId) -> Option<Layer> {
@@ -212,22 +215,91 @@ fn skipped(settings: &Settings, id: LayerId) -> Option<Layer> {
     ))
 }
 
+fn dispatch_layer(
+    id: LayerId,
+    session: &mut Session,
+    settings: &Settings,
+    doc: &Value,
+    context: &EvalContext<'_>,
+    got: &mut Collected,
+) -> Layer {
+    match id {
+        LayerId::Source => {
+            let input = SourceInput {
+                root: &settings.root,
+                flake_ref: context.flake_ref,
+                ci: settings.ci,
+            };
+            source::layer(&source::findings(session, &input))
+        }
+        LayerId::Lint => {
+            let input = lint::Input {
+                root: &settings.root,
+                flake_ref: context.flake_ref,
+                doc,
+                enforce: &settings_enforce(Some(doc)),
+                system: context.system,
+            };
+            let outcome = lint::run(session, &input);
+            got.lint = outcome.lint;
+            outcome.layer
+        }
+        LayerId::Eval => {
+            let input = eval::Input {
+                flake_ref: context.flake_ref,
+                today: &settings.today,
+                ledger: context.ledger,
+                diagnostics: context.diagnostics,
+                implementation: context.implementation,
+                system: settings.system.as_deref(),
+            };
+            let outcome = eval::run(session, &input);
+            got.outputs = outcome.outputs;
+            got.warnings = outcome.warnings;
+            got.acks = outcome.acks;
+            outcome.layer
+        }
+        _ => Layer::new(
+            id,
+            Verdict::NotRun,
+            Some("not built in this version".to_string()),
+        ),
+    }
+}
+
+struct EvalContext<'a> {
+    flake_ref: &'a str,
+    system: &'a str,
+    implementation: &'a str,
+    ledger: &'a [ledger::Entry],
+    diagnostics: &'a [diag::Entry],
+}
+
 fn run_layers(
     session: &mut Session,
     settings: &Settings,
     doc: &Value,
     seams: &Seams,
     flake_ref: &str,
+    system: &str,
 ) -> Collected {
     let mut table = diag::embedded().unwrap_or_default();
     table.extend(seams.extra_diagnostics.iter().cloned());
     let entries = ledger::entries(doc);
     let (implementation, _) = identity_of(settings);
+    let context = EvalContext {
+        flake_ref,
+        system,
+        implementation: &implementation,
+        ledger: &entries,
+        diagnostics: &table,
+    };
     let mut got = Collected {
         layers: Vec::new(),
         outputs: Vec::new(),
         warnings: Vec::new(),
         acks: Vec::new(),
+        lint: None,
     };
     let mut stopped_by: Option<LayerId> = None;
     for id in ALL_LAYERS {
@@ -243,31 +315,7 @@ fn run_layers(
                 .push(Layer::new(id, Verdict::NotRun, Some(reason)));
             continue;
         }
-        let layer = match id {
-            LayerId::Source => {
-                let input = SourceInput {
-                    root: &settings.root,
-                    flake_ref,
-                    ci: settings.ci,
-                };
-                source::layer(&source::findings(session, &input))
-            }
-            _ => {
-                let input = eval::Input {
-                    flake_ref,
-                    today: &settings.today,
-                    ledger: &entries,
-                    diagnostics: &table,
-                    implementation: &implementation,
-                    system: settings.system.as_deref(),
-                };
-                let outcome = eval::run(session, &input);
-                got.outputs = outcome.outputs;
-                got.warnings = outcome.warnings;
-                got.acks = outcome.acks;
-                outcome.layer
-            }
-        };
+        let layer = dispatch_layer(id, session, settings, doc, &context, &mut got);
         if layer.verdict.fails() && !settings.keep_going {
             stopped_by = Some(id);
         }
@@ -370,15 +418,18 @@ pub fn run(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> RunResul
             return stopped(settings, Some(&doc), full.exit, stop_problems(&full));
         }
     }
-    let got = run_layers(&mut session, settings, &doc, seams, &flake_ref);
+    let system = system_of(&session);
+    let got = run_layers(&mut session, settings, &doc, seams, &flake_ref, &system);
     let (implementation, version) = identity_of(settings);
     let identity = BaselineIdentity {
         implementation,
         version,
-        system: system_of(&session),
+        system,
         lock_hash: lock_hash(&session, &settings.root),
     };
-    let report = make_report(settings_enforce(Some(&doc)), identity, facets_of(&doc), got);
+    let enforce = settings_enforce(Some(&doc));
+    let mut report = make_report(enforce, identity, facets_of(&doc), got);
+    crate::baseline::ratchet_report(&settings.root, &doc, &mut report);
     let _ = write_report(&report_path(&settings.root, Some(&doc)), &report);
     let exit = if report.passed {
         Exit::Pass
