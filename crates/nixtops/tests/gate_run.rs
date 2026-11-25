@@ -1025,30 +1025,50 @@ fn c19_the_same_throw_on_the_selected_system_still_fails() {
 }
 
 #[test]
-fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
+fn under_a_selected_system_a_check_error_is_scoped_by_structured_attribute_data() {
     let rig = two_system_rig();
-    let tools_for = |text: &'static str| {
-        let check = ("flake check", "", text, 1);
-        rig.tools(
-            &with_check(check, two_system_arms()),
-            &nej_two(OK_LINE, OK_LINE),
-        )
-    };
-    // The progress lines before the error name every attribute: they do not count.
-    let progress = "checking derivation packages.x86_64-linux.default\nerror: bad\n  … while checking the derivation 'packages.aarch64-linux.default'";
-    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(progress), &switched());
+    // CppNix q9: error message quotes 'x86_64-linux' on a failing aarch64-linux derivation.
+    // Structured inventory shows the error is exclusively on aarch64-linux, so x86_64-linux passes.
+    let q9_check = (
+        "flake check",
+        "",
+        "error: incompatible with 'x86_64-linux' in dependency",
+        1,
+    );
+    let q9_tools = rig.tools(
+        &with_check(q9_check, two_system_arms()),
+        &nej_two(THROW_LINE, OK_LINE),
+    );
+    let (_, report) = run_json(&rig, &x86_only(&rig), q9_tools, &switched());
     assert_eq!(
         verdict(&report, "eval"),
         "pass",
         "{}",
         reason(&report, "eval")
     );
-    // One that names the selected system, or no attribute at all, counts.
-    let mine = "error: bad\n  … while checking the derivation 'packages.x86_64-linux.default'";
-    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(mine), &switched());
+
+    // When inventory shows zero errors despite flake check failing, scoping fails closed.
+    let clean_inv_tools = rig.tools(
+        &with_check(
+            (
+                "flake check",
+                "",
+                "error: bad\n  … while checking 'packages.aarch64-linux.default'",
+                1,
+            ),
+            two_system_arms(),
+        ),
+        &nej_two(OK_LINE, OK_LINE),
+    );
+    let (_, report) = run_json(&rig, &x86_only(&rig), clean_inv_tools, &switched());
     assert_eq!(verdict(&report, "eval"), "Refuse");
-    let none = "error: something broke";
-    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(none), &switched());
+
+    // When inventory shows the error is on the selected system, it refuses.
+    let mine_tools = rig.tools(
+        &with_check(("flake check", "", "error: bad", 1), two_system_arms()),
+        &nej_two(OK_LINE, THROW_LINE),
+    );
+    let (_, report) = run_json(&rig, &x86_only(&rig), mine_tools, &switched());
     assert_eq!(verdict(&report, "eval"), "Refuse");
 }
 

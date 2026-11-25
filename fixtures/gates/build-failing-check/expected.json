@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "pass",
+    "build-test": "Refuse"
+  },
+  "named": "flake check build failed",
+  "note": "A failing check fails gate 4 (build-test)."
+}

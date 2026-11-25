@@ -6,6 +6,7 @@
 use super::{
     diag::{self, Effect},
     ledger::{self, Entry},
+    system::{check_failed_for_system, only_system},
 };
 use crate::{
     inventory::{self, Inventory, Kind, Level, Record, Session},
@@ -48,8 +49,8 @@ struct Pass {
 fn run_pass(session: &mut Session, input: &Input, abort_on_warn: bool) -> Pass {
     session.set_abort_on_warn(abort_on_warn);
     // Always every system: `--system` is a restricted setting a daemon that does not trust the
-    // client refuses (with a warning no table lists), so one system is selected afterwards, by
-    // what the check says and by the inventory.
+    // client refuses (with a warning no table lists), so one system is selected afterwards from the
+    // structured attribute inventory (`gate::system`).
     let rest = [
         "--no-build",
         "--no-update-lock-file",
@@ -58,13 +59,11 @@ fn run_pass(session: &mut Session, input: &Input, abort_on_warn: bool) -> Pass {
     ];
     let run = session.judge(&["flake", "check"], &rest);
     let check_text = format!("{}\n{}", run.stdout, run.stderr);
-    let inventory =
-        inventory::collect(session, input.flake_ref).map(|inv| only_system(inv, input.system));
+    let raw_inventory = inventory::collect(session, input.flake_ref);
+    let check_ok = !check_failed_for_system(run.ok, &raw_inventory, input.system);
+    let inventory = raw_inventory.map(|inv| only_system(inv, input.system));
     Pass {
-        // With a system selected, a failure of `flake check` that is about an attribute on
-        // another system is not this run's (the same rule as for a warning); one that names the
-        // selected system, or no system at all, counts.
-        check_ok: run.ok || !error_concerns(&run.stderr, input.system),
+        check_ok,
         check_text,
         inventory,
     }
@@ -87,101 +86,6 @@ fn concerns(text: &str, system: Option<&str>) -> bool {
         None => true,
         Some(wanted) => text.contains(wanted) || !SYSTEMS.iter().any(|s| text.contains(s)),
     }
-}
-
-/// The system a record is for: its own, or, for an output kept per system, the second component
-/// of its attribute path (`packages.<system>.<name>`).
-fn record_system(record: &Record) -> Option<&str> {
-    if record.system.is_some() {
-        return record.system.as_deref();
-    }
-    let per_system = !matches!(
-        record.kind,
-        Kind::Overlay
-            | Kind::Template
-            | Kind::Module
-            | Kind::Lib
-            | Kind::Configuration
-            | Kind::Unknown
-    );
-    per_system.then(|| record.attr.split('.').nth(1)).flatten()
-}
-
-/// The error of a `flake check` run: from the first line that says `error` on, without the
-/// progress lines before it (they name every attribute checked, whatever its system).
-fn error_block(stderr: &str) -> String {
-    let lines: Vec<&str> = stderr.lines().collect();
-    let first = lines
-        .iter()
-        .position(|l| l.trim_start().starts_with("error"));
-    lines[first.unwrap_or(0)..].join("\n")
-}
-
-/// Whether a line of an error names an attribute: a trace line (`… while checking the derivation
-/// 'packages.aarch64-linux.default'`) or an `error:` line. The source excerpts under them are
-/// code and may quote anything, so they are not read.
-fn names_attribute(line: &str) -> bool {
-    let line = line.trim_start();
-    line.starts_with("error:") || (line.starts_with('…') && line.contains("while "))
-}
-
-/// The systems of the attributes an error names between single quotes, on those lines only.
-fn quoted_attribute_systems(error: &str) -> Vec<&'static str> {
-    let mut found: Vec<&'static str> = Vec::new();
-    for line in error.lines().filter(|l| names_attribute(l)) {
-        for token in line.split('\'').skip(1).step_by(2) {
-            for part in token.split('.') {
-                if let Some(system) = SYSTEMS.iter().find(|s| **s == part) {
-                    found.push(system);
-                }
-            }
-        }
-    }
-    found
-}
-
-/// The outputs a Determinate `flake check` marks failed: its `❌ <attribute>` lines, which come
-/// before the error and name each failing attribute.
-fn failed_attributes(stderr: &str) -> Vec<&str> {
-    let marked = stderr
-        .lines()
-        .filter_map(|l| l.trim_start().strip_prefix('❌'));
-    marked.map(str::trim).collect()
-}
-
-/// Whether an attribute path is on the wanted system, or on none (an output without a system level
-/// such as a configuration counts for every run).
-fn on_system(attribute: &str, wanted: &str) -> bool {
-    let systems: Vec<&str> = attribute
-        .split('.')
-        .filter(|p| SYSTEMS.contains(p))
-        .collect();
-    systems.is_empty() || systems.contains(&wanted)
-}
-
-/// Whether a failure of `flake check` is about the selected system. With no selection always.
-/// With one: when the check names its failed attributes (`❌` lines), by those; otherwise by the
-/// attributes the error quotes (`while checking the derivation '...'`), unless all are on other
-/// systems. An error that names no attribute counts. The source excerpts under an error name
-/// other systems too, so only these are read.
-fn error_concerns(stderr: &str, system: Option<&str>) -> bool {
-    let Some(wanted) = system else {
-        return true;
-    };
-    let failed = failed_attributes(stderr);
-    if !failed.is_empty() {
-        return failed.iter().any(|a| on_system(a, wanted));
-    }
-    let named = quoted_attribute_systems(&error_block(stderr));
-    named.is_empty() || named.contains(&wanted)
-}
-
-fn only_system(mut inv: Inventory, system: Option<&str>) -> Inventory {
-    if let Some(wanted) = system {
-        inv.records
-            .retain(|r| record_system(r).is_none_or(|s| s == wanted));
-    }
-    inv
 }
 
 fn error_texts(pass: &Pass) -> Vec<String> {
@@ -298,6 +202,7 @@ fn output_entries(inv: &Inventory) -> Vec<OutputEntry> {
     ok.map(|r| OutputEntry {
         attr: r.attr.clone(),
         level: r.level.name(),
+        deferred: None,
     })
     .collect()
 }
@@ -494,113 +399,6 @@ mod tests {
             scrub("at /a/b/flake.nix:1 and git+file:///a/b?dir=x", "/a/b"),
             "at ./flake.nix:1 and git+file://.?dir=x"
         );
-    }
-
-    #[test]
-    fn an_error_is_about_the_systems_of_the_attributes_it_quotes() {
-        let throw = "error:\n  … while checking the derivation 'packages.aarch64-linux.default'\n     6| packages.x86_64-linux.default = a;\n  error: qa broken";
-        assert!(!error_concerns(throw, Some("x86_64-linux")));
-        assert!(error_concerns(throw, Some("aarch64-linux")));
-        assert!(error_concerns(throw, None));
-        let none = "error: something broke at packages.x86_64-linux.a";
-        assert!(error_concerns(none, Some("aarch64-linux")));
-        assert!(error_concerns("", Some("x86_64-linux")));
-        let both = "error: 'checks.x86_64-linux.a' and 'checks.aarch64-linux.b'";
-        assert!(
-            error_concerns(both, Some("x86_64-linux"))
-                && error_concerns(both, Some("aarch64-linux"))
-        );
-        assert!(!error_concerns(
-            "error: 'a.x86_64-darwin.b'",
-            Some("x86_64-linux")
-        ));
-    }
-
-    #[test]
-    fn only_trace_lines_and_error_lines_name_attributes() {
-        assert!(names_attribute("  … while checking the derivation 'a'"));
-        assert!(names_attribute(
-            "error: flake attribute 'a' is not a derivation"
-        ));
-        // A trace line that is not about checking or evaluating, and code that says "while".
-        assert!(!names_attribute("  … at 'packages.x86_64-linux.a'"));
-        assert!(!names_attribute("   5|  x = \"while 'x86_64-linux'\";"));
-        assert!(!names_attribute("   at /s/flake.nix:5:3: 'x86_64-linux'"));
-    }
-
-    /// QA's q4: another system's broken output quotes the selected system's name in its source
-    /// excerpt (CppNix prints no per-attribute lines, so the trace lines decide).
-    #[test]
-    fn a_system_quoted_in_a_source_excerpt_does_not_make_the_error_the_selected_systems() {
-        let q4 = "error:\n       … while checking the derivation 'packages.aarch64-linux.default'\n         at /s/flake.nix:6:5:\n            5|     packages.aarch64-linux.default = throw \"x\"; /* 'x86_64-linux' */\n            6|     packages.x86_64-linux.default = a;\n\n       error: x";
-        assert!(!error_concerns(q4, Some("x86_64-linux")));
-        assert!(error_concerns(q4, Some("aarch64-linux")));
-        let message = "error: flake attribute 'checks.aarch64-linux.bad' is not a derivation";
-        assert!(!error_concerns(message, Some("x86_64-linux")));
-    }
-
-    #[test]
-    fn a_determinate_check_names_its_failed_attributes_and_they_decide() {
-        let text = "✅ packages.x86_64-linux.default (build skipped)\n❌ packages.aarch64-linux.default\nerror:\n  at flake.nix\n  packages.x86_64-linux.default = a;\n  error: qa broken";
-        assert!(!error_concerns(text, Some("x86_64-linux")));
-        assert!(error_concerns(text, Some("aarch64-linux")));
-        let both = "❌ checks.x86_64-linux.a\n❌ checks.aarch64-linux.b\nerror: x";
-        assert!(
-            error_concerns(both, Some("x86_64-linux"))
-                && error_concerns(both, Some("aarch64-linux"))
-        );
-        // A failed output without a system level counts for every selection.
-        assert!(error_concerns(
-            "❌ nixosConfigurations.host\nerror: x",
-            Some("x86_64-linux")
-        ));
-        assert_eq!(failed_attributes("a\n  ❌ b.c\n❌d"), ["b.c", "d"]);
-    }
-
-    #[test]
-    fn the_error_block_starts_at_the_first_error_line() {
-        assert_eq!(
-            error_block(
-                "checking derivation packages.x86_64-linux.a\nerror: boom\n  at packages.aarch64-linux.b"
-            ),
-            "error: boom\n  at packages.aarch64-linux.b"
-        );
-        assert_eq!(error_block("no error line"), "no error line");
-        assert_eq!(error_block(""), "");
-    }
-
-    #[test]
-    fn a_records_system_is_its_own_or_the_second_part_of_a_per_system_path() {
-        let own = Record::new(
-            "packages.aarch64-linux.a",
-            Kind::Package,
-            Some("x86_64-linux"),
-            Level::Evaluated,
-        );
-        assert_eq!(record_system(&own), Some("x86_64-linux"));
-        let derived = Record::new("checks.aarch64-linux.a", Kind::Check, None, Level::Error);
-        assert_eq!(record_system(&derived), Some("aarch64-linux"));
-        let apps = Record::new(
-            "apps.x86_64-linux.default",
-            Kind::App,
-            None,
-            Level::Evaluated,
-        );
-        assert_eq!(record_system(&apps), Some("x86_64-linux"));
-        for (attr, kind) in [
-            ("overlays.default", Kind::Overlay),
-            ("nixosModules.m", Kind::Module),
-            ("templates.t", Kind::Template),
-            ("lib", Kind::Lib),
-            ("nixosConfigurations.h", Kind::Configuration),
-            ("fooBar", Kind::Unknown),
-        ] {
-            assert_eq!(
-                record_system(&Record::new(attr, kind, None, Level::Evaluated)),
-                None,
-                "{attr}"
-            );
-        }
     }
 
     #[test]

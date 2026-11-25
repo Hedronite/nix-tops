@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "Refuse",
+    "build-test": "not-run"
+  },
+  "named": "N-07",
+  "note": "With gate 4 enabled, IFD still fails gate 3 (N-07) and stops gate 4."
+}

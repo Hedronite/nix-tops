@@ -1,0 +1,9 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "eval": "pass"
+  },
+  "named": "",
+  "note": "A Linux-only flake reports deferred and exits 0 locally on darwin (and fails in CI under hard); on x86_64-linux it builds."
+}

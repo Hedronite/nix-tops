@@ -1,0 +1,12 @@
+protocol = "0.2.0"
+facets = ["package-set"]
+enforce = "hard"
+
+[toolchain]
+systems = ["x86_64-linux", "aarch64-linux", "aarch64-darwin"]
+
+[layers]
+lint = { enabled = false, reason = "focus on gate 4" }
+coverage = { enabled = false, reason = "not built in M1" }
+facet-layers = { enabled = false, reason = "not built in M1" }
+laws = { enabled = false, reason = "not built in M1" }

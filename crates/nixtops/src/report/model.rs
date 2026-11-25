@@ -163,6 +163,8 @@ pub struct WarningEntry {
 pub struct OutputEntry {
     pub attr: String,
     pub level: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deferred: Option<bool>,
 }
 
 /// Per-tool findings summary from gate 2 (lint).
@@ -216,6 +218,8 @@ pub struct Report {
     pub acks: Acks,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lint: Option<LintReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox: Option<String>,
 }
 
 /// Every verdict counted on its own, over the layers and the warnings.
@@ -268,7 +272,13 @@ impl Report {
                 entries: parts.acks,
             },
             lint: parts.lint,
+            sandbox: None,
         }
+    }
+
+    pub fn with_sandbox(mut self, sandbox: Option<String>) -> Self {
+        self.sandbox = sandbox;
+        self
     }
 
     /// Recomputes `counts` and `passed` after a post-layer pass (such as ratchet).

@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "eval": "pass",
+    "build-test": "Refuse"
+  },
+  "named": "failed",
+  "note": "A failing package build fails gate 4 (build-test)."
+}
