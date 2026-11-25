@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "lint": "Refuse",
+    "eval": "not-run"
+  },
+  "named": "deadnix",
+  "note": "A deliberate deadnix finding fails gate 2 under hard and stops gate 3."
+}

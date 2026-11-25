@@ -8,8 +8,13 @@
 }:
 let
   kit = import ./tools.nix { inherit pkgs; };
-  table = { nix = kit.judge; } // kit.tools;
-  toolTable = lib.concatStringsSep ";" (lib.mapAttrsToList (name: pkg: "${name}=${pkg.version}") table);
+  table = {
+    nix = kit.judge;
+  }
+  // kit.tools;
+  toolTable = lib.concatStringsSep ";" (
+    lib.mapAttrsToList (name: pkg: "${name}=${pkg.version}") table
+  );
   root = ../.;
 in
 rustPlatform.buildRustPackage {
@@ -29,6 +34,8 @@ rustPlatform.buildRustPackage {
       (root + "/config")
       (root + "/laws/diagnostics.toml")
       (root + "/examples/quickstart/nix-tops.toml")
+      (root + "/nix/lib")
+      (root + "/nix/tools.nix")
     ];
   };
 

@@ -6,16 +6,18 @@
   judge = pkgs.nixVersions.nix_2_35;
 
   tools = {
-    nixfmt = pkgs.nixfmt;
-    treefmt = pkgs.treefmt;
-    statix = pkgs.statix;
-    deadnix = pkgs.deadnix;
-    nix-unit = pkgs.nix-unit;
-    gitleaks = pkgs.gitleaks;
-    vulnix = pkgs.vulnix;
-    check-jsonschema = pkgs.check-jsonschema;
-    nix-eval-jobs = pkgs.nix-eval-jobs;
-    nix-fast-build = pkgs.nix-fast-build;
-    nix-tree = pkgs.nix-tree;
+    inherit (pkgs)
+      nixfmt
+      treefmt
+      statix
+      deadnix
+      nix-unit
+      gitleaks
+      vulnix
+      check-jsonschema
+      nix-eval-jobs
+      nix-fast-build
+      nix-tree
+      ;
   };
 }

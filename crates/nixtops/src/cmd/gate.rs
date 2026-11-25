@@ -69,6 +69,7 @@ fn settings_of(args: &Args, only: Option<LayerId>, ci: bool) -> Settings {
         ci,
         today: gate::run::today(),
         nix: probe::nix_bin(),
+        writing_baseline: false,
     }
 }
 

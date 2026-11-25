@@ -14,6 +14,8 @@ pub struct Context<'a> {
     pub lock: Option<&'a Value>,
     /// The baseline file named by `baseline` exists.
     pub baseline_exists: bool,
+    /// True during `nixtops baseline` so an initial bootstrap does not refuse a missing baseline.
+    pub writing_baseline: bool,
 }
 
 #[derive(Debug, Default, PartialEq)]
@@ -85,7 +87,7 @@ fn enforce_problems(doc: &Value, ctx: &Context<'_>) -> Vec<Problem> {
             ),
         ));
     }
-    if enforce == "ratchet" && !ctx.baseline_exists {
+    if enforce == "ratchet" && !ctx.baseline_exists && !ctx.writing_baseline {
         out.push(Problem::new(
             "baseline".into(),
             format!(
@@ -194,6 +196,7 @@ mod tests {
             today,
             lock,
             baseline_exists: baseline,
+            writing_baseline: false,
         }
     }
     fn doc() -> Value {
@@ -228,6 +231,11 @@ mod tests {
             keys(&check(&d, &ctx("2026-11-18", None, false))),
             ["baseline"]
         );
+        let bootstrap = Context {
+            writing_baseline: true,
+            ..ctx("2026-11-18", None, false)
+        };
+        assert!(check(&d, &bootstrap).problems.is_empty());
         assert!(
             check(&d, &ctx("2026-11-18", None, true))
                 .problems

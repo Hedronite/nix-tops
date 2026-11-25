@@ -139,13 +139,12 @@ fn assemble(
     }
 }
 
-/// The checks, with the date, the nix binary and the config path given by the caller. `probes`
-/// is `None` for the checks that need no outputs and no git.
-pub fn evaluate_with(
+fn evaluate_inner(
     config: &Path,
     today: &str,
     nix: &str,
     probes: Option<&Probes<'_>>,
+    writing_baseline: bool,
 ) -> Verdict {
     let Ok(text) = fs::read_to_string(config) else {
         let problem = Problem::new("(file)".into(), format!("cannot read {}", config.display()));
@@ -164,6 +163,7 @@ pub fn evaluate_with(
         today,
         lock: lock.as_ref(),
         baseline_exists,
+        writing_baseline,
     };
     let found = semantic::check(&doc, &ctx);
     let mut notes = found.notes;
@@ -185,9 +185,25 @@ pub fn evaluate_with(
     assemble(problems, environment, notes)
 }
 
+/// The checks, with the date, the nix binary and the config path given by the caller. `probes`
+/// is `None` for the checks that need no outputs and no git.
+pub fn evaluate_with(
+    config: &Path,
+    today: &str,
+    nix: &str,
+    probes: Option<&Probes<'_>>,
+) -> Verdict {
+    evaluate_inner(config, today, nix, probes, false)
+}
+
 /// The checks that need no outputs (for unit use).
 pub fn evaluate(config: &Path, today: &str, nix: &str) -> Verdict {
-    evaluate_with(config, today, nix, None)
+    evaluate_inner(config, today, nix, None, false)
+}
+
+/// Gate entry point without outputs, skipping the missing-baseline error when writing the baseline.
+pub fn evaluate_gate(config: &Path, today: &str, nix: &str, writing_baseline: bool) -> Verdict {
+    evaluate_inner(config, today, nix, None, writing_baseline)
 }
 
 /// All the checks of section 12 with the outputs already read: the entry point `nixtops check`
@@ -198,6 +214,17 @@ pub fn evaluate_with_outputs(
     nix: &str,
     structure: &Structure,
 ) -> Verdict {
+    evaluate_gate_with_outputs(config, today, nix, structure, false)
+}
+
+/// Gate entry point with outputs, allowing `writing_baseline` bootstrap.
+pub fn evaluate_gate_with_outputs(
+    config: &Path,
+    today: &str,
+    nix: &str,
+    structure: &Structure,
+    writing_baseline: bool,
+) -> Verdict {
     let dir = config.parent().unwrap_or(Path::new("."));
     let git = baseline::real_git(dir);
     let outputs = || Ok(structure.clone());
@@ -205,7 +232,7 @@ pub fn evaluate_with_outputs(
         outputs: &outputs,
         git: &git,
     };
-    evaluate_with(config, today, nix, Some(&probes))
+    evaluate_inner(config, today, nix, Some(&probes), writing_baseline)
 }
 
 pub fn check_at(config: &Path, today: &str, nix: &str) -> Output {

@@ -115,6 +115,7 @@ fn every_gate_fixture_has_the_verdicts_its_expected_json_says() {
             ci: false,
             today: gate::run::today(),
             nix: nixtops::probe::nix_bin(),
+            writing_baseline: false,
         };
         let result = gate::run(&settings, Some(tools.clone()), &Seams::default());
         let report = serde_json::to_value(&result.report).unwrap();
@@ -183,6 +184,7 @@ fn a_dirty_tree_is_evaluated_from_its_tracked_files_and_gate_one_still_refuses_i
         ci: false,
         today: gate::run::today(),
         nix: nixtops::probe::nix_bin(),
+        writing_baseline: false,
     };
     // nix prints `warning: Git tree ...` for a dirty tree; laws/diagnostics.toml classifies it.
     let result = gate::run(&settings, Some(tools), &Seams::default());
@@ -249,6 +251,7 @@ fn a_template_in_a_fresh_source_is_copied_from_the_store() {
         ci: false,
         today: gate::run::today(),
         nix: nixtops::probe::nix_bin(),
+        writing_baseline: false,
     };
     let result = gate::run(&settings, Some(tools), &Seams::default());
     let report = serde_json::to_value(&result.report).unwrap();
@@ -294,6 +297,7 @@ fn a_selected_system_narrows_the_run_with_the_real_tools() {
             ci: false,
             today: gate::run::today(),
             nix: nixtops::probe::nix_bin(),
+            writing_baseline: false,
         };
         let result = gate::run(&settings, Some(tools.clone()), &Seams::default());
         let report = serde_json::to_value(&result.report).unwrap();
@@ -346,6 +350,7 @@ fn a_non_derivation_member_fails_only_on_the_selected_system_with_the_real_tools
             ci: false,
             today: gate::run::today(),
             nix: nixtops::probe::nix_bin(),
+            writing_baseline: false,
         };
         let result = gate::run(&settings, Some(tools.clone()), &Seams::default());
         let report = serde_json::to_value(&result.report).unwrap();
@@ -404,6 +409,7 @@ fn a_system_quoted_in_the_excerpt_of_another_systems_error_does_not_refuse_the_r
         ci: false,
         today: gate::run::today(),
         nix: nixtops::probe::nix_bin(),
+        writing_baseline: false,
     };
     let result = gate::run(&settings, Some(tools), &Seams::default());
     let report = serde_json::to_value(&result.report).unwrap();

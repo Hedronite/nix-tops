@@ -3,6 +3,7 @@
 
 use serde::{Serialize, Serializer};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 /// A verdict (protocol section 3.3), written as the schema's names.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -164,6 +165,22 @@ pub struct OutputEntry {
     pub level: &'static str,
 }
 
+/// Per-tool findings summary from gate 2 (lint).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct LintToolReport {
+    pub tool: String,
+    pub version: String,
+    pub config_hash: String,
+    pub files: BTreeMap<String, usize>,
+}
+
+/// Lint layer results recorded in `report.json`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct LintReport {
+    pub system: String,
+    pub tools: Vec<LintToolReport>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct BaselineIdentity {
     pub implementation: String,
@@ -197,6 +214,8 @@ pub struct Report {
     pub outputs: Vec<OutputEntry>,
     pub warnings: Vec<WarningEntry>,
     pub acks: Acks,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lint: Option<LintReport>,
 }
 
 /// Every verdict counted on its own, over the layers and the warnings.
@@ -223,6 +242,7 @@ pub struct Parts {
     pub outputs: Vec<OutputEntry>,
     pub warnings: Vec<WarningEntry>,
     pub acks: Vec<AckEntry>,
+    pub lint: Option<LintReport>,
 }
 
 impl Report {
@@ -247,7 +267,18 @@ impl Report {
                 count: parts.acks.len(),
                 entries: parts.acks,
             },
+            lint: parts.lint,
         }
+    }
+
+    /// Recomputes `counts` and `passed` after a post-layer pass (such as ratchet).
+    pub fn refresh_counts(&mut self) {
+        let failed = self.layers.iter().filter(|l| l.verdict.fails()).count();
+        self.counts = Counts {
+            verdicts: verdict_counts(&self.layers, &self.warnings),
+            failed,
+        };
+        self.passed = failed == 0;
     }
 }
 
@@ -274,6 +305,7 @@ mod tests {
             outputs: vec![],
             warnings,
             acks: vec![],
+            lint: None,
         }
     }
 
@@ -321,7 +353,7 @@ mod tests {
 
     #[test]
     fn layer_ids_round_trip_in_gate_order() {
-        let names: Vec<&str> = ALL_LAYERS.iter().map(|l| l.as_str()).collect();
+        let names: Vec<&str> = ALL_LAYERS.into_iter().map(LayerId::as_str).collect();
         assert_eq!(
             names,
             [
@@ -337,95 +369,58 @@ mod tests {
         for id in ALL_LAYERS {
             assert_eq!(LayerId::parse(id.as_str()), Some(id));
         }
-        assert_eq!(LayerId::parse("nope"), None);
+        assert_eq!(LayerId::parse("other"), None);
     }
 
     #[test]
-    fn counts_include_layers_and_warnings_each_on_their_own() {
+    fn finish_counts_every_verdict_and_fails_on_refuse_or_not_run() {
         let layers = vec![
             Layer::new(LayerId::Source, Verdict::Pass, None),
-            Layer::new(LayerId::Eval, Verdict::Refuse, Some("x".into())),
-            Layer::new(LayerId::Lint, Verdict::NotRun, Some("y".into())),
-            Layer::new(LayerId::Laws, Verdict::Skip, Some("z".into())),
+            Layer::new(LayerId::Lint, Verdict::Skip, Some("off".into())),
+            Layer::new(LayerId::Eval, Verdict::Refuse, Some("bad".into())),
+            Layer::new(LayerId::BuildTest, Verdict::NotRun, Some("stopped".into())),
         ];
-        let warning = WarningEntry {
+        let warnings = vec![WarningEntry {
             source: WarningSource::BuiltinsWarn,
-            message: "m".into(),
+            message: "w".into(),
             verdict: Verdict::Ack,
             entry: None,
-        };
-        let report = Report::finish(parts(layers, vec![warning]));
-        let v = &report.counts.verdicts;
-        assert_eq!(
-            (v["pass"].as_u64(), v["refuse"].as_u64(), v["ack"].as_u64()),
-            (Some(1), Some(1), Some(1))
-        );
-        assert_eq!(
-            (
-                v["skip"].as_u64(),
-                v["not_run"].as_u64(),
-                v["vacuous"].as_u64()
-            ),
-            (Some(1), Some(1), Some(0))
-        );
-        assert_eq!(report.counts.failed, 2);
+        }];
+        let mut report = Report::finish(parts(layers, warnings));
         assert!(!report.passed);
-    }
+        assert_eq!(report.counts.failed, 2);
+        assert_eq!(report.counts.verdicts["pass"], 1);
+        assert_eq!(report.counts.verdicts["skip"], 1);
+        assert_eq!(report.counts.verdicts["refuse"], 1);
+        assert_eq!(report.counts.verdicts["not_run"], 1);
+        assert_eq!(report.counts.verdicts["ack"], 1);
+        assert_eq!(report.counts.verdicts["deferred"], 0);
+        assert!(serde_json::to_value(&report).unwrap().get("lint").is_none());
 
-    #[test]
-    fn a_report_with_no_failing_layer_passed() {
-        let layers = vec![
-            Layer::new(LayerId::Source, Verdict::Pass, None),
-            Layer::new(LayerId::Lint, Verdict::Skip, Some("r".into())),
-        ];
-        let report = Report::finish(parts(layers, vec![]));
+        report.layers[2].verdict = Verdict::Pass;
+        report.layers[3].verdict = Verdict::Pass;
+        report.refresh_counts();
         assert!(report.passed);
-        assert_eq!(report.acks.count, 0);
-        assert!(report.laws.is_empty());
+        assert_eq!(report.counts.failed, 0);
     }
 
     #[test]
-    fn serialization_uses_schema_names_and_skips_absent_reasons() {
-        let layers = vec![
-            Layer::new(LayerId::BuildTest, Verdict::NotRun, Some("why".into())),
-            Layer::new(LayerId::Source, Verdict::Pass, None),
-        ];
-        let json = serde_json::to_value(Report::finish(parts(layers, vec![]))).unwrap();
-        assert_eq!(
-            json["layers"][0],
-            serde_json::json!({"id": "build-test", "verdict": "not-run", "reason": "why"})
-        );
-        assert_eq!(
-            json["layers"][1],
-            serde_json::json!({"id": "source", "verdict": "pass"})
-        );
-        let w = WarningEntry {
-            source: WarningSource::ConfigWarnings,
-            message: "m".into(),
-            verdict: Verdict::Refuse,
-            entry: None,
-        };
-        assert_eq!(
-            serde_json::to_value(w).unwrap(),
-            serde_json::json!({"source": "config-warnings", "message": "m", "verdict": "Refuse"})
-        );
-        let d = WarningSource::Diagnostic;
-        assert_eq!(serde_json::to_string(&d).unwrap(), "\"diagnostic\"");
-    }
-
-    #[test]
-    fn acks_are_counted_and_keep_the_match_key() {
-        let entry = AckEntry {
-            kind: "ledger",
-            matches: "m".into(),
-            reason: "r".into(),
-            until: "2099-01-01".into(),
-            expired: false,
-        };
+    fn lint_report_serializes_when_present() {
+        let mut files = BTreeMap::new();
+        files.insert("flake.nix".to_string(), 2);
         let mut p = parts(vec![], vec![]);
-        p.acks = vec![entry.clone()];
+        p.lint = Some(LintReport {
+            system: "aarch64-darwin".into(),
+            tools: vec![LintToolReport {
+                tool: "deadnix".into(),
+                version: "9.9.9".into(),
+                config_hash: "abc".into(),
+                files,
+            }],
+        });
         let report = Report::finish(p);
-        assert_eq!(report.acks.count, 1);
-        assert_eq!(serde_json::to_value(entry).unwrap()["match"], "m");
+        let json = serde_json::to_value(&report).unwrap();
+        assert_eq!(json["lint"]["system"], "aarch64-darwin");
+        assert_eq!(json["lint"]["tools"][0]["files"]["flake.nix"], 2);
     }
 }

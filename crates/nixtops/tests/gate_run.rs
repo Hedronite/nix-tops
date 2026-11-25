@@ -62,7 +62,7 @@ fn with_check<'a>(check: Arm<'a>, mut rest: Vec<Arm<'a>>) -> Vec<Arm<'a>> {
     all
 }
 
-const CHECK_OK: Arm = ("flake'*'check", "all checks passed!", "", 0);
+const CHECK_OK: Arm = ("flake check", "all checks passed!", "", 0);
 
 struct Rig {
     dir: tempfile::TempDir,
@@ -136,6 +136,7 @@ impl Rig {
             ci: false,
             today: "2026-11-18".to_string(),
             nix: self.nix.display().to_string(),
+            writing_baseline: false,
         }
     }
 
@@ -266,15 +267,42 @@ fn the_report_is_written_where_the_config_says_and_by_default() {
 fn layers_that_are_on_and_not_built_are_not_run_and_fail_the_gate() {
     let rig = rig();
     rig.set_config(CONFIG_ALL_ON);
-    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let mut build_json = String::from("[");
+    for (i, tool) in ["nixfmt", "statix", "deadnix", "gitleaks"]
+        .iter()
+        .enumerate()
+    {
+        let f = rig.tools_dir.path().join(format!("{tool}.json"));
+        fs::write(
+            &f,
+            format!(r#"{{"tool":"{tool}","version":"1.0","config_hash":"h","files":{{}}}}"#),
+        )
+        .unwrap();
+        if i > 0 {
+            build_json.push(',');
+        }
+        build_json.push_str(&format!(r#"{{"outputs":{{"out":"{}"}}}}"#, f.display()));
+    }
+    build_json.push(']');
+    let mut arms = judge_arms();
+    arms.push((r##"#."checks" --apply"##, r#"["x86_64-linux"]"#, "", 0));
+    arms.push((
+        r##"#."checks"."x86_64-linux" --apply"##,
+        r#"["nixtops-nixfmt-findings","nixtops-statix-findings","nixtops-deadnix-findings","nixtops-gitleaks-findings"]"#,
+        "",
+        0,
+    ));
+    arms.push(("build'*'--no-link", &build_json, "", 0));
+    let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
     let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
     assert_eq!(exit, Exit::GateFailed);
+    assert_eq!(verdict(&report, "lint"), "pass");
     assert_eq!(verdict(&report, "eval"), "pass");
-    for id in ["lint", "build-test", "coverage", "facet-layers", "laws"] {
+    for id in ["build-test", "coverage", "facet-layers", "laws"] {
         assert_eq!(verdict(&report, id), "not-run", "{id}");
         assert_eq!(reason(&report, id), "not built in this version");
     }
-    assert_eq!(report["counts"]["failed"], 5);
+    assert_eq!(report["counts"]["failed"], 4);
     assert_eq!(report["passed"], false);
 }
 
@@ -556,7 +584,7 @@ fn a_directory_outside_git_fails_gate_one() {
 fn a_failing_flake_check_refuses_gate_three_with_the_error() {
     let rig = rig();
     let check = (
-        "flake'*'check",
+        "flake check",
         "",
         "checking x\nerror: attribute 'foo' missing\n  at flake.nix:3",
         1,
@@ -625,7 +653,7 @@ fn a_flake_with_no_outputs_does_not_pass_the_config_check_or_the_gate() {
 fn import_from_derivation_is_named_n07() {
     let rig = rig();
     let check = (
-        "flake'*'check",
+        "flake check",
         "",
         "error: cannot build '/nix/store/x.drv' during evaluation because the option 'allow-import-from-derivation' is disabled",
         1,
@@ -640,7 +668,7 @@ fn import_from_derivation_is_named_n07() {
 fn import_from_derivation_on_a_cold_store_is_named_n07_too() {
     let rig = rig();
     let check = (
-        "flake'*'check",
+        "flake check",
         "",
         "error: path '/nix/store/3fzsvpwvqqimzfingp43v9b38c5j8slf-value.drv' is not valid",
         1,
@@ -659,7 +687,7 @@ fn import_from_derivation_on_a_cold_store_is_named_n07_too() {
     assert!(reason(&report, "eval").contains("N-07"));
     // A path that is not valid, and not a derivation, is not an import from derivation.
     let other = (
-        "flake'*'check",
+        "flake check",
         "",
         "error: path '/nix/store/aaa-source' is not valid",
         1,
@@ -954,7 +982,7 @@ fn c18_a_throw_on_another_system_does_not_fail_a_run_that_selects_one() {
     let rig = two_system_rig();
     // `flake check` fails on the aarch64 throw; its text names the attribute.
     let check = (
-        "flake'*'check",
+        "flake check",
         "",
         "checking derivation packages.x86_64-linux.default\nerror: qa broken on aarch64\n  … while checking the derivation 'packages.aarch64-linux.default'",
         1,
@@ -983,7 +1011,7 @@ fn c18_a_throw_on_another_system_does_not_fail_a_run_that_selects_one() {
 #[test]
 fn c19_the_same_throw_on_the_selected_system_still_fails() {
     let rig = two_system_rig();
-    let check = ("flake'*'check", "", "error: qa broken on x86", 1);
+    let check = ("flake check", "", "error: qa broken on x86", 1);
     let tools = rig.tools(
         &with_check(check, two_system_arms()),
         &nej_two(OK_LINE, THROW_LINE),
@@ -1000,7 +1028,7 @@ fn c19_the_same_throw_on_the_selected_system_still_fails() {
 fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
     let rig = two_system_rig();
     let tools_for = |text: &'static str| {
-        let check = ("flake'*'check", "", text, 1);
+        let check = ("flake check", "", text, 1);
         rig.tools(
             &with_check(check, two_system_arms()),
             &nej_two(OK_LINE, OK_LINE),
@@ -1134,7 +1162,7 @@ fn c20_a_warning_that_names_an_output_on_another_system_is_narrowed_out() {
 fn an_unclassified_diagnostic_fails_and_a_table_entry_for_it_turns_it_into_a_report_line() {
     let rig = rig();
     let check = (
-        "flake'*'check",
+        "flake check",
         "all checks passed!",
         "warning: ignoring untrusted flake configuration setting 'x'.\nPass '--accept-flake-config' to trust it",
         0,
@@ -1171,7 +1199,7 @@ fn an_unclassified_diagnostic_fails_and_a_table_entry_for_it_turns_it_into_a_rep
 fn a_fail_effect_entry_fails_the_gate() {
     let rig = rig();
     let check = (
-        "flake'*'check",
+        "flake check",
         "all checks passed!",
         "warning: bad thing happened",
         0,
@@ -1191,7 +1219,7 @@ fn the_flake_path_does_not_appear_in_the_report() {
     let rig = rig();
     let root = rig.root().canonicalize().unwrap().display().to_string();
     let check = (
-        "flake'*'check",
+        "flake check",
         "",
         &*format!("error: boom at {root}/flake.nix:1"),
         1,
@@ -1265,7 +1293,7 @@ fn the_host_evaluator_lists_derivations_one_attribute_at_a_time() {
         "hostnix",
         &[
             ("--version", "nix (Determinate Nix 3.22.3) 2.35.2", "", 0),
-            ("flake'*'check", "all checks passed!", "", 0),
+            ("flake check", "all checks passed!", "", 0),
             ("hash file", "sha256-LOCK", "", 0),
             ("config show system", "aarch64-darwin", "", 0),
             (

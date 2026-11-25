@@ -1,0 +1,10 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "lint": "pass",
+    "eval": "pass"
+  },
+  "named": "deadnix",
+  "note": "A clean flake passes gates 1, 2 and 3 and records all four lint tools in report.json."
+}
