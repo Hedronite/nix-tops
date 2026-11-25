@@ -25,11 +25,11 @@ jobs:
           python-version: "3.12"
       - name: Install check-jsonschema
         run: python -m pip install --disable-pip-version-check check-jsonschema==0.38.0
+      - name: "sync: copies match their sources"
+        run: python3 scripts/sync_check.py
       - name: Tests for the checkers
         run: python3 -m unittest discover -s scripts/tests -v
       - name: Spec checks
         run: python3 scripts/spec_check.py all
       - name: Generated rules match section 3.4
         run: python3 scripts/rules_gen.py check
-      - name: "sync: copies match their sources"
-        run: python3 scripts/sync_check.py
