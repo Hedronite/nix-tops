@@ -15,7 +15,7 @@ use crate::{
 };
 use clap::Args as ClapArgs;
 use serde_json::Value;
-use std::{fs, path::PathBuf};
+use std::{ffi::OsString, fs, path::PathBuf};
 
 #[derive(Debug, ClapArgs)]
 pub struct Args {
@@ -109,7 +109,12 @@ pub fn run_with(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> Out
     }
 }
 
-fn settings_of(args: &Args) -> Settings {
+/// `CI` set to anything but the empty string.
+fn ci_of(value: Option<OsString>) -> bool {
+    value.is_some_and(|value| !value.is_empty())
+}
+
+fn settings_of(args: &Args, ci: bool) -> Settings {
     Settings {
         root: args.path.clone(),
         keep_going: false,
@@ -119,7 +124,7 @@ fn settings_of(args: &Args) -> Settings {
             EvaluatorArg::Pinned => Evaluator::Pinned,
             EvaluatorArg::Host => Evaluator::Host,
         },
-        ci: std::env::var_os("CI").is_some_and(|value| !value.is_empty()),
+        ci,
         today: gate::run::today(),
         nix: probe::nix_bin(),
         writing_baseline: true,
@@ -132,5 +137,38 @@ pub fn run(args: &Args) -> Output {
         build_info::EVAL_JOBS_PATH,
         build_info::NIXPKGS_REF,
     );
-    run_with(&settings_of(args), tools, &Seams::default())
+    let settings = settings_of(args, ci_of(std::env::var_os("CI")));
+    run_with(&settings, tools, &Seams::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_run_writes_a_baseline_with_the_flags_given() {
+        for (flag, evaluator) in [
+            (EvaluatorArg::Pinned, Evaluator::Pinned),
+            (EvaluatorArg::Host, Evaluator::Host),
+        ] {
+            let args = Args {
+                path: PathBuf::from("p"),
+                evaluator: flag,
+            };
+            for ci in [false, true] {
+                let got = settings_of(&args, ci);
+                assert!(got.writing_baseline && !got.keep_going);
+                assert_eq!((got.only, got.system), (None, None));
+                assert_eq!((got.root, got.ci), (PathBuf::from("p"), ci));
+                assert_eq!(got.evaluator, evaluator);
+            }
+        }
+    }
+
+    #[test]
+    fn ci_is_set_only_by_a_value() {
+        assert!(!ci_of(None));
+        assert!(!ci_of(Some(OsString::new())));
+        assert!(ci_of(Some(OsString::from("1"))));
+    }
 }

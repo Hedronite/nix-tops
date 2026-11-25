@@ -116,14 +116,14 @@ fn compress(state: &mut [u32; 8], block: &[u8]) {
     for (k, w) in K.iter().zip(schedule(block)) {
         let [a, b, c, d, e, f, g, h] = v;
         let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
-        let choose = (e & f) ^ (!e & g);
+        let choose = g ^ (e & (f ^ g));
         let t1 = h
             .wrapping_add(s1)
             .wrapping_add(choose)
             .wrapping_add(*k)
             .wrapping_add(w);
         let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
-        let majority = (a & b) ^ (a & c) ^ (b & c);
+        let majority = b ^ ((a ^ b) & (b ^ c));
         let t2 = s0.wrapping_add(majority);
         v = [t1.wrapping_add(t2), a, b, c, d.wrapping_add(t1), e, f, g];
     }

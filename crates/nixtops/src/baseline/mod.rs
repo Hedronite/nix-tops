@@ -30,11 +30,7 @@ fn missing(doc: &Value) -> String {
 
 /// The lint half alone: what the lint layer knows when it asks.
 fn lint_only(root: &Path, doc: &Value, lint: &LintReport, old: Baseline) -> Result<(), String> {
-    let now = Baseline {
-        acks: old.acks,
-        laws: old.laws.clone(),
-        ..Baseline::of(root, doc, &report_of(lint))
-    };
+    let now = Baseline::of(root, doc, &report_of(lint));
     compare::judge(doc, &old, &now)
         .reason(LayerId::Lint)
         .map_or(Ok(()), Err)
@@ -111,9 +107,6 @@ fn judge_report(root: &Path, doc: &Value, report: &Report, old: &Baseline) -> Ju
     let lint = verdict_of(report, LayerId::Lint);
     if report.lint.is_none() && lint != Some(Verdict::Skip) {
         now.lint = old.lint.clone();
-    }
-    if verdict_of(report, LayerId::Laws) != Some(Verdict::Pass) && old.laws.is_empty() {
-        now.laws.clear();
     }
     compare::judge(doc, old, &now)
 }

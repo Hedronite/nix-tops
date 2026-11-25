@@ -188,6 +188,24 @@ mod tests {
     }
 
     #[test]
+    fn a_file_with_no_finding_is_left_out() {
+        let found = crate::report::LintToolReport {
+            tool: "deadnix".into(),
+            version: "1".into(),
+            config_hash: "h".into(),
+            files: BTreeMap::from([("a.nix".to_string(), 0), ("b.nix".to_string(), 1)]),
+        };
+        let lint = LintReport {
+            system: "s".into(),
+            tools: vec![found],
+        };
+        let tools = tools_of(Path::new("."), &json!({}), &lint);
+        let files: Vec<&String> = tools["deadnix"].files.keys().collect();
+        assert_eq!(files, ["b.nix"]);
+        assert_eq!(tools["deadnix"].inputs, None);
+    }
+
+    #[test]
     fn only_a_judged_law_enters_the_set() {
         let laws = [
             json!({"id": "N-01", "verdict": "pass"}),
