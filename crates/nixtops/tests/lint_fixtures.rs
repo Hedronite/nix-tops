@@ -84,6 +84,7 @@ fn deadnix_and_statix_findings_fail_hard_and_clean_passes_with_real_tools() {
             ci: false,
             today: gate::run::today(),
             nix: nixtops::probe::nix_bin(),
+            writing_baseline: false,
         };
         let res = gate::run(&settings, Some(tools.clone()), &Seams::default());
         assert_eq!(res.exit, want_exit, "{name}: {:?}", res.report);

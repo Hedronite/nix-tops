@@ -24,14 +24,17 @@ let
     else
       builtins.head eligible;
 
+  sortedExclude = builtins.sort builtins.lessThan exclude;
+  excludeTag = "\nexclude:" + builtins.concatStringsSep "\n" sortedExclude;
+
   statixCfgRel = (lintCfg.statix or { }).config or "statix.toml";
   statixCfgExists = builtins.pathExists (self + "/${statixCfgRel}");
   statixCfgHash = builtins.hashString "sha256" (
-    if statixCfgExists then builtins.readFile (self + "/${statixCfgRel}") else "default"
+    (if statixCfgExists then builtins.readFile (self + "/${statixCfgRel}") else "default") + excludeTag
   );
 
   deadnixFail = (lintCfg.deadnix or { }).fail or true;
-  deadnixCfgHash = builtins.hashString "sha256" "fail=${lib.boolToString deadnixFail}";
+  deadnixCfgHash = builtins.hashString "sha256" ("fail=${lib.boolToString deadnixFail}" + excludeTag);
 
   treefmtCfgRel =
     if builtins.pathExists (self + "/treefmt.toml") then
@@ -41,7 +44,8 @@ let
     else
       null;
   nixfmtCfgHash = builtins.hashString "sha256" (
-    if treefmtCfgRel != null then builtins.readFile (self + "/${treefmtCfgRel}") else "default-nixfmt"
+    (if treefmtCfgRel != null then builtins.readFile (self + "/${treefmtCfgRel}") else "default-nixfmt")
+    + excludeTag
   );
 
   gitleaksCfgRel = if builtins.pathExists (self + "/.gitleaks.toml") then ".gitleaks.toml" else null;
@@ -51,6 +55,7 @@ let
     (if gitleaksCfgRel != null then builtins.readFile (self + "/${gitleaksCfgRel}") else "default")
     + "|"
     + (if gitleaksIgnoreRel != null then builtins.readFile (self + "/${gitleaksIgnoreRel}") else "")
+    + excludeTag
   );
 
   # `lib.fileset.toSource` accepts only a Nix path; a flake `self` is a store path string, so

@@ -6,7 +6,7 @@ enforce = "hard"
 systems = ["x86_64-linux", "aarch64-linux"]
 
 [layers]
-build-test = { enabled = false, reason = "not built in M2 G0" }
-coverage = { enabled = false, reason = "not built in M2 G0" }
-facet-layers = { enabled = false, reason = "not built in M2 G0" }
-laws = { enabled = false, reason = "not built in M2 G0" }
+build-test = { enabled = false, reason = "not built yet" }
+coverage = { enabled = false, reason = "not built yet" }
+facet-layers = { enabled = false, reason = "not built yet" }
+laws = { enabled = false, reason = "not built yet" }

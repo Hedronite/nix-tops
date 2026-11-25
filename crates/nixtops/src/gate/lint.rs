@@ -27,6 +27,7 @@ pub struct Input<'a> {
     pub doc: &'a Value,
     pub enforce: &'a str,
     pub system: &'a str,
+    pub writing_baseline: bool,
 }
 
 /// Gate 2's result: the layer verdict and the structured tool counts for `report.json`.
@@ -208,7 +209,7 @@ pub fn kit_lib_expr(
          kitLib = builtins.fetchTree {{ type = \"path\"; path = {kp}; narHash = {kh}; }}; \
          target = builtins.fetchTree {{ type = \"path\"; path = {tp}; narHash = {th}; }}; \
          mkChecks = import (kitLib + \"/nix/lib/mkChecks.nix\") {{ inherit nixpkgs; }}; \
-         chk = (mkChecks {{ self = target; systems = [ {host} ]; }}).{host}; \
+         chk = (mkChecks {{ self = target; systems = [ {host} ]; exclude = [ ]; }}).{host}; \
          in [ {} ]",
         list.join(" ")
     )
@@ -299,6 +300,13 @@ pub fn parse_findings_json(text: &str) -> Result<LintToolReport, String> {
 }
 
 fn read_reports(paths: &[PathBuf]) -> Result<Vec<LintToolReport>, String> {
+    if paths.len() != TOOLS.len() {
+        return Err(format!(
+            "expected {} findings outputs, got {}",
+            TOOLS.len(),
+            paths.len()
+        ));
+    }
     paths
         .iter()
         .map(|path| {
@@ -332,10 +340,12 @@ pub fn findings_summary(tools: &[LintToolReport]) -> String {
 pub fn judge_verdict(input: &Input<'_>, lint: &LintReport) -> Layer {
     let total = total_findings(&lint.tools);
     match input.enforce {
-        "ratchet" => match crate::baseline::judge_lint(input.root, input.doc, lint) {
-            Ok(()) => Layer::new(LayerId::Lint, Verdict::Pass, None),
-            Err(reason) => Layer::new(LayerId::Lint, Verdict::Refuse, Some(reason)),
-        },
+        "ratchet" => {
+            match crate::baseline::judge_lint(input.root, input.doc, lint, input.writing_baseline) {
+                Ok(()) => Layer::new(LayerId::Lint, Verdict::Pass, None),
+                Err(reason) => Layer::new(LayerId::Lint, Verdict::Refuse, Some(reason)),
+            }
+        }
         "advisory" => {
             let reason = (total > 0).then(|| format!("advisory: {total} finding(s)"));
             Layer::new(LayerId::Lint, Verdict::Pass, reason)
@@ -494,6 +504,7 @@ mod tests {
             doc: &doc,
             enforce: "hard",
             system: "x86_64-linux",
+            writing_baseline: false,
         };
         assert_eq!(judge_verdict(&input_hard, &clean).verdict, Verdict::Pass);
         let refused = judge_verdict(&input_hard, &dirty);
@@ -514,6 +525,21 @@ mod tests {
             ..input_hard
         };
         assert_eq!(judge_verdict(&input_ratchet, &dirty).verdict, Verdict::Pass);
+    }
+
+    #[test]
+    fn write_kit_lib_populates_all_required_nix_files() {
+        let dir = tempfile::tempdir().unwrap();
+        write_kit_lib(dir.path()).unwrap();
+        for rel in [
+            "flake.nix",
+            "nix/tools.nix",
+            "nix/lib/default.nix",
+            "nix/lib/mkChecks.nix",
+            "nix/lib/parse_findings.py",
+        ] {
+            assert!(dir.path().join(rel).is_file(), "missing {rel}");
+        }
     }
 
     #[test]

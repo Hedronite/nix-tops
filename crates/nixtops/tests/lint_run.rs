@@ -17,11 +17,12 @@ use std::{
 };
 
 type Arm<'a> = (&'a str, &'a str, &'a str, i32);
+type ToolCounts<'a> = (&'a str, &'a str, &'a [(&'a str, usize)]);
 
 const REPORT_SCHEMA: &str = include_str!("../../../schema/gate-report.schema.json");
 const CORE_SCHEMA: &str = include_str!("../../../schema/core/core.schema.json");
 
-const CONFIG: &str = "protocol = \"0.2.0\"\nfacets = [\"package-set\"]\nenforce = \"hard\"\n\n[toolchain]\nsystems = [\"x86_64-linux\"]\n\n[layers]\nbuild-test = { enabled = false, reason = \"not built in M2 G0\" }\ncoverage = { enabled = false, reason = \"not built in M2 G0\" }\nfacet-layers = { enabled = false, reason = \"not built in M2 G0\" }\nlaws = { enabled = false, reason = \"not built in M2 G0\" }\n";
+const CONFIG: &str = "protocol = \"0.2.0\"\nfacets = [\"package-set\"]\nenforce = \"hard\"\n\n[toolchain]\nsystems = [\"x86_64-linux\"]\n\n[layers]\nbuild-test = { enabled = false, reason = \"not built yet\" }\ncoverage = { enabled = false, reason = \"not built yet\" }\nfacet-layers = { enabled = false, reason = \"not built yet\" }\nlaws = { enabled = false, reason = \"not built yet\" }\n";
 
 fn assert_valid(report: &Value) {
     let core: Value = serde_json::from_str(CORE_SCHEMA).unwrap();
@@ -114,10 +115,11 @@ impl Rig {
             ci: false,
             today: "2026-11-25".into(),
             nix: self.nix.display().to_string(),
+            writing_baseline: false,
         }
     }
 
-    fn write_findings(&self, counts: &[(&str, &str, &[(&str, usize)])]) -> String {
+    fn write_findings(&self, counts: &[ToolCounts<'_>]) -> String {
         let mut arr = String::from("[");
         for (idx, (tool, version, files)) in counts.iter().enumerate() {
             let mut file_map = serde_json::Map::new();
@@ -293,6 +295,7 @@ fn cross_system_passthru_and_kit_lib_fallbacks_work() {
     );
     assert_eq!(res.exit, Exit::Pass);
     assert_eq!(res.report.lint.as_ref().unwrap().system, "x86_64-linux");
+    assert_eq!(res.report.lint.as_ref().unwrap().tools.len(), 4);
 
     let mut kit_arms = base_arms();
     kit_arms.push((r##"#."checks" --apply"##, "", "error: no checks", 1));
@@ -311,6 +314,7 @@ fn cross_system_passthru_and_kit_lib_fallbacks_work() {
     );
     assert_eq!(res_kit.exit, Exit::Pass);
     assert_eq!(res_kit.report.lint.as_ref().unwrap().system, "x86_64-linux");
+    assert_eq!(res_kit.report.lint.as_ref().unwrap().tools.len(), 4);
 }
 
 #[test]
@@ -420,4 +424,51 @@ fn bad_findings_json_and_prefetch_error_fail_lint() {
             .unwrap()
             .contains("prefetch failed")
     );
+}
+
+#[test]
+fn host_system_wins_over_other_system_when_both_are_listed_and_bootstrap_skips_missing_baseline() {
+    let rig = Rig::new();
+    let build_json = rig.write_findings(&[
+        ("nixfmt", "1.5.0", &[]),
+        ("statix", "0.5.8", &[]),
+        ("deadnix", "1.3.2", &[("flake.nix", 1)]),
+        ("gitleaks", "8.30.1", &[]),
+    ]);
+    let mut arms = base_arms();
+    arms.push((
+        r##"#."checks" --apply"##,
+        r#"["aarch64-darwin","x86_64-linux"]"#,
+        "",
+        0,
+    ));
+    arms.push((
+        r##"#."checks"."aarch64-darwin" --apply"##,
+        FINDINGS_NAMES,
+        "",
+        0,
+    ));
+    arms.push((
+        r##"#."checks"."x86_64-linux" --apply"##,
+        FINDINGS_NAMES,
+        "",
+        0,
+    ));
+    arms.push(("build'*'--no-link", &build_json, "", 0));
+
+    let res = gate::run(&rig.settings(), Some(rig.tools(&arms)), &Seams::default());
+    assert_eq!(res.exit, Exit::GateFailed);
+    assert_eq!(res.report.lint.as_ref().unwrap().tools.len(), 4);
+
+    // Bootstrap with ratchet and missing baseline succeeds when writing_baseline = true.
+    let ratchet_cfg = CONFIG.replace(r#"enforce = "hard""#, r#"enforce = "ratchet""#);
+    fs::write(rig.dir.path().join("nix-tops.toml"), ratchet_cfg).unwrap();
+    git(rig.dir.path(), &["add", "-A"]);
+    git(rig.dir.path(), &["commit", "-q", "-m", "ratchet"]);
+    let boot = Settings {
+        writing_baseline: true,
+        ..rig.settings()
+    };
+    let res_boot = gate::run(&boot, Some(rig.tools(&arms)), &Seams::default());
+    assert_eq!(res_boot.exit, Exit::Pass);
 }

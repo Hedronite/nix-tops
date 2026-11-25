@@ -41,6 +41,8 @@ pub struct Settings {
     pub today: String,
     /// The host's `nix`, for the daemon floor and for `--evaluator host`.
     pub nix: String,
+    /// True when invoked by `nixtops baseline` so an initial bootstrap skips missing-baseline errors.
+    pub writing_baseline: bool,
 }
 
 /// A test-only argument. A normal run has none: the diagnostics table is `laws/diagnostics.toml`
@@ -239,6 +241,7 @@ fn dispatch_layer(
                 doc,
                 enforce: &settings_enforce(Some(doc)),
                 system: context.system,
+                writing_baseline: settings.writing_baseline,
             };
             let outcome = lint::run(session, &input);
             got.lint = outcome.lint;
@@ -378,7 +381,12 @@ fn stop_problems(verdict: &check::Verdict) -> Vec<String> {
 /// Runs the gate in `settings.root`: config first, then the layers.
 pub fn run(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> RunResult {
     let config_path = settings.root.join("nix-tops.toml");
-    let verdict = check::evaluate(&config_path, &settings.today, &settings.nix);
+    let verdict = check::evaluate_gate(
+        &config_path,
+        &settings.today,
+        &settings.nix,
+        settings.writing_baseline,
+    );
     if verdict.exit != Exit::Pass {
         let problems = stop_problems(&verdict);
         return stopped(settings, None, verdict.exit, problems);
@@ -412,8 +420,13 @@ pub fn run(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> RunResul
     // the outputs cannot be read at all the layers say why (gate 1 for a stale lock, gate 3 for
     // an evaluation error), so that run goes on without those checks.
     if let Ok(structure) = inventory::structure_of(&session, &flake_ref) {
-        let full =
-            check::evaluate_with_outputs(&config_path, &settings.today, &settings.nix, &structure);
+        let full = check::evaluate_gate_with_outputs(
+            &config_path,
+            &settings.today,
+            &settings.nix,
+            &structure,
+            settings.writing_baseline,
+        );
         if full.exit != Exit::Pass {
             return stopped(settings, Some(&doc), full.exit, stop_problems(&full));
         }
@@ -429,17 +442,22 @@ pub fn run(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> RunResul
     };
     let enforce = settings_enforce(Some(&doc));
     let mut report = make_report(enforce, identity, facets_of(&doc), got);
-    crate::baseline::ratchet_report(&settings.root, &doc, &mut report);
+    crate::baseline::ratchet_report(&settings.root, &doc, &mut report, settings.writing_baseline);
     let _ = write_report(&report_path(&settings.root, Some(&doc)), &report);
-    let exit = if report.passed {
-        Exit::Pass
-    } else {
-        Exit::GateFailed
-    };
+    let exit = run_exit(&report);
     RunResult {
         report,
         exit,
         problems: Vec::new(),
+    }
+}
+
+/// Exit code for a completed run: `advisory` exits 0 while preserving layer verdicts.
+pub fn run_exit(report: &Report) -> Exit {
+    if report.passed || report.enforce == "advisory" {
+        Exit::Pass
+    } else {
+        Exit::GateFailed
     }
 }
 
@@ -468,6 +486,29 @@ mod tests {
         assert_eq!(config_switch(&doc, LayerId::Coverage), None);
         assert_eq!(config_switch(&doc, LayerId::BuildTest), None);
         assert_eq!(config_switch(&json!({}), LayerId::Lint), None);
+    }
+
+    #[test]
+    fn advisory_exits_zero_even_when_layers_failed() {
+        let mut r = stopped_report(
+            &Settings {
+                root: PathBuf::from("."),
+                keep_going: false,
+                only: None,
+                system: None,
+                evaluator: Evaluator::Pinned,
+                ci: false,
+                today: "2026-11-25".into(),
+                nix: "nix".into(),
+                writing_baseline: false,
+            },
+            None,
+            "failed",
+        );
+        assert!(!r.passed);
+        assert_eq!(run_exit(&r), Exit::GateFailed);
+        r.enforce = "advisory".into();
+        assert_eq!(run_exit(&r), Exit::Pass);
     }
 
     #[test]

@@ -1,21 +1,26 @@
 //! Baseline writing and `ratchet` comparison (M2.3).
 //!
-//! G0 lays out the seam so G2 implements `src/baseline/**` and `src/cmd/baseline.rs` without
-//! editing shared dispatch files.
+//! Laid out as a seam so baseline/ratchet logic can be implemented in `src/baseline/**` and
+//! `src/cmd/baseline.rs` without editing shared dispatch files.
 
 use crate::report::{LintReport, Report};
 use serde_json::Value;
 use std::path::Path;
 
 /// Evaluates `lint` against the tracked baseline under `enforce = "ratchet"`.
-/// Returns `Ok(())` when within baseline, or `Err(reason)` when a count rises or the config
-/// narrowed.
-pub fn judge_lint(_root: &Path, _doc: &Value, _lint: &LintReport) -> Result<(), String> {
+/// Returns `Ok(())` when within baseline (or bootstrapping with `writing_baseline`), or
+/// `Err(reason)` when a count rises or the config narrowed.
+pub fn judge_lint(
+    _root: &Path,
+    _doc: &Value,
+    _lint: &LintReport,
+    _writing_baseline: bool,
+) -> Result<(), String> {
     Ok(())
 }
 
 /// Applies cross-layer baseline checks (ack count, judged-law set) under `enforce = "ratchet"`.
-pub fn ratchet_report(_root: &Path, _doc: &Value, _report: &mut Report) {}
+pub fn ratchet_report(_root: &Path, _doc: &Value, _report: &mut Report, _writing_baseline: bool) {}
 
 #[cfg(test)]
 mod tests {
@@ -24,12 +29,13 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn stub_ratchet_hooks_are_no_ops_until_m2_3() {
+    fn stub_ratchet_hooks_are_no_ops_until_ratchet_lands() {
         let lint = LintReport {
             system: "x86_64-linux".into(),
             tools: vec![],
         };
-        assert!(judge_lint(Path::new("."), &json!({}), &lint).is_ok());
+        assert!(judge_lint(Path::new("."), &json!({}), &lint, false).is_ok());
+        assert!(judge_lint(Path::new("."), &json!({}), &lint, true).is_ok());
 
         let mut report = Report::finish(Parts {
             protocol: crate::build_info::PROTOCOL.into(),
@@ -50,7 +56,7 @@ mod tests {
             acks: vec![],
             lint: Some(lint),
         });
-        ratchet_report(Path::new("."), &json!({}), &mut report);
+        ratchet_report(Path::new("."), &json!({}), &mut report, false);
         assert!(report.passed);
     }
 }

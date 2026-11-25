@@ -74,6 +74,9 @@ fn laws_switched_off(report: &Value) -> bool {
 /// The report as text.
 pub fn render_text(report: &Value) -> String {
     let mut lines: Vec<String> = items(report, "layers").map(layer_line).collect();
+    if str_of(report, "enforce") == "advisory" {
+        lines.push("run is not enforced: enforce = advisory".to_string());
+    }
     if laws_switched_off(report) {
         lines.push("laws are not enforced in this run: the laws layer is switched off".to_string());
     }
@@ -155,6 +158,17 @@ mod tests {
         assert!(!render_text(&skipped_other).contains("not enforced"));
         let laws_on = json!({"layers": [{"id": "laws", "verdict": "not-run", "reason": "r"}], "passed": false});
         assert!(!render_text(&laws_on).contains("not enforced"));
+    }
+
+    #[test]
+    fn advisory_report_says_run_is_not_enforced() {
+        let adv = json!({"enforce": "advisory", "layers": [], "passed": false});
+        assert!(render_text(&adv).contains(
+            "run is not enforced: enforce = advisory
+"
+        ));
+        let hard = json!({"enforce": "hard", "layers": [], "passed": false});
+        assert!(!render_text(&hard).contains("not enforced"));
     }
 
     #[test]

@@ -136,6 +136,7 @@ impl Rig {
             ci: false,
             today: "2026-11-18".to_string(),
             nix: self.nix.display().to_string(),
+            writing_baseline: false,
         }
     }
 
