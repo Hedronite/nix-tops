@@ -9,7 +9,7 @@ This section is the contract between this repository and any AI coding agents (o
 **Systems:** `{SYSTEMS}`
 **Enforce:** `{ENFORCE}`
 
-## Command list
+## Commands
 
 ```bash
 nix run .#nixtops -- check          # validate nix-tops.toml
