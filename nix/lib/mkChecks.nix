@@ -138,8 +138,10 @@ let
             chmod -R u+w "$work"
             cfg=${if treefmtCfgRel != null then "\"$work/${treefmtCfgRel}\"" else "\"${defaultTreefmtCfg}\""}
             raw="$TMPDIR/raw.out"
-            treefmt --ci --no-cache --walk filesystem --config-file "$cfg" --tree-root "$work" >"$raw" 2>&1 || true
-            python3 ${parser} findings nixfmt ${lib.escapeShellArg kit.tools.nixfmt.version} ${lib.escapeShellArg nixfmtCfgHash} "" "$raw" "$out"
+            err="$TMPDIR/err.out"
+            rc=0
+            treefmt --ci --no-cache --walk filesystem --config-file "$cfg" --tree-root "$work" >"$raw" 2>"$err" || rc=$?
+            python3 ${parser} findings nixfmt ${lib.escapeShellArg kit.tools.nixfmt.version} ${lib.escapeShellArg nixfmtCfgHash} "" "$rc" "$raw" "$err" "$out"
           '';
 
       statixFindings =
@@ -153,8 +155,10 @@ let
           }
           ''
             raw="$TMPDIR/raw.out"
-            statix check -o json ${lib.optionalString statixCfgExists "-c ${statixSrc}/${statixCfgRel}"} "${statixSrc}" >"$raw" || true
-            python3 ${parser} findings statix ${lib.escapeShellArg kit.tools.statix.version} ${lib.escapeShellArg statixCfgHash} "${statixSrc}" "$raw" "$out"
+            err="$TMPDIR/err.out"
+            rc=0
+            statix check -o json ${lib.optionalString statixCfgExists "-c ${statixSrc}/${statixCfgRel}"} "${statixSrc}" >"$raw" 2>"$err" || rc=$?
+            python3 ${parser} findings statix ${lib.escapeShellArg kit.tools.statix.version} ${lib.escapeShellArg statixCfgHash} "${statixSrc}" "$rc" "$raw" "$err" "$out"
           '';
 
       deadnixFindings =
@@ -168,8 +172,10 @@ let
           }
           ''
             raw="$TMPDIR/raw.out"
-            deadnix -o json "${deadnixSrc}" >"$raw" || true
-            python3 ${parser} findings deadnix ${lib.escapeShellArg kit.tools.deadnix.version} ${lib.escapeShellArg deadnixCfgHash} "${deadnixSrc}" "$raw" "$out"
+            err="$TMPDIR/err.out"
+            rc=0
+            deadnix -o json "${deadnixSrc}" >"$raw" 2>"$err" || rc=$?
+            python3 ${parser} findings deadnix ${lib.escapeShellArg kit.tools.deadnix.version} ${lib.escapeShellArg deadnixCfgHash} "${deadnixSrc}" "$rc" "$raw" "$err" "$out"
           '';
 
       gitleaksFindings =
@@ -183,10 +189,14 @@ let
           }
           ''
             raw="$TMPDIR/raw.json"
+            err="$TMPDIR/err.out"
+            rc=0
             gitleaks detect --no-git -s "${gitleaksSrc}" -f json -r "$raw" --exit-code 0 ${
               lib.optionalString (gitleaksCfgRel != null) "-c ${gitleaksSrc}/${gitleaksCfgRel}"
-            } ${lib.optionalString (gitleaksIgnoreRel != null) "-i ${gitleaksSrc}"} >/dev/null 2>&1 || true
-            python3 ${parser} findings gitleaks ${lib.escapeShellArg kit.tools.gitleaks.version} ${lib.escapeShellArg gitleaksCfgHash} "${gitleaksSrc}" "$raw" "$out"
+            } ${
+              lib.optionalString (gitleaksIgnoreRel != null) "-i ${gitleaksSrc}"
+            } >"$TMPDIR/gitleaks.out" 2>"$err" || rc=$?
+            python3 ${parser} findings gitleaks ${lib.escapeShellArg kit.tools.gitleaks.version} ${lib.escapeShellArg gitleaksCfgHash} "${gitleaksSrc}" "$rc" "$raw" "$err" "$out"
           '';
     in
     {

@@ -212,8 +212,8 @@ fn clean_lint_passes_and_records_tool_versions_and_counts_in_report() {
     assert_valid(&report);
     assert_eq!(report["lint"]["system"], "x86_64-linux");
     assert_eq!(report["lint"]["tools"].as_array().unwrap().len(), 4);
-    assert_eq!(report["lint"]["tools"][2]["tool"], "deadnix");
-    assert_eq!(report["lint"]["tools"][2]["version"], "1.3.2");
+    assert_eq!(report["lint"]["tools"][0]["tool"], "deadnix");
+    assert_eq!(report["lint"]["tools"][0]["version"], "1.3.2");
     let text = render_text(&report);
     assert!(text.contains("lint (x86_64-linux)"), "{text}");
     assert!(text.contains("deadnix 1.3.2: 0 finding(s)"), "{text}");
@@ -259,8 +259,8 @@ fn findings_fail_under_hard_stop_eval_and_record_per_file_counts() {
         .find(|l| l["id"] == "eval")
         .unwrap();
     assert_eq!(eval_layer["verdict"], "not-run");
-    assert_eq!(report["lint"]["tools"][1]["files"]["nix/a.nix"], 2);
-    assert_eq!(report["lint"]["tools"][2]["files"]["flake.nix"], 1);
+    assert_eq!(report["lint"]["tools"][3]["files"]["nix/a.nix"], 2);
+    assert_eq!(report["lint"]["tools"][0]["files"]["flake.nix"], 1);
 }
 
 #[test]
@@ -458,13 +458,32 @@ fn host_system_wins_over_other_system_when_both_are_listed_and_bootstrap_skips_m
 
     let res = gate::run(&rig.settings(), Some(rig.tools(&arms)), &Seams::default());
     assert_eq!(res.exit, Exit::GateFailed);
-    assert_eq!(res.report.lint.as_ref().unwrap().tools.len(), 4);
+    let ordered: Vec<&str> = res
+        .report
+        .lint
+        .as_ref()
+        .unwrap()
+        .tools
+        .iter()
+        .map(|t| t.tool.as_str())
+        .collect();
+    assert_eq!(ordered, vec!["deadnix", "gitleaks", "nixfmt", "statix"]);
 
-    // Bootstrap with ratchet and missing baseline succeeds when writing_baseline = true.
+    // Under ratchet without writing_baseline, the G0 stub refuses rather than passing vacuously.
     let ratchet_cfg = CONFIG.replace(r#"enforce = "hard""#, r#"enforce = "ratchet""#);
     fs::write(rig.dir.path().join("nix-tops.toml"), ratchet_cfg).unwrap();
+    fs::create_dir_all(rig.dir.path().join(".nix-tops")).unwrap();
+    fs::write(rig.dir.path().join(".nix-tops/baseline.json"), "{}\n").unwrap();
     git(rig.dir.path(), &["add", "-A"]);
     git(rig.dir.path(), &["commit", "-q", "-m", "ratchet"]);
+    let res_ratchet = gate::run(&rig.settings(), Some(rig.tools(&arms)), &Seams::default());
+    assert_eq!(res_ratchet.exit, Exit::GateFailed);
+    assert_eq!(
+        res_ratchet.report.layers[1].reason.as_deref(),
+        Some("ratchet not built yet")
+    );
+
+    // Bootstrap with ratchet succeeds when writing_baseline = true.
     let boot = Settings {
         writing_baseline: true,
         ..rig.settings()

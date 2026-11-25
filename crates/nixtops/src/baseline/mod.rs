@@ -14,9 +14,13 @@ pub fn judge_lint(
     _root: &Path,
     _doc: &Value,
     _lint: &LintReport,
-    _writing_baseline: bool,
+    writing_baseline: bool,
 ) -> Result<(), String> {
-    Ok(())
+    if writing_baseline {
+        Ok(())
+    } else {
+        Err("ratchet not built yet".to_string())
+    }
 }
 
 /// Applies cross-layer baseline checks (ack count, judged-law set) under `enforce = "ratchet"`.
@@ -34,7 +38,10 @@ mod tests {
             system: "x86_64-linux".into(),
             tools: vec![],
         };
-        assert!(judge_lint(Path::new("."), &json!({}), &lint, false).is_ok());
+        assert_eq!(
+            judge_lint(Path::new("."), &json!({}), &lint, false),
+            Err("ratchet not built yet".to_string())
+        );
         assert!(judge_lint(Path::new("."), &json!({}), &lint, true).is_ok());
 
         let mut report = Report::finish(Parts {

@@ -299,13 +299,30 @@ fn read_reports(paths: &[PathBuf]) -> Result<Vec<LintToolReport>, String> {
             paths.len()
         ));
     }
-    paths
+    let mut reports = paths
         .iter()
         .map(|path| {
             let text = fs::read_to_string(path)
                 .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
             parse_findings_json(&text)
         })
+        .collect::<Result<Vec<_>, _>>()?;
+    reports.sort_by(|a, b| a.tool.cmp(&b.tool));
+    Ok(reports)
+}
+
+fn deadnix_fail(doc: &Value) -> bool {
+    doc.pointer("/lint/deadnix/fail")
+        .and_then(Value::as_bool)
+        .unwrap_or(true)
+}
+
+fn failing_tools(doc: &Value, tools: &[LintToolReport]) -> Vec<LintToolReport> {
+    let fail_deadnix = deadnix_fail(doc);
+    tools
+        .iter()
+        .filter(|t| fail_deadnix || t.tool != "deadnix")
+        .cloned()
         .collect()
 }
 
@@ -343,11 +360,12 @@ pub fn judge_verdict(input: &Input<'_>, lint: &LintReport) -> Layer {
             Layer::new(LayerId::Lint, Verdict::Pass, reason)
         }
         _ => {
-            if total > 0 {
+            let failing = failing_tools(input.doc, &lint.tools);
+            if total_findings(&failing) > 0 {
                 Layer::new(
                     LayerId::Lint,
                     Verdict::Refuse,
-                    Some(findings_summary(&lint.tools)),
+                    Some(findings_summary(&failing)),
                 )
             } else {
                 Layer::new(LayerId::Lint, Verdict::Pass, None)
@@ -512,11 +530,59 @@ mod tests {
         assert_eq!(adv.reason.as_deref(), Some("advisory: 1 finding(s)"));
         assert_eq!(judge_verdict(&input_adv, &clean).reason, None);
 
+        let deadnix_off = json!({"lint": {"deadnix": {"fail": false}}});
+        let input_deadnix_off = Input {
+            doc: &deadnix_off,
+            ..input_hard
+        };
+        assert_eq!(
+            judge_verdict(&input_deadnix_off, &dirty).verdict,
+            Verdict::Pass
+        );
+        let both_dirty = LintReport {
+            system: "x86_64-linux".into(),
+            tools: vec![
+                sample_tool("deadnix", &[("flake.nix", 1)]),
+                sample_tool("statix", &[("a.nix", 2)]),
+            ],
+        };
+        let still_refused = judge_verdict(&input_deadnix_off, &both_dirty);
+        assert_eq!(still_refused.verdict, Verdict::Refuse);
+        assert_eq!(still_refused.reason.as_deref(), Some("statix: a.nix (2)"));
+
         let input_ratchet = Input {
             enforce: "ratchet",
             ..input_hard
         };
-        assert_eq!(judge_verdict(&input_ratchet, &dirty).verdict, Verdict::Pass);
+        let ratchet_refused = judge_verdict(&input_ratchet, &dirty);
+        assert_eq!(ratchet_refused.verdict, Verdict::Refuse);
+        assert_eq!(
+            ratchet_refused.reason.as_deref(),
+            Some("ratchet not built yet")
+        );
+        let ratchet_boot = Input {
+            writing_baseline: true,
+            ..input_ratchet
+        };
+        assert_eq!(judge_verdict(&ratchet_boot, &dirty).verdict, Verdict::Pass);
+    }
+
+    #[test]
+    fn read_reports_sorts_tools_deterministically() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut paths = Vec::new();
+        for tool in ["statix", "nixfmt", "gitleaks", "deadnix"] {
+            let p = dir.path().join(format!("{tool}.json"));
+            fs::write(
+                &p,
+                format!(r#"{{"tool":"{tool}","version":"1.0","config_hash":"h","files":{{}}}}"#),
+            )
+            .unwrap();
+            paths.push(p);
+        }
+        let tools = read_reports(&paths).unwrap();
+        let names: Vec<&str> = tools.iter().map(|t| t.tool.as_str()).collect();
+        assert_eq!(names, vec!["deadnix", "gitleaks", "nixfmt", "statix"]);
     }
 
     #[test]
