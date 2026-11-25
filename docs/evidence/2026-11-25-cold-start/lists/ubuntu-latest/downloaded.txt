@@ -1,0 +1,14 @@
+/nix/store/1d64b30hbvnh7y01bbwgdn8wq05i50zb-crate-borrow-or-share-0.2.4.tar.gz 5360
+/nix/store/0qv22pnrp295h59gdcahvld97k8gs5ia-crate-email_address-0.2.10.tar.gz 40384
+/nix/store/36bzcgvbx2mrvngfhx1y1k4qbrzq98f9-crate-fancy-regex-0.20.2.tar.gz 287552
+/nix/store/03gd2bqdpzfksnrj82617bwhsgbl3wbr-crate-fluent-uri-0.4.1.tar.gz 51320
+/nix/store/hdfma96kwpgg1y5h43dwnjfc9a7ddqx3-crate-fraction-0.17.0.tar.gz 118152
+/nix/store/dr4qqbyhsjhx19zlpjxmwdm9347zfkb9-crate-jsonschema-0.61.2.tar.gz 812464
+/nix/store/jc1pw1jh93v3n3b5vxckl27w0sx304z0-crate-jsonschema-regex-0.61.2.tar.gz 27456
+/nix/store/g1q7ha8zya4a10s05kvy9xc6pfy1ng4z-crate-jsonschema-value-0.61.2.tar.gz 97984
+/nix/store/nyd10f987ckakyfj943fi54rz7l6v3b9-crate-micromap-0.3.0.tar.gz 59872
+/nix/store/cwzikrj9m7q2s27dpa9xx3g9p9wiiwcd-crate-referencing-0.61.2.tar.gz 61840
+/nix/store/0qqikzmfbbbarbd1y4khahg98w35va9f-crate-strum-0.28.0.tar.gz 8664
+/nix/store/l0mfz15v4ji8m7wqvsd93m3ksynk9gid-crate-strum_macros-0.28.0.tar.gz 31080
+/nix/store/5hqci059q0c0wn7w9d56v9va80xvc239-crate-unicode-general-category-1.1.0.tar.gz 36600
+/nix/store/mkbwidirbx1z8hibr9bfkjqnqw20xc5k-crate-uuid-simd-0.8.0.tar.gz 7072

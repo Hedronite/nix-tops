@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Time `nix run .#nixtops -- version` on an empty store and say what it fetched and what it built.
 
-Usage: measure.py <outdir>. Exits non-zero when the store already holds the runner or a Rust
-toolchain, when the command fails, or when the lock changes. The time itself never fails the run.
+Usage: measure.py <outdir>. Exits non-zero when the adopter lock does not pin the kit's inputs as
+the kit's own lock does, when the store already holds the runner or a Rust toolchain, when the
+command fails, or when the lock changes. The time itself never fails the run.
 """
 
 import json
@@ -45,6 +46,24 @@ def kind(path, info):
     return "source"
 
 
+def lock_drift(kit, adopter):
+    """The kit's inputs that the adopter's lock pins differently.
+
+    Nix evaluates a relative path input with the nodes the adopter's lock already holds, so without
+    this check a moved kit pin leaves the old runner being timed.
+    """
+    nodes = adopter["nodes"]
+    mirrored = nodes[nodes[adopter["root"]]["inputs"]["nix-tops"]].get("inputs", {})
+    drift = []
+    for name, node in kit["nodes"][kit["root"]]["inputs"].items():
+        want = kit["nodes"][node]["locked"]
+        got = nodes[mirrored[name]]["locked"] if isinstance(mirrored.get(name), str) else {}
+        for key in ("rev", "narHash"):
+            if got.get(key) != want.get(key):
+                drift.append(f"{name} {key}: the kit has {want.get(key)}, the adopter lock has {got.get(key)}")
+    return drift
+
+
 def timed(command, env, log):
     """Run the command; write each stderr line with the seconds since the start."""
     start = time.monotonic()
@@ -64,6 +83,13 @@ def main():
         sys.exit(__doc__)
     outdir = Path(sys.argv[1]).resolve()
     outdir.mkdir(parents=True, exist_ok=True)
+
+    drift = lock_drift(
+        json.loads((HERE / ".." / ".." / "flake.lock").read_text(encoding="utf-8")),
+        json.loads((HERE / "flake.lock").read_text(encoding="utf-8")),
+    )
+    if drift:
+        sys.exit("fixtures/adopter/flake.lock is behind the kit's flake.lock; run `nix flake lock` here:\n" + "\n".join(drift))
 
     before = store()
     (outdir / "store-before.txt").write_text("".join(f"{p}\n" for p in sorted(before)), encoding="utf-8")

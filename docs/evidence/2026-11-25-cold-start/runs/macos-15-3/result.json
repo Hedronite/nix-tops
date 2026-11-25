@@ -1,0 +1,65 @@
+{
+  "command": "nix run .#nixtops --no-update-lock-file --no-accept-flake-config -L -- version",
+  "seconds": 536.3,
+  "over_target": true,
+  "nix": "nix (Nix) 2.35.6",
+  "machine": "arm64-darwin",
+  "cpus": 3,
+  "config": {
+    "max-jobs": "3",
+    "cores": "0",
+    "sandbox": "false",
+    "substituters": "https://cache.nixos.org/"
+  },
+  "store_paths_before": 65,
+  "new": {
+    "fetched": {
+      "paths": 283,
+      "bytes": 3768138568
+    },
+    "downloaded": {
+      "paths": 14,
+      "bytes": 1645800
+    },
+    "built": {
+      "paths": 26,
+      "bytes": 17577856
+    },
+    "source": {
+      "paths": 358,
+      "bytes": 1883864
+    },
+    "derivation": {
+      "paths": 1682,
+      "bytes": 6840960
+    }
+  },
+  "built": [
+    "borrow-or-share-0.2.4",
+    "bumpalo-3.20.4",
+    "cargo-vendor-dir",
+    "clap-4.6.8",
+    "clap_derive-4.6.8",
+    "clap_lex-1.1.2",
+    "email_address-0.2.10",
+    "fancy-regex-0.20.2",
+    "fluent-uri-0.4.1",
+    "fraction-0.17.0",
+    "jsonschema-0.61.2",
+    "jsonschema-regex-0.61.2",
+    "jsonschema-value-0.61.2",
+    "micromap-0.3.0",
+    "nixtops-0.0.0",
+    "num-cmp-0.1.0",
+    "outref-0.5.2",
+    "referencing-0.61.2",
+    "smallvec-1.16.6",
+    "strum-0.28.0",
+    "strum_macros-0.28.0",
+    "toml-1.2.1+spec-1.1.0",
+    "toml_writer-1.2.0+spec-1.1.0",
+    "unicode-general-category-1.1.0",
+    "uuid-simd-0.8.0",
+    "vsimd-0.8.0"
+  ]
+}

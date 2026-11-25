@@ -1,0 +1,59 @@
+{
+  "command": "nix run .#nixtops --no-update-lock-file --no-accept-flake-config -L -- version",
+  "seconds": 755.5,
+  "over_target": true,
+  "nix": "nix (Nix) 2.35.6",
+  "machine": "x86_64-linux",
+  "cpus": 4,
+  "config": {
+    "max-jobs": "4",
+    "cores": "0",
+    "sandbox": "true",
+    "substituters": "https://cache.nixos.org/"
+  },
+  "store_paths_before": 72,
+  "new": {
+    "fetched": {
+      "paths": 286,
+      "bytes": 3184479672
+    },
+    "downloaded": {
+      "paths": 14,
+      "bytes": 1645800
+    },
+    "built": {
+      "paths": 20,
+      "bytes": 17940680
+    },
+    "source": {
+      "paths": 342,
+      "bytes": 1836936
+    },
+    "derivation": {
+      "paths": 1892,
+      "bytes": 6175320
+    }
+  },
+  "built": [
+    "borrow-or-share-0.2.4",
+    "cargo-vendor-dir",
+    "clap-4.6.8",
+    "clap_derive-4.6.8",
+    "clap_lex-1.1.2",
+    "email_address-0.2.10",
+    "fancy-regex-0.20.2",
+    "fluent-uri-0.4.1",
+    "fraction-0.17.0",
+    "jsonschema-0.61.2",
+    "jsonschema-regex-0.61.2",
+    "jsonschema-value-0.61.2",
+    "micromap-0.3.0",
+    "nixtops-0.0.0",
+    "num-cmp-0.1.0",
+    "referencing-0.61.2",
+    "strum-0.28.0",
+    "strum_macros-0.28.0",
+    "unicode-general-category-1.1.0",
+    "uuid-simd-0.8.0"
+  ]
+}

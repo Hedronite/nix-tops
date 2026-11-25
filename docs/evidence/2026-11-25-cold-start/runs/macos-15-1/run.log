@@ -1,0 +1,1395 @@
+     0.2 copying path '/nix/store/qbr8hmkwvspln5nbs1qch660cfba6a1z-source' from 'https://cache.nixos.org'...
+    18.7 copying path '/nix/store/64d7bdawbnr6pwp2sgjm83jl6r95gimc-source' from 'https://cache.nixos.org'...
+    37.0 these 40 derivations will be built:
+    37.0   /nix/store/8znx3qp846np5k087yhny287c57skva8-crate-fraction-0.17.0.tar.gz.drv
+    37.0   /nix/store/1hk5dysjri45y2qcrdsgw9pkd4y8myb2-fraction-0.17.0.drv
+    37.0   /nix/store/1md2ca4sjvzx8qr99rcf263s4n53dnmp-crate-email_address-0.2.10.tar.gz.drv
+    37.0   /nix/store/sgf8ww9a4pilvkjk7hmklp818n3xrm30-crate-jsonschema-value-0.61.2.tar.gz.drv
+    37.0   /nix/store/2sxa93pf7xcc3wfw508bnlf0wj74xlcb-jsonschema-value-0.61.2.drv
+    37.0   /nix/store/c9vrsn791sdql2p7r3iw7ccwq9dmk8qk-crate-strum_macros-0.28.0.tar.gz.drv
+    37.0   /nix/store/4g9sjrxfh622vvjy3q48vg7whr2qdv97-strum_macros-0.28.0.drv
+    37.0   /nix/store/y8fqx1d6szqnnvga88zgg91di2y8x355-crate-borrow-or-share-0.2.4.tar.gz.drv
+    37.0   /nix/store/4gq6pyz2ma2zpym6w72dld6jdq6gnyjz-borrow-or-share-0.2.4.drv
+    37.0   /nix/store/598m339y9ah7sj0mkqd6wrb24dxiiavw-toml-1.2.1+spec-1.1.0.drv
+    37.0   /nix/store/6hxx3qx5jwvwssr3xbkmsb1w2j6c6mk0-crate-jsonschema-0.61.2.tar.gz.drv
+    37.0   /nix/store/q6zsrwb3wg3c4fhy990ajp3jylrbn6qg-crate-unicode-general-category-1.1.0.tar.gz.drv
+    37.0   /nix/store/7r6v348al44jlkix36fpw5bm17ckj0pl-unicode-general-category-1.1.0.drv
+    37.0   /nix/store/9bgp0h4m0grf3abmz8vkzdbzyq71kjps-crate-uuid-simd-0.8.0.tar.gz.drv
+    37.0   /nix/store/9mp1mw7hjg461mj3j0fv64f4j4fs171p-crate-fluent-uri-0.4.1.tar.gz.drv
+    37.0   /nix/store/a016x6g6cmhdh85i6yd14li6yf6986qc-clap-4.6.8.drv
+    37.0   /nix/store/av8r7v02xaqfrxw1p8fjq2ll3ykf5y65-num-cmp-0.1.0.drv
+    37.0   /nix/store/c10bgrwlkij6hkqyrhhvzamfzkiabi61-clap_lex-1.1.2.drv
+    37.0   /nix/store/d3i3qs4lyqlmav7zbgwg06f03s8jq1yj-uuid-simd-0.8.0.drv
+    37.0   /nix/store/dbrraslxx3cpvxf2492y3bvb1jb5sdd0-crate-jsonschema-regex-0.61.2.tar.gz.drv
+    37.0   /nix/store/d4nfqrf896kcfq1cl9shbdaas7qbzpq0-jsonschema-regex-0.61.2.drv
+    37.0   /nix/store/g21dlilmqayifc3lyjs86yax4m6z3jv2-jsonschema-0.61.2.drv
+    37.0   /nix/store/s123gwqpc9bgqcqiw47lsk7w887lkhvl-crate-micromap-0.3.0.tar.gz.drv
+    37.0   /nix/store/gggxf2ab15ryjhw7y18hxxqwd3y7wwfi-micromap-0.3.0.drv
+    37.0   /nix/store/j1ppfwm74lspc1gs9rb3jb9y0kfn9h2k-smallvec-1.16.6.drv
+    37.0   /nix/store/w3p25l3pf242rlhy905cvddhlv1n8p6p-crate-fancy-regex-0.20.2.tar.gz.drv
+    37.0   /nix/store/klak4y72jswcz4h857z4z5dxfgiy7lfn-fancy-regex-0.20.2.drv
+    37.0   /nix/store/lg0zi6i11cw5si0wnm4h8rxpyxjxabwm-outref-0.5.2.drv
+    37.0   /nix/store/ngvwkh865dqcrjpb1m1vmbmsk4qy7cl7-vsimd-0.8.0.drv
+    37.0   /nix/store/l7jzqshbj6saca1536w76b4x4japirav-crate-referencing-0.61.2.tar.gz.drv
+    37.0   /nix/store/pixlll1ynj96b8if8kjwp70zqcvxlsnf-referencing-0.61.2.drv
+    37.0   /nix/store/gnmwy546awnq9w67dfgs6i6nsk7908cz-crate-strum-0.28.0.tar.gz.drv
+    37.0   /nix/store/q2pfv69pa3ljcm0sj7j88wfpxwd9wzkm-strum-0.28.0.drv
+    37.0   /nix/store/qwr87hycnya160c7xf8s8gh1fkh0hjji-bumpalo-3.20.4.drv
+    37.0   /nix/store/v73mk0jjwwajvny4n5ihx04bcg9v5k90-clap_derive-4.6.8.drv
+    37.0   /nix/store/vvqb3prird92amdq8gi177rpzbw9y24r-toml_writer-1.2.0+spec-1.1.0.drv
+    37.0   /nix/store/wabd8faqgl96a23d7mcrply030vghfys-fluent-uri-0.4.1.drv
+    37.0   /nix/store/yi6rk33j7lzv0jrkvd14g8bb0x1b683b-email_address-0.2.10.drv
+    37.0   /nix/store/k4mvl12ci5xhrj9xg91xmp1v7cj7ssy0-cargo-vendor-dir.drv
+    37.0   /nix/store/g2q1w9pnvwcifybrf6c78x35z0pm8wm7-nixtops-0.0.0.drv
+    37.0 these 281 paths will be fetched (798.3 MiB download, 3.1 GiB unpacked):
+    37.0   /nix/store/2npdvws0adidhixmkr3yl8v85338pqff-ahash-0.8.12
+    37.0   /nix/store/n1x6h8ha7dcr2dfrn72s9f5gwgj1645d-aho-corasick-1.1.5
+    37.0   /nix/store/7q1lxh6gwn4ar4bm08vgsklmn4ayb2g8-allocator-api2-0.2.21
+    37.0   /nix/store/ygrj47g3cxl1ksl5pqpj4wcyj8a74g0y-anstream-1.0.0
+    37.0   /nix/store/fj4xlvr1hh4nzdjpki20p210k4qxypcv-anstyle-1.0.14
+    37.0   /nix/store/rsl3mdhynm17ssmj06rkyqkd7p33s9g3-anstyle-parse-1.0.0
+    37.0   /nix/store/ilbj6pd77wwss1q3i9688wfqcdj05m3n-anstyle-query-1.1.5
+    37.0   /nix/store/2kpv99h3ynh16xjbm1vr4r5mwq7v00zn-anstyle-wincon-3.0.11
+    37.0   /nix/store/dv782zq7nhscr843jljak8fvcqvv9a9a-apple-sdk-14.4
+    37.0   /nix/store/yvhrk9zf7c766mzrpwi79xcag010bxg4-auditable-cargo-1.99.1
+    37.0   /nix/store/cp7dprm5rbk56xzjzvbc6xr3519w3swm-autocfg-1.5.1
+    37.0   /nix/store/r2z42avjsaaycvr3b456g3r8rlniqsrv-aws-c-auth-1.0.0
+    37.0   /nix/store/ngq48ic1a216psva7mdck31dy4d6zgbf-aws-c-cal-1.0.0
+    37.0   /nix/store/b2xp1ak6yyddi5rr5kzzzf5by3cb0wzj-aws-c-common-1.0.0
+    37.0   /nix/store/l05hi3ddilhv1cg4b7r8a1d0dx87b9fl-aws-c-compression-1.0.0
+    37.0   /nix/store/ny9h8x72h2k3dvc301bny5j2ka11y8al-aws-c-event-stream-1.0.0
+    37.0   /nix/store/avwjvp2hvvsn0s59k3rpbvibx98v38ij-aws-c-http-1.0.0
+    37.0   /nix/store/jp614nw09gpkq8h3a5k0bgljz02x4vzx-aws-c-io-1.0.0
+    37.0   /nix/store/xyrl9pc5l62c7ljy788rb2kvjbh6l85s-aws-c-mqtt-1.0.0
+    37.0   /nix/store/parypa3yyx1rmrrkpbmzmi9a3i8jnxd9-aws-c-s3-1.1.2
+    37.0   /nix/store/22bav5ihsv11wjcdc578a1k04ly6ay5q-aws-c-sdkutils-1.0.0
+    37.0   /nix/store/gcvphxn8q3qky4fmvdgx8gv1c7zfndcd-aws-checksums-1.0.0
+    37.0   /nix/store/svl6q5ipb8mbk9gnlc6qajraghhs3gc3-aws-crt-cpp-0.43.6
+    37.0   /nix/store/0xvlm2gh32710pjdswinpjqyahpfifiq-bash-5.3p20
+    37.0   /nix/store/1amxjdwiaqq5d04z42cmr1q6gynlqd60-bit-set-0.8.0
+    37.0   /nix/store/abqcjdkb5i6k7wnjf58hihb14pzhpps3-bit-vec-0.8.0
+    37.0   /nix/store/ccifc0va934bl9pdr75phkwnvs204l4c-bitflags-2.13.2
+    37.0   /nix/store/jcwwsw6gc95rcn6dkq1z46ff5h6fb3w8-boehm-gc-8.2.12
+    37.0   /nix/store/b9ij0m5a66fccyi1ssn2k07awlgxgkhw-boost-1.89.0
+    37.0   /nix/store/nvw2hk36ayg8ck84kxq5pfancdxxnwz5-brotli-1.2.1-lib
+    37.0   /nix/store/fcnjsq01kbnfqbcm7w0mq9v4gr5lwg5l-bytecount-0.6.9
+    37.0   /nix/store/2xcgs5f1iy1qx1xwa80v1r996cjf9z1q-bzip2-1.0.8
+    37.0   /nix/store/4a24vmd1hw8bvrmkhcdxi7bpxk3dzf9f-bzip2-1.0.8-bin
+    37.0   /nix/store/pbzrwqjzlp20f7ikk5l16zsz7041f5lp-cargo-1.99.1
+    37.0   /nix/store/829fg85972zskv0jpq53jn6p98c6gfd0-cargo-auditable-0.7.7
+    37.0   /nix/store/2fdb80ib7lyyxvvwvsqvajc3xdl553db-cargo-build-hook.sh
+    37.0   /nix/store/wh34bwly4jv9wfb0bcjzsmp1g0n4hlg5-cargo-check-hook.sh
+    37.0   /nix/store/pr5j2khvqfh48w7zlc27wpiwcpgm33m1-cargo-install-hook.sh
+    37.0   /nix/store/rxyf1yaam92f0nzlkjw18xrmln89024b-cargo-setup-hook.sh
+    37.0   /nix/store/qw6wc1f91hrs74032fjd9jg9jbs2v27h-cctools-1010.6
+    37.0   /nix/store/m028wspl51qvjy3yqc7rcwgrm4sfnscw-cctools-1010.6-libtool
+    37.0   /nix/store/dmq4zj7r6ws065701klkb549xnf7xldl-cctools-binutils-darwin-1010.6
+    37.0   /nix/store/4sza0vqq5pq5s91vkqlk21hq040rmrs9-cctools-binutils-darwin-wrapper-1010.6
+    37.0   /nix/store/l9s6ii770n2djjl3mgjkh4zzrl5d76wd-cfg-if-1.0.5
+    37.0   /nix/store/y5zh9q993q99swc083qs3cvxmww1qnp8-clang-21.1.8
+    37.0   /nix/store/cs2xsrgn9gwgh3mfxvr3rfhi9if55bgv-clang-21.1.8-lib
+    37.0   /nix/store/g8ygy4cj8gizpf47cpycr64fpkimchc8-clang-wrapper-21.1.8
+    37.0   /nix/store/bc4grwa403isaphajsmpas23z1lns8xw-clap_builder-4.6.7
+    37.0   /nix/store/vdpzpk72wjvii3qb44yq05ygvf0brc68-colorchoice-1.0.5
+    37.0   /nix/store/gby686si07vfnwxpy4xm431k8w0wwwjy-compiler-rt-libc-21.1.8
+    37.0   /nix/store/gsd9wm9ff4wkj8qfrcddhi5n8sv6d154-compiler-rt-libc-21.1.8-dev
+    37.0   /nix/store/s3nhfncnjczym02h4rz782phaz760jr8-coreutils-9.12
+    37.0   /nix/store/3g66jhnk1cps0l4wlpsi0dpkky1xf7ji-crate-bumpalo-3.20.4.tar.gz
+    37.0   /nix/store/x6xk3dzgydxrdwmq1wph916shfbw4nxm-crate-clap-4.6.8.tar.gz
+    37.0   /nix/store/km5cyfwy1zj2vx8mxyd2i3c1vs9d20a0-crate-clap_derive-4.6.8.tar.gz
+    37.0   /nix/store/hdy9k2ipkms4ihlyhxzfg3zrmpqagzv1-crate-clap_lex-1.1.2.tar.gz
+    37.0   /nix/store/4wg73s3f3ib9gk8c8gp74jskyj90hsvq-crate-num-cmp-0.1.0.tar.gz
+    37.0   /nix/store/b3i4mz2avnx7i2fl19qggnp4ddyscnja-crate-outref-0.5.2.tar.gz
+    37.0   /nix/store/9lrjj7i42c51xzsqrx8ly5sls62ajc1c-crate-smallvec-1.16.6.tar.gz
+    37.0   /nix/store/z8rqickvby0n70xqjccfxri0fwxs3pmd-crate-toml-1.2.1+spec-1.1.0.tar.gz
+    37.0   /nix/store/7alnjhbcp20p7z2mx3a318cv0xn05j9z-crate-toml_writer-1.2.0+spec-1.1.0.tar.gz
+    37.0   /nix/store/2zp0kj6zdcdda5dsagl3s41gqrjmv0xj-crate-vsimd-0.8.0.tar.gz
+    37.0   /nix/store/qy3kdswh7j1gvpwdjnfpb0a0k4628glv-cups-headers-2.4.19
+    37.0   /nix/store/h60i6sraqy8ws2ny0fk4z0dmzfsl3y1a-curl-8.23.0
+    37.0   /nix/store/mm0hkwdpml5ma5h3j07m64dqzbva2h5n-curl-8.23.0
+    37.0   /nix/store/nvv9fkc39rf2w7bkgab61882dg0dpg22-curl-8.23.0-bin
+    37.0   /nix/store/9qrq1jkshvca59la2fys6qvb2wr46vs3-curl-8.23.0-dev
+    37.0   /nix/store/5psng2519bh63g33f0cq0dlb3j1anary-curl-8.23.0-man
+    37.0   /nix/store/65f5pv6addazlfcxgh24rk02zcgvpys2-data-encoding-2.11.1
+    37.0   /nix/store/f5jldxafi4yfg8v0c22pidlkj9ipr2pp-deranged-0.5.9
+    37.0   /nix/store/w9aszqal5ijdqi2jgp2b98xjz445lz6w-diffutils-3.12
+    37.0   /nix/store/s8nh8ir6v973jrs88l06zv1z5klhgpzc-ed-1.22.6
+    37.0   /nix/store/civ9pghvmjs5w01nxm51ihd40cgm672d-editline-1.17.1-unstable-2025-05-24
+    37.0   /nix/store/jwynqsxirc5va95g7hzmhqj90g1pqdn8-equivalent-1.0.3
+    37.0   /nix/store/cax7nm4466ngnh3z468mwbpsqa77naqn-errno-0.3.15
+    37.0   /nix/store/y6xh11bcplji5rh3yxd6653mrzs2rnli-expand-response-params
+    37.0   /nix/store/qfn913r3l8bpcnirwgjqas5b16m6w6h4-expat-2.9.0
+    37.0   /nix/store/ij0jmdy3ql9f1h55430868fgs8cpsv2h-fastrand-2.5.0
+    37.0   /nix/store/0whvy6y8al4ikp2clnkkf6dsjzvpamnf-file-5.48
+    37.0   /nix/store/vw3ip2b236f1wq8z6d8f8rwpsc8hlhyp-findutils-4.11.0
+    37.0   /nix/store/8x51fkrcmmykirp3dkm64ya59gdspjzs-foldhash-0.2.0
+    37.0   /nix/store/f0rw1mxzkv2ws5k2571j3mizg01m91s8-gawk-5.4.1
+    37.0   /nix/store/i4xk64pivv8w4ingzrw5ppi67flsxkiv-gdbm-1.26-lib
+    37.0   /nix/store/3wr12pz83j4wq9cx6ly45gh4fh3ih7jf-getrandom-0.3.4
+    37.0   /nix/store/g9hxdbabzchhv93b2bwx9zy4fv27g7w8-getrandom-0.4.3
+    37.0   /nix/store/vw6q0cafgsh3x85br30jg2jyila7dqaq-gettext-1.0
+    37.0   /nix/store/5gpqd5y6g8wav4sgry5i9qmp0kwnnwby-git-2.56.0
+    37.0   /nix/store/891py8svml38cqvi5i0wyf99i8mjza53-git-2.56.0-doc
+    37.0   /nix/store/isy7sb8a8qyg7i2in7w7l6739zl1w7ix-gmp-with-cxx-6.3.0
+    37.0   /nix/store/d3cpi2s164ji7254dcx6a2z0nkd09njw-gnu-config-2024-01-01
+    37.0   /nix/store/88388rrck3fv5wwfx3zk19qml3shx9mh-gnugrep-3.12
+    37.0   /nix/store/n6xg63cj0xxkkfa6rzg7h46r0grjwirp-gnumake-4.4.1
+    37.0   /nix/store/dxykv8pfmdhv179ywb3likqa6jvwxkaz-gnused-4.10
+    37.0   /nix/store/ghj4cybrkzqv00yy6r3f0174kf3483h0-gnutar-1.35
+    37.0   /nix/store/w7bmask3xz3fhigv27nirzyzmdkd5lpp-gzip-1.15
+    37.0   /nix/store/vpyl01mwp75q6fl1p59smcr0ajjcr8fg-hashbrown-0.17.1
+    37.0   /nix/store/hnvvq0wxaz52kd6apvc3r06qnzibrphz-heck-0.5.0
+    37.0   /nix/store/x682vizsvzbjspyapv64pfbkzxm1ir54-hwloc-2.15.0-lib
+    37.0   /nix/store/kbihh7pgv8byf1ci9v23586sm7flygm8-indexmap-2.14.2
+    37.0   /nix/store/l86mipz9al4mw33kjj1ldp58bpfmbk51-is_terminal_polyfill-1.70.2
+    37.0   /nix/store/wfx66qpc0anhwskglq776yhcyzhl29ay-itoa-1.0.19
+    37.0   /nix/store/zxx9q32pqnh64jpki4b4p71dhs2yhxja-js-sys-0.3.107
+    37.0   /nix/store/3h04wr217fxajbywh7ny17rzb59nnlgj-krb5-1.22.2-lib
+    37.0   /nix/store/rhg7qpqlp46izvsffwayv37dcpac9bnn-ld64-957.1
+    37.0   /nix/store/06vqvbkgys022ascvvvx55lfddmmzlc5-ld64-957.1-lib
+    37.0   /nix/store/hjwcps4949lkbba3vqn85006gbl4fjqh-libSystem-B
+    37.0   /nix/store/ghjpg8kixsxjrv2ybcf0r6ldjfcwcqva-libarchive-3.8.10-lib
+    37.0   /nix/store/j7nsa7g4w9q43hyl5gq5pm7mkmv79x7v-libblake3-1.8.7
+    37.0   /nix/store/rilnxzq6n6lj6z31vqipx2isl8rl0sgw-libc-0.2.191
+    37.0   /nix/store/2fyr30b4p3j8i79nlg8qlwy2vnw2qvg9-libcxx-22.1.6+apple-sdk-27.0
+    37.0   /nix/store/h3j9xwwkqcwpg5bh507mj6z0kdarbksp-libffi-40
+    37.0   /nix/store/dziwxqddgjr6qi4vxanspjmy94qvfp15-libgit2-1.9.7-lib
+    37.0   /nix/store/nan80fd45k7fj3l2zidwwfkmgpgmydry-libiconv-1.19
+    37.0   /nix/store/hbm3p1v0bxydsbvy0zh2hbladdf9a4lh-libiconv-115.100.1
+    37.0   /nix/store/4j50cwvkcdk598l61bdawh3agkmb7h75-libiconv-115.100.1-dev
+    37.0   /nix/store/0yql4i5cglqsd391glai1m9cdmx1niyv-libidn2-2.3.8
+    37.0   /nix/store/x2amnjark5dk5p3ln89zd93ar42p61l0-libpsl-0.23.3
+    37.0   /nix/store/b6j6inyhicwmf0nhg7glk3yywvkhyp86-libresolv-96
+    37.0   /nix/store/z24d32z24j8bg08ajaj8m3374cma173k-libresolv-96-dev
+    37.0   /nix/store/qjbmx4jw9mw4kghjgw3bzsw4iqr2b4w6-libsbuf-14.1.0
+    37.0   /nix/store/y20zfhvjnf57xrhnmssnjg7j4kj1m8aw-libsbuf-14.1.0-dev
+    37.0   /nix/store/5j5r23mg2c4kl82jkyfm7yraff5vw196-libsodium-1.0.22-unstable-2026-10-15
+    37.0   /nix/store/1jaa46kycwasapag8sadw1jmvrgcnypr-libssh2-1.11.1
+    37.0   /nix/store/4f4g6c0js7pj6cxlgdxfvrsgaayjghvk-libssh2-1.11.1
+    37.0   /nix/store/hrn75g1rjmiag95zvlyada9jciqjh7as-libssh2-1.11.1-dev
+    37.0   /nix/store/zaxv6517csr1rhvd3bmg4mgpdmzda4gl-libunistring-1.4.2
+    37.0   /nix/store/wxk027iiaqx1dqybm5xw4i3zzhc92y4v-libutil-73
+    37.0   /nix/store/dcakm1snr6kfyh09zkmqk7mb0qjyl1rz-libxcrypt-4.5.2
+    37.0   /nix/store/q217gdi35g06rhcpppcsfsgykb85hjwk-libxml2-2.15.4
+    37.0   /nix/store/syz4dn6zg3digqaxfc8bxbr0m373f133-linux-raw-sys-0.12.1
+    37.0   /nix/store/hs9ab14r1ml1i3ndmax2k7abhbsnv69y-llhttp-9.4.3
+    37.0   /nix/store/mxzykyjd429llpnnvy1dvmvrv4sjb42f-llvm-21.1.8
+    37.0   /nix/store/m70chr2yv1b5r5b3hdwi1z7fxsy5w14k-llvm-21.1.8-lib
+    37.0   /nix/store/ilpv0xyy5s8qlchsvswrx2hq07n38sm1-llvm-23.1.3
+    37.0   /nix/store/5624rbw0a4nnhmjf46vgb642b2sganh2-llvm-23.1.3-lib
+    37.0   /nix/store/fp8qh7j9xx2cvfswb7zk9fny17hgg244-locale-118
+    37.0   /nix/store/xny6d9pd8gj6788kz86fi34d9x38fspl-lock_api-0.4.14
+    37.0   /nix/store/w5w1lw2fq826mnq7c5wzq5zvl465ndsv-lowdown-3.0.1-lib
+    37.0   /nix/store/vfjr879s6xjzjrskw2l0k0c9wsvffj57-mailcap-2.1.54
+    37.0   /nix/store/7l05j5b1vphifj24j4i6w8hlzm3pm036-memchr-2.8.3
+    37.0   /nix/store/0wsskkx1gm8fw82xh2czbxpwvs8m9liy-mpdecimal-4.0.1
+    37.0   /nix/store/amm8bhb8zb68d276gkjq5f1jfxcgizb7-ncurses-6.6
+    37.0   /nix/store/pb9sc8jpw07bba22vlzzyp0i2ng36v30-ncurses-6.6-dev
+    37.0   /nix/store/4qr5dkpgph13h3b6yz4ic66hnnp3z353-ncurses-6.6-man
+    37.0   /nix/store/x27f4nv5xr2zlwq08w13m7fsaf2d9l21-nghttp2-1.70.0
+    37.0   /nix/store/wcbl7kn6a91nc2nfvj3bp4pmmdb2c135-nghttp2-1.70.0-dev
+    37.0   /nix/store/sa81x9lbfg39lapfvgkisv37kwm22rss-nghttp2-1.70.0-lib
+    37.0   /nix/store/xyp2g8ay0r98frh8cxgq6x8yypml5n10-nghttp2-1.70.0-lib
+    37.0   /nix/store/s98aydxi0kcxp0cj3rakj4258jrd079g-nghttp3-1.18.0
+    37.0   /nix/store/cwj7p4b159iwy4jv6h6cz3wblh2qxh1f-ngtcp2-1.23.0
+    37.0   /nix/store/g2n4lw86lg8xa3kml84hmynm22kla7j5-nix-2.35.6
+    37.0   /nix/store/p959r3d926iaqiyjpd0s3mbzppcxfmck-nix-2.35.6
+    37.0   /nix/store/y0n2w4x4sfll744vynk9is9y98rg8p5w-nix-cmd-2.35.6
+    37.0   /nix/store/4pi8fgb9yfnvd8dkkrwmdrl3w3c2b7k9-nix-eval-jobs-2.35.4
+    37.0   /nix/store/8wgc3cbf9yignbzn7h1b24h7845yrkmg-nix-expr-2.35.6
+    37.0   /nix/store/zmn5nac91w2dmk77d0ky369mn8isig4f-nix-fetchers-2.35.6
+    37.0   /nix/store/9f562fb79h43cp5kzv7hj94pcb6npsfc-nix-flake-2.35.6
+    37.0   /nix/store/plx1qr03xaz5kb0vr8k7i15gcx0qw233-nix-main-2.35.6
+    37.0   /nix/store/5ak0ah061zl4d9wad7jca3hy277l4fj3-nix-store-2.35.6
+    37.0   /nix/store/2s3mmjpp070rwn4p925af74hzvkln5sh-nix-util-2.35.6
+    37.0   /nix/store/ygw66shm6d628q4b0v50fpib4h9401s6-num-0.4.3
+    37.0   /nix/store/9amm6w06fc9vsdajygn31ys6vfrhnx4w-num-bigint-0.4.8
+    37.0   /nix/store/ls5016j5srd3b09iprdvhxhfkbch8dv2-num-complex-0.4.6
+    37.0   /nix/store/xw3cdhhs1b7jf31fnbyzwx3wrah220h4-num-conv-0.2.2
+    37.0   /nix/store/s7c7qla35c7hpijk9jijpzk9gmsmvh4v-num-integer-0.1.47
+    37.0   /nix/store/0nrsca75pnzvl6dj7j62f3dhl6qrpl22-num-iter-0.1.46
+    37.0   /nix/store/fbvsl8rv2cpcplzbmgwg5wf3cagb8hwd-num-rational-0.4.2
+    37.0   /nix/store/mlh9yzdqb0psxi4xjna008zx6qhbyasc-num-traits-0.2.19
+    37.0   /nix/store/jwgfbklp6m5v4b3xbvizrp1qbskgclix-once_cell-1.21.4
+    37.0   /nix/store/30w8kgkfl9ccsqanrsbljv0mvvw2n02z-once_cell_polyfill-1.70.2
+    37.0   /nix/store/alr6icq14gn9d6i5ak7z4yj3dra4cl2c-onetbb-2022.3.0
+    37.0   /nix/store/9i6iyawh94zsn3wjmwfwrn7hzk3ba7rq-openssl-3.5.9
+    37.0   /nix/store/bm84yg0c8y8z0in61ywbxb0r3kcv2s7p-openssl-3.5.9
+    37.0   /nix/store/0wchva837k3wc00a745qji10cqy41fjh-openssl-3.5.9-bin
+    37.0   /nix/store/k6whgji4gy02zc6rkbsdcy1caxzbap1m-openssl-3.5.9-dev
+    37.0   /nix/store/9w7jdclsncviwi2krfnjh1ch6xrw98kg-parking_lot-0.12.5
+    37.0   /nix/store/xzyia5gl9jgjyka51x2c0ys0qzhmvwmc-parking_lot_core-0.9.12
+    37.0   /nix/store/h13gf29751i84nwvli0yn7qgsalj7rn8-patch-2.8.1
+    37.0   /nix/store/dg2br8qi3sjjw5154i08waslyj7zr5bp-pcre2-10.49
+    37.0   /nix/store/ppskcvawivlw0hylknqfabgl42f8fi71-percent-encoding-2.3.2
+    37.0   /nix/store/ddjplyhxg5lq9wc1i86d19ycc8aslxr0-perl-5.42.3
+    37.0   /nix/store/7g4dcngm67dvwvmnrz1l3paj127kh9qf-perl5.42.3-Authen-SASL-2.2100
+    37.0   /nix/store/fbpjykbsibmxy17wimikvf2xwm4jh019-perl5.42.3-CGI-4.59
+    37.0   /nix/store/4l1pkgns8c1gx8sdvickx7pywr0phy4w-perl5.42.3-CGI-Fast-2.16
+    37.0   /nix/store/nsblxk8012z6jy6my247x2zb5xvhxa04-perl5.42.3-Clone-0.46
+    37.0   /nix/store/vg9j726qcwar82lvxzfdand68ln3iqf3-perl5.42.3-Compress-Raw-Bzip2-2.218
+    37.0   /nix/store/wljz6b93y7j0shg4q3gq36h25cmp67wj-perl5.42.3-Compress-Raw-Zlib-2.222
+    37.0   /nix/store/xz044wrbxfgz12axljb5khrfg8c83smh-perl5.42.3-Crypt-URandom-0.55
+    37.0   /nix/store/67mam011b76r10kqhcdk6qik0gcmgqp6-perl5.42.3-Digest-HMAC-1.05
+    37.0   /nix/store/5bjf14rw87cj0b2b036dv85a3jbk8ijg-perl5.42.3-Encode-Locale-1.05
+    37.0   /nix/store/rx8dri0kdy1rijmryj3znmawxs9dcs1c-perl5.42.3-FCGI-0.82
+    37.0   /nix/store/nl159plvif08czrfvgkg76k4hgfsjwp2-perl5.42.3-FCGI-ProcManager-0.28
+    37.0   /nix/store/dwbfcgi9613pv5kfjy4zhhdhvjj4aizc-perl5.42.3-File-Listing-6.16
+    37.0   /nix/store/zs6irf118bj6fra8x1dzyvqjpia5yqyq-perl5.42.3-HTML-Parser-3.85
+    37.0   /nix/store/g6jaawcqkhik57lch5flm0l759rgbfra-perl5.42.3-HTML-TagCloud-0.38
+    37.0   /nix/store/rkwzqd3rr1q7sqk4z4wz4pvb7afvaf8n-perl5.42.3-HTML-Tagset-3.20
+    37.0   /nix/store/9prqzs1g22ljaygnbvinrhpw478pavyn-perl5.42.3-HTTP-CookieJar-0.014
+    37.0   /nix/store/79gvaz4c1xk827w4clclfvcnr5l3h1li-perl5.42.3-HTTP-Cookies-6.10
+    37.0   /nix/store/yw1lpxjx1kw6vl57w3p816kf4l0a6dk3-perl5.42.3-HTTP-Date-6.08
+    37.0   /nix/store/wgkwrh269vm7kdky7vp9l3pyg7imvqvg-perl5.42.3-HTTP-Message-7.02
+    37.0   /nix/store/hj7c985c3b8945m3333xvsrjqmx398s2-perl5.42.3-HTTP-Negotiate-6.01
+    37.0   /nix/store/lq24jwaricpzasa8b3j3vv3x6rdmzm30-perl5.42.3-IO-Compress-2.221
+    37.0   /nix/store/ch790ngaz47bxxm0fjmr5drqv06cqdkw-perl5.42.3-IO-HTML-1.004
+    37.0   /nix/store/in27d8pham0mj321gql763dwy3b3i2lk-perl5.42.3-IO-Socket-SSL-2.083
+    37.0   /nix/store/ai1jkpd27gjgy8j0q3yfwyvi7rcvwzjp-perl5.42.3-LWP-MediaTypes-6.04
+    37.0   /nix/store/hnw1fw208l4dr6gvg6ylzyl8q7ikjvl9-perl5.42.3-MIME-Base32-1.303
+    37.0   /nix/store/jfwf27hgh1cbj8cg7ma4a5q9lcxpg3a0-perl5.42.3-Mozilla-CA-20230821
+    37.0   /nix/store/f29sdflngq7m35kpf420sk4sczbvk160-perl5.42.3-Net-HTTP-6.23
+    37.0   /nix/store/8zqgh4dbxdiz3v44af9iqdzk9jcrd73p-perl5.42.3-Net-SMTP-SSL-1.04
+    37.0   /nix/store/25kksnl18i59kqjymcdy9gyaac8nfj79-perl5.42.3-Net-SSLeay-1.92
+    37.0   /nix/store/axg049wk7fiv08w7r71s2wm0zfq2dsjg-perl5.42.3-TermReadKey-2.38
+    37.0   /nix/store/6zlhwhl0b6c5sx1fg9k1il7mpjr4nryl-perl5.42.3-TimeDate-2.33
+    37.0   /nix/store/f6vrck3jjp3j52vs4hc6kanbr81vlz5h-perl5.42.3-Try-Tiny-0.31
+    37.0   /nix/store/gjggchylhw590wcx0xpbwnpj25h07yks-perl5.42.3-URI-5.36
+    37.0   /nix/store/vgk796r0l6padg4cr7cgbld5hzvwlwks-perl5.42.3-WWW-RobotRules-6.02
+    37.0   /nix/store/md5ssz3h6f1sviwh3yyvnh3azxfiqmad-perl5.42.3-libnet-3.15
+    37.0   /nix/store/ajy7a49mfxa6441hzj1fym9vkjn4jzbi-perl5.42.3-libwww-perl-6.83
+    37.0   /nix/store/xyc5fja4xj22j3ld33hilzaqnay7v0j2-powerfmt-0.2.1
+    37.0   /nix/store/skwzn288rflwdidy6r0f1c84p69ikzk2-proc-macro2-1.0.107
+    37.0   /nix/store/0sfj1wg16y5lnlxf6b0phhpal0m6j0p5-publicsuffix-list-0-unstable-2026-09-02
+    37.0   /nix/store/3j0hvszcqcb2vwm5dz0xxfb06cx49k86-python3-3.14.10
+    37.0   /nix/store/fib422v2jwcmlhayxijpq4jg3xi6cnbh-quote-1.0.47
+    37.0   /nix/store/8d7fpka5jjaf2h9aaf6qh3x50zdkxgvg-r-efi-5.3.0
+    37.0   /nix/store/bp4jxmlrsvhxk3lak5w3191ab7zjn033-r-efi-6.0.0
+    37.0   /nix/store/zwvm2p59f7bzky5ywfkrhl2v4maj9n3k-readline-8.3p3
+    37.0   /nix/store/d67vlik83sn5vsw3fczp1j2lghscj51y-redox_syscall-0.5.18
+    37.0   /nix/store/x30nsacl02hbckgwajhws29pk6c56chn-ref-cast-1.0.27
+    37.0   /nix/store/x9d35wwbjq6cy4xgxlg6wc3kpql879ag-ref-cast-impl-1.0.27
+    37.0   /nix/store/zkq0f8qlxgzbn3s94b89y79dc25xqc2b-regex-1.13.2
+    37.0   /nix/store/2vnlrq2xbsjnqc1m6q1k7bkjpwxy9w0z-regex-automata-0.4.19
+    37.0   /nix/store/1z2c5majpkmbsvb30wciris3yw2v03cm-regex-syntax-0.8.12
+    37.0   /nix/store/zjp7c0q83l4ab8fvz6vvhq2kcinanf71-rustc-1.99.1
+    37.0   /nix/store/h35x7ybiw8jnbvsab9w6ibnwi2q5xh24-rustc-wrapper-1.99.1
+    37.0   /nix/store/lbzypaqk80d5f1wxkw255lgfr8bj9hd4-rustix-1.1.6
+    37.0   /nix/store/dx1w9kpfkq1xgwa9yn7mdq0y69xmbrpy-rustversion-1.0.23
+    37.0   /nix/store/vcchg0ay06f8s81c9d620h6h7l1717zf-s2n-tls-1.7.12
+    37.0   /nix/store/fba7rzizj9hsq1f5yxmw28nxpr955ngp-scopeguard-1.2.0
+    37.0   /nix/store/s6xq10ikdz8r96b9c6lr2gx8psc3jj74-serde-1.0.229
+    37.0   /nix/store/0l3myg06xd34jgmpzpckih4cfa4vz8pz-serde_core-1.0.229
+    37.0   /nix/store/l7ll4262ywrayz0aamq7v6jvs93aydfa-serde_derive-1.0.229
+    37.0   /nix/store/yrcgxwg9n11ibmxccngv5h0qrbfr4hmf-serde_json-1.0.154
+    37.0   /nix/store/rxwgp1vff5ah0xkz207bd4wf5ln4zj43-serde_spanned-1.1.3
+    37.0   /nix/store/fl0dbrap3casf1mcvddg3rk8faz08jwi-sqlite-3.54.0
+    37.0   /nix/store/zvj6vj0irzl7d1isca6i25mn83i4al5z-stdenv-darwin
+    37.0   /nix/store/v9mbjdgxmm6rkrjz1rvagq21lf1wfyv5-stdenv-darwin-no-cc
+    37.0   /nix/store/scfkyjgl9wzvf3xlaalf2jzh9smp24xn-strsim-0.11.1
+    37.0   /nix/store/iddbh0aas5p4nnx232nv73v832384w5b-syn-2.0.119
+    37.0   /nix/store/cbvnv0bk049y5lcglssrl9iqbgmbj5bv-syn-3.0.10
+    37.0   /nix/store/i7qvs8rhyyyx9wpig7sqqg50zz9537h5-tempfile-3.27.0
+    37.0   /nix/store/hif1mwq6agv8rhqh7j2ma8jz0zh4xrgq-time-0.3.55
+    37.0   /nix/store/gm7669yszv68mjglwc296xdwp78w9b8q-time-core-0.1.9
+    37.0   /nix/store/mph6i5hvrixb2487m3by8ndbvndbhmfd-time-macros-0.2.32
+    37.0   /nix/store/81z59m6a59y59w4acjf24cqsmrndw8kk-toml_datetime-1.1.3+spec-1.1.0
+    37.0   /nix/store/j9hvl7mxh3c3g94893smbi35qs8v54jv-toml_parser-1.1.5+spec-1.1.0
+    37.0   /nix/store/2d2vj6a8is5afkc5mj64rcm35yz2cn5z-tzdata-2026f
+    37.0   /nix/store/0x1m4150r9m7y27zv617k3004ymazbz0-unicode-ident-1.0.27
+    37.0   /nix/store/qy6dp6y26z48241nx7yrcs4bvq5lgmf1-update-autotools-gnu-config-scripts-hook
+    37.0   /nix/store/bwfj7rralrnv90ppqjkqkisrhz61icw7-utf8parse-0.2.2
+    37.0   /nix/store/bshlpnxj9rld9734lmv6dj28rqnmdx0v-version_check-0.9.5
+    37.0   /nix/store/kbilkg8zj259f5y2nqc4hj53bxy8nshs-wasip2-1.0.4+wasi-0.2.12
+    37.0   /nix/store/59id2l2h23rbvambqivq526xgii47jw4-wasm-bindgen-0.2.130
+    37.0   /nix/store/3glzplzw51z1vclyh9i9j1hjjgnrb554-wasm-bindgen-macro-0.2.130
+    37.0   /nix/store/5frmgqbygyxxia1jqvk32k127z65lb16-wasm-bindgen-macro-support-0.2.130
+    37.0   /nix/store/3abfvy3xgvzank8cgfmbvk9m7b7xnxfc-wasm-bindgen-shared-0.2.130
+    37.0   /nix/store/zxhpzw33w6cw69r54smqqfwls1nbp7ip-windows-link-0.2.1
+    37.0   /nix/store/biy9ll9bgqpcgwk55m0nwq9k6slyqna6-windows-sys-0.61.2
+    37.0   /nix/store/c0hah9h8f9aqm62v6c32734484459a3z-winnow-1.0.5
+    37.0   /nix/store/mrii4ibhd71d4m9dq25g3kcllrcl23zq-wit-bindgen-0.57.1
+    37.0   /nix/store/wi466rsng8r57wf2svi169kdqnbym53k-xar-minimal-503-lib
+    37.0   /nix/store/29wli9hgxjmnvj0i1h9if6icnihrxidh-xcbuild-0.1.1-unstable-2019-11-20
+    37.0   /nix/store/a298bf0l0ycjgasnnwfbv3kf8nyfcawn-xcbuild-0.1.1-unstable-2019-11-20-xcrun
+    37.0   /nix/store/i1jf78p6dnca3zpk26ldljwir9wmb32l-xz-5.8.4
+    37.0   /nix/store/s1yvjiv8i4p446af349fz519rpdipq8m-xz-5.8.4-bin
+    37.0   /nix/store/kzc4fa3305piq7vrfhv2g4hn8s26m6jg-zerocopy-0.8.63
+    37.0   /nix/store/rblv4v7rll5wj62nn41pcpirqxf78vg4-zerocopy-derive-0.8.63
+    37.0   /nix/store/bvn7181c2d8208834gpgng80imlyrsk5-zlib-1.3.2
+    37.0   /nix/store/ikl7zqn9brhsik9pcp1wz4l31y6ysy4p-zlib-1.3.2-dev
+    37.0   /nix/store/dh3lvy5prhvw68qzycz2kd070vxa15l0-zlib-1.3.2-static
+    37.0   /nix/store/n8bggvfb2q06ghvq1vy6yps2sjj52lny-zlib-ng-2.3.3
+    37.0   /nix/store/jkfrwdly7f54dys3q6v3kaccmrmviyvx-zmij-1.0.23
+    37.0   /nix/store/559fgq5j3aw9vkyv00gj0ql3qx2wplms-zstd-1.5.7
+    37.0 copying path '/nix/store/0xvlm2gh32710pjdswinpjqyahpfifiq-bash-5.3p20' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/pr5j2khvqfh48w7zlc27wpiwcpgm33m1-cargo-install-hook.sh' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/n1x6h8ha7dcr2dfrn72s9f5gwgj1645d-aho-corasick-1.1.5' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/2npdvws0adidhixmkr3yl8v85338pqff-ahash-0.8.12' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/7q1lxh6gwn4ar4bm08vgsklmn4ayb2g8-allocator-api2-0.2.21' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/ygrj47g3cxl1ksl5pqpj4wcyj8a74g0y-anstream-1.0.0' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/fj4xlvr1hh4nzdjpki20p210k4qxypcv-anstyle-1.0.14' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/2kpv99h3ynh16xjbm1vr4r5mwq7v00zn-anstyle-wincon-3.0.11' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/ilbj6pd77wwss1q3i9688wfqcdj05m3n-anstyle-query-1.1.5' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/rsl3mdhynm17ssmj06rkyqkd7p33s9g3-anstyle-parse-1.0.0' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/cp7dprm5rbk56xzjzvbc6xr3519w3swm-autocfg-1.5.1' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/fcnjsq01kbnfqbcm7w0mq9v4gr5lwg5l-bytecount-0.6.9' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/1amxjdwiaqq5d04z42cmr1q6gynlqd60-bit-set-0.8.0' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/abqcjdkb5i6k7wnjf58hihb14pzhpps3-bit-vec-0.8.0' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/ccifc0va934bl9pdr75phkwnvs204l4c-bitflags-2.13.2' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/l9s6ii770n2djjl3mgjkh4zzrl5d76wd-cfg-if-1.0.5' from 'https://cache.nixos.org'...
+    37.0 copying path '/nix/store/jcwwsw6gc95rcn6dkq1z46ff5h6fb3w8-boehm-gc-8.2.12' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/b2xp1ak6yyddi5rr5kzzzf5by3cb0wzj-aws-c-common-1.0.0' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/bc4grwa403isaphajsmpas23z1lns8xw-clap_builder-4.6.7' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/vdpzpk72wjvii3qb44yq05ygvf0brc68-colorchoice-1.0.5' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/65f5pv6addazlfcxgh24rk02zcgvpys2-data-encoding-2.11.1' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/cax7nm4466ngnh3z468mwbpsqa77naqn-errno-0.3.15' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/jwynqsxirc5va95g7hzmhqj90g1pqdn8-equivalent-1.0.3' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/f5jldxafi4yfg8v0c22pidlkj9ipr2pp-deranged-0.5.9' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/8x51fkrcmmykirp3dkm64ya59gdspjzs-foldhash-0.2.0' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/ij0jmdy3ql9f1h55430868fgs8cpsv2h-fastrand-2.5.0' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/3wr12pz83j4wq9cx6ly45gh4fh3ih7jf-getrandom-0.3.4' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/g9hxdbabzchhv93b2bwx9zy4fv27g7w8-getrandom-0.4.3' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/vpyl01mwp75q6fl1p59smcr0ajjcr8fg-hashbrown-0.17.1' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/hnvvq0wxaz52kd6apvc3r06qnzibrphz-heck-0.5.0' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/kbihh7pgv8byf1ci9v23586sm7flygm8-indexmap-2.14.2' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/l86mipz9al4mw33kjj1ldp58bpfmbk51-is_terminal_polyfill-1.70.2' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/wfx66qpc0anhwskglq776yhcyzhl29ay-itoa-1.0.19' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/zxx9q32pqnh64jpki4b4p71dhs2yhxja-js-sys-0.3.107' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/rilnxzq6n6lj6z31vqipx2isl8rl0sgw-libc-0.2.191' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/syz4dn6zg3digqaxfc8bxbr0m373f133-linux-raw-sys-0.12.1' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/xny6d9pd8gj6788kz86fi34d9x38fspl-lock_api-0.4.14' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/7l05j5b1vphifj24j4i6w8hlzm3pm036-memchr-2.8.3' from 'https://cache.nixos.org'...
+    37.1 copying path '/nix/store/ygw66shm6d628q4b0v50fpib4h9401s6-num-0.4.3' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/9amm6w06fc9vsdajygn31ys6vfrhnx4w-num-bigint-0.4.8' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/xw3cdhhs1b7jf31fnbyzwx3wrah220h4-num-conv-0.2.2' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/ls5016j5srd3b09iprdvhxhfkbch8dv2-num-complex-0.4.6' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/s7c7qla35c7hpijk9jijpzk9gmsmvh4v-num-integer-0.1.47' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/0nrsca75pnzvl6dj7j62f3dhl6qrpl22-num-iter-0.1.46' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/fbvsl8rv2cpcplzbmgwg5wf3cagb8hwd-num-rational-0.4.2' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/mlh9yzdqb0psxi4xjna008zx6qhbyasc-num-traits-0.2.19' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/jwgfbklp6m5v4b3xbvizrp1qbskgclix-once_cell-1.21.4' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/30w8kgkfl9ccsqanrsbljv0mvvw2n02z-once_cell_polyfill-1.70.2' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/9w7jdclsncviwi2krfnjh1ch6xrw98kg-parking_lot-0.12.5' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/xzyia5gl9jgjyka51x2c0ys0qzhmvwmc-parking_lot_core-0.9.12' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/ppskcvawivlw0hylknqfabgl42f8fi71-percent-encoding-2.3.2' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/xyc5fja4xj22j3ld33hilzaqnay7v0j2-powerfmt-0.2.1' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/skwzn288rflwdidy6r0f1c84p69ikzk2-proc-macro2-1.0.107' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/8d7fpka5jjaf2h9aaf6qh3x50zdkxgvg-r-efi-5.3.0' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/fib422v2jwcmlhayxijpq4jg3xi6cnbh-quote-1.0.47' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/bp4jxmlrsvhxk3lak5w3191ab7zjn033-r-efi-6.0.0' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/d67vlik83sn5vsw3fczp1j2lghscj51y-redox_syscall-0.5.18' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/x30nsacl02hbckgwajhws29pk6c56chn-ref-cast-1.0.27' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/x9d35wwbjq6cy4xgxlg6wc3kpql879ag-ref-cast-impl-1.0.27' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/zkq0f8qlxgzbn3s94b89y79dc25xqc2b-regex-1.13.2' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/2vnlrq2xbsjnqc1m6q1k7bkjpwxy9w0z-regex-automata-0.4.19' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/1z2c5majpkmbsvb30wciris3yw2v03cm-regex-syntax-0.8.12' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/dx1w9kpfkq1xgwa9yn7mdq0y69xmbrpy-rustversion-1.0.23' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/lbzypaqk80d5f1wxkw255lgfr8bj9hd4-rustix-1.1.6' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/fba7rzizj9hsq1f5yxmw28nxpr955ngp-scopeguard-1.2.0' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/0l3myg06xd34jgmpzpckih4cfa4vz8pz-serde_core-1.0.229' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/s6xq10ikdz8r96b9c6lr2gx8psc3jj74-serde-1.0.229' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/l7ll4262ywrayz0aamq7v6jvs93aydfa-serde_derive-1.0.229' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/yrcgxwg9n11ibmxccngv5h0qrbfr4hmf-serde_json-1.0.154' from 'https://cache.nixos.org'...
+    37.2 copying path '/nix/store/rxwgp1vff5ah0xkz207bd4wf5ln4zj43-serde_spanned-1.1.3' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/scfkyjgl9wzvf3xlaalf2jzh9smp24xn-strsim-0.11.1' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/iddbh0aas5p4nnx232nv73v832384w5b-syn-2.0.119' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/cbvnv0bk049y5lcglssrl9iqbgmbj5bv-syn-3.0.10' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/i7qvs8rhyyyx9wpig7sqqg50zz9537h5-tempfile-3.27.0' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/hif1mwq6agv8rhqh7j2ma8jz0zh4xrgq-time-0.3.55' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/gm7669yszv68mjglwc296xdwp78w9b8q-time-core-0.1.9' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/mph6i5hvrixb2487m3by8ndbvndbhmfd-time-macros-0.2.32' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/81z59m6a59y59w4acjf24cqsmrndw8kk-toml_datetime-1.1.3+spec-1.1.0' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/j9hvl7mxh3c3g94893smbi35qs8v54jv-toml_parser-1.1.5+spec-1.1.0' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/0x1m4150r9m7y27zv617k3004ymazbz0-unicode-ident-1.0.27' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/bwfj7rralrnv90ppqjkqkisrhz61icw7-utf8parse-0.2.2' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/bshlpnxj9rld9734lmv6dj28rqnmdx0v-version_check-0.9.5' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/kbilkg8zj259f5y2nqc4hj53bxy8nshs-wasip2-1.0.4+wasi-0.2.12' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/59id2l2h23rbvambqivq526xgii47jw4-wasm-bindgen-0.2.130' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/3glzplzw51z1vclyh9i9j1hjjgnrb554-wasm-bindgen-macro-0.2.130' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/5frmgqbygyxxia1jqvk32k127z65lb16-wasm-bindgen-macro-support-0.2.130' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/3abfvy3xgvzank8cgfmbvk9m7b7xnxfc-wasm-bindgen-shared-0.2.130' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/zxhpzw33w6cw69r54smqqfwls1nbp7ip-windows-link-0.2.1' from 'https://cache.nixos.org'...
+    37.3 copying path '/nix/store/biy9ll9bgqpcgwk55m0nwq9k6slyqna6-windows-sys-0.61.2' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/c0hah9h8f9aqm62v6c32734484459a3z-winnow-1.0.5' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/mrii4ibhd71d4m9dq25g3kcllrcl23zq-wit-bindgen-0.57.1' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/kzc4fa3305piq7vrfhv2g4hn8s26m6jg-zerocopy-0.8.63' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/rblv4v7rll5wj62nn41pcpirqxf78vg4-zerocopy-derive-0.8.63' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/jkfrwdly7f54dys3q6v3kaccmrmviyvx-zmij-1.0.23' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/2fyr30b4p3j8i79nlg8qlwy2vnw2qvg9-libcxx-22.1.6+apple-sdk-27.0' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/gby686si07vfnwxpy4xm431k8w0wwwjy-compiler-rt-libc-21.1.8' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/isy7sb8a8qyg7i2in7w7l6739zl1w7ix-gmp-with-cxx-6.3.0' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/hs9ab14r1ml1i3ndmax2k7abhbsnv69y-llhttp-9.4.3' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/civ9pghvmjs5w01nxm51ihd40cgm672d-editline-1.17.1-unstable-2025-05-24' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/w5w1lw2fq826mnq7c5wzq5zvl465ndsv-lowdown-3.0.1-lib' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/hjwcps4949lkbba3vqn85006gbl4fjqh-libSystem-B' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/y6xh11bcplji5rh3yxd6653mrzs2rnli-expand-response-params' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/559fgq5j3aw9vkyv00gj0ql3qx2wplms-zstd-1.5.7' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/b6j6inyhicwmf0nhg7glk3yywvkhyp86-libresolv-96' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/nvw2hk36ayg8ck84kxq5pfancdxxnwz5-brotli-1.2.1-lib' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/s98aydxi0kcxp0cj3rakj4258jrd079g-nghttp3-1.18.0' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/5j5r23mg2c4kl82jkyfm7yraff5vw196-libsodium-1.0.22-unstable-2026-10-15' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/sa81x9lbfg39lapfvgkisv37kwm22rss-nghttp2-1.70.0-lib' from 'https://cache.nixos.org'...
+    37.4 copying path '/nix/store/s8nh8ir6v973jrs88l06zv1z5klhgpzc-ed-1.22.6' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/dcakm1snr6kfyh09zkmqk7mb0qjyl1rz-libxcrypt-4.5.2' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/xz044wrbxfgz12axljb5khrfg8c83smh-perl5.42.3-Crypt-URandom-0.55' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/3g66jhnk1cps0l4wlpsi0dpkky1xf7ji-crate-bumpalo-3.20.4.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/x6xk3dzgydxrdwmq1wph916shfbw4nxm-crate-clap-4.6.8.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/hdy9k2ipkms4ihlyhxzfg3zrmpqagzv1-crate-clap_lex-1.1.2.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/km5cyfwy1zj2vx8mxyd2i3c1vs9d20a0-crate-clap_derive-4.6.8.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/4wg73s3f3ib9gk8c8gp74jskyj90hsvq-crate-num-cmp-0.1.0.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/b3i4mz2avnx7i2fl19qggnp4ddyscnja-crate-outref-0.5.2.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/z8rqickvby0n70xqjccfxri0fwxs3pmd-crate-toml-1.2.1+spec-1.1.0.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/9lrjj7i42c51xzsqrx8ly5sls62ajc1c-crate-smallvec-1.16.6.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/7alnjhbcp20p7z2mx3a318cv0xn05j9z-crate-toml_writer-1.2.0+spec-1.1.0.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/2zp0kj6zdcdda5dsagl3s41gqrjmv0xj-crate-vsimd-0.8.0.tar.gz' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/nan80fd45k7fj3l2zidwwfkmgpgmydry-libiconv-1.19' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/0sfj1wg16y5lnlxf6b0phhpal0m6j0p5-publicsuffix-list-0-unstable-2026-09-02' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/qjbmx4jw9mw4kghjgw3bzsw4iqr2b4w6-libsbuf-14.1.0' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/22bav5ihsv11wjcdc578a1k04ly6ay5q-aws-c-sdkutils-1.0.0' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/ngq48ic1a216psva7mdck31dy4d6zgbf-aws-c-cal-1.0.0' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/l05hi3ddilhv1cg4b7r8a1d0dx87b9fl-aws-c-compression-1.0.0' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/gcvphxn8q3qky4fmvdgx8gv1c7zfndcd-aws-checksums-1.0.0' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/4qr5dkpgph13h3b6yz4ic66hnnp3z353-ncurses-6.6-man' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/2d2vj6a8is5afkc5mj64rcm35yz2cn5z-tzdata-2026f' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/x27f4nv5xr2zlwq08w13m7fsaf2d9l21-nghttp2-1.70.0' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/gsd9wm9ff4wkj8qfrcddhi5n8sv6d154-compiler-rt-libc-21.1.8-dev' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/d3cpi2s164ji7254dcx6a2z0nkd09njw-gnu-config-2024-01-01' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/i1jf78p6dnca3zpk26ldljwir9wmb32l-xz-5.8.4' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/dh3lvy5prhvw68qzycz2kd070vxa15l0-zlib-1.3.2-static' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/0wsskkx1gm8fw82xh2czbxpwvs8m9liy-mpdecimal-4.0.1' from 'https://cache.nixos.org'...
+    37.5 copying path '/nix/store/i4xk64pivv8w4ingzrw5ppi67flsxkiv-gdbm-1.26-lib' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/h3j9xwwkqcwpg5bh507mj6z0kdarbksp-libffi-40' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/amm8bhb8zb68d276gkjq5f1jfxcgizb7-ncurses-6.6' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/vfjr879s6xjzjrskw2l0k0c9wsvffj57-mailcap-2.1.54' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/z24d32z24j8bg08ajaj8m3374cma173k-libresolv-96-dev' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/9i6iyawh94zsn3wjmwfwrn7hzk3ba7rq-openssl-3.5.9' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/qy3kdswh7j1gvpwdjnfpb0a0k4628glv-cups-headers-2.4.19' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/xyp2g8ay0r98frh8cxgq6x8yypml5n10-nghttp2-1.70.0-lib' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/wxk027iiaqx1dqybm5xw4i3zzhc92y4v-libutil-73' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/zaxv6517csr1rhvd3bmg4mgpdmzda4gl-libunistring-1.4.2' from 'https://cache.nixos.org'...
+    37.6 copying path '/nix/store/y20zfhvjnf57xrhnmssnjg7j4kj1m8aw-libsbuf-14.1.0-dev' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/5psng2519bh63g33f0cq0dlb3j1anary-curl-8.23.0-man' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/2xcgs5f1iy1qx1xwa80v1r996cjf9z1q-bzip2-1.0.8' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/bm84yg0c8y8z0in61ywbxb0r3kcv2s7p-openssl-3.5.9' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/bvn7181c2d8208834gpgng80imlyrsk5-zlib-1.3.2' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/s1yvjiv8i4p446af349fz519rpdipq8m-xz-5.8.4-bin' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/rkwzqd3rr1q7sqk4z4wz4pvb7afvaf8n-perl5.42.3-HTML-Tagset-3.20' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/h13gf29751i84nwvli0yn7qgsalj7rn8-patch-2.8.1' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/wcbl7kn6a91nc2nfvj3bp4pmmdb2c135-nghttp2-1.70.0-dev' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/qy6dp6y26z48241nx7yrcs4bvq5lgmf1-update-autotools-gnu-config-scripts-hook' from 'https://cache.nixos.org'...
+    37.7 copying path '/nix/store/0yql4i5cglqsd391glai1m9cdmx1niyv-libidn2-2.3.8' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/n6xg63cj0xxkkfa6rzg7h46r0grjwirp-gnumake-4.4.1' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/0wchva837k3wc00a745qji10cqy41fjh-openssl-3.5.9-bin' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/4f4g6c0js7pj6cxlgdxfvrsgaayjghvk-libssh2-1.11.1' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/ikl7zqn9brhsik9pcp1wz4l31y6ysy4p-zlib-1.3.2-dev' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/0whvy6y8al4ikp2clnkkf6dsjzvpamnf-file-5.48' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/4a24vmd1hw8bvrmkhcdxi7bpxk3dzf9f-bzip2-1.0.8-bin' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/w7bmask3xz3fhigv27nirzyzmdkd5lpp-gzip-1.15' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/rx8dri0kdy1rijmryj3znmawxs9dcs1c-perl5.42.3-FCGI-0.82' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/s3nhfncnjczym02h4rz782phaz760jr8-coreutils-9.12' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/3h04wr217fxajbywh7ny17rzb59nnlgj-krb5-1.22.2-lib' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/cwj7p4b159iwy4jv6h6cz3wblh2qxh1f-ngtcp2-1.23.0' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/x2amnjark5dk5p3ln89zd93ar42p61l0-libpsl-0.23.3' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/vcchg0ay06f8s81c9d620h6h7l1717zf-s2n-tls-1.7.12' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/mm0hkwdpml5ma5h3j07m64dqzbva2h5n-curl-8.23.0' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/k6whgji4gy02zc6rkbsdcy1caxzbap1m-openssl-3.5.9-dev' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/06vqvbkgys022ascvvvx55lfddmmzlc5-ld64-957.1-lib' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/1jaa46kycwasapag8sadw1jmvrgcnypr-libssh2-1.11.1' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/md5ssz3h6f1sviwh3yyvnh3azxfiqmad-perl5.42.3-libnet-3.15' from 'https://cache.nixos.org'...
+    37.8 copying path '/nix/store/n8bggvfb2q06ghvq1vy6yps2sjj52lny-zlib-ng-2.3.3' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/nl159plvif08czrfvgkg76k4hgfsjwp2-perl5.42.3-FCGI-ProcManager-0.28' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/qfn913r3l8bpcnirwgjqas5b16m6w6h4-expat-2.9.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/w9aszqal5ijdqi2jgp2b98xjz445lz6w-diffutils-3.12' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/vw3ip2b236f1wq8z6d8f8rwpsc8hlhyp-findutils-4.11.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/dxykv8pfmdhv179ywb3likqa6jvwxkaz-gnused-4.10' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/g6jaawcqkhik57lch5flm0l759rgbfra-perl5.42.3-HTML-TagCloud-0.38' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/jp614nw09gpkq8h3a5k0bgljz02x4vzx-aws-c-io-1.0.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/nvv9fkc39rf2w7bkgab61882dg0dpg22-curl-8.23.0-bin' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/axg049wk7fiv08w7r71s2wm0zfq2dsjg-perl5.42.3-TermReadKey-2.38' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/x682vizsvzbjspyapv64pfbkzxm1ir54-hwloc-2.15.0-lib' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/dg2br8qi3sjjw5154i08waslyj7zr5bp-pcre2-10.49' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/891py8svml38cqvi5i0wyf99i8mjza53-git-2.56.0-doc' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/25kksnl18i59kqjymcdy9gyaac8nfj79-perl5.42.3-Net-SSLeay-1.92' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/67mam011b76r10kqhcdk6qik0gcmgqp6-perl5.42.3-Digest-HMAC-1.05' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/f0rw1mxzkv2ws5k2571j3mizg01m91s8-gawk-5.4.1' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/hrn75g1rjmiag95zvlyada9jciqjh7as-libssh2-1.11.1-dev' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/fp8qh7j9xx2cvfswb7zk9fny17hgg244-locale-118' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/fl0dbrap3casf1mcvddg3rk8faz08jwi-sqlite-3.54.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/h60i6sraqy8ws2ny0fk4z0dmzfsl3y1a-curl-8.23.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/avwjvp2hvvsn0s59k3rpbvibx98v38ij-aws-c-http-1.0.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/ny9h8x72h2k3dvc301bny5j2ka11y8al-aws-c-event-stream-1.0.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/hbm3p1v0bxydsbvy0zh2hbladdf9a4lh-libiconv-115.100.1' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/alr6icq14gn9d6i5ak7z4yj3dra4cl2c-onetbb-2022.3.0' from 'https://cache.nixos.org'...
+    37.9 copying path '/nix/store/88388rrck3fv5wwfx3zk19qml3shx9mh-gnugrep-3.12' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/hnw1fw208l4dr6gvg6ylzyl8q7ikjvl9-perl5.42.3-MIME-Base32-1.303' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/jfwf27hgh1cbj8cg7ma4a5q9lcxpg3a0-perl5.42.3-Mozilla-CA-20230821' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/7g4dcngm67dvwvmnrz1l3paj127kh9qf-perl5.42.3-Authen-SASL-2.2100' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/5bjf14rw87cj0b2b036dv85a3jbk8ijg-perl5.42.3-Encode-Locale-1.05' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/j7nsa7g4w9q43hyl5gq5pm7mkmv79x7v-libblake3-1.8.7' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/r2z42avjsaaycvr3b456g3r8rlniqsrv-aws-c-auth-1.0.0' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/9qrq1jkshvca59la2fys6qvb2wr46vs3-curl-8.23.0-dev' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/xyrl9pc5l62c7ljy788rb2kvjbh6l85s-aws-c-mqtt-1.0.0' from 'https://cache.nixos.org'...
+    38.0 copying path '/nix/store/6zlhwhl0b6c5sx1fg9k1il7mpjr4nryl-perl5.42.3-TimeDate-2.33' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/gjggchylhw590wcx0xpbwnpj25h07yks-perl5.42.3-URI-5.36' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/ai1jkpd27gjgy8j0q3yfwyvi7rcvwzjp-perl5.42.3-LWP-MediaTypes-6.04' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/ch790ngaz47bxxm0fjmr5drqv06cqdkw-perl5.42.3-IO-HTML-1.004' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/f6vrck3jjp3j52vs4hc6kanbr81vlz5h-perl5.42.3-Try-Tiny-0.31' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/in27d8pham0mj321gql763dwy3b3i2lk-perl5.42.3-IO-Socket-SSL-2.083' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/nsblxk8012z6jy6my247x2zb5xvhxa04-perl5.42.3-Clone-0.46' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/vg9j726qcwar82lvxzfdand68ln3iqf3-perl5.42.3-Compress-Raw-Bzip2-2.218' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/wljz6b93y7j0shg4q3gq36h25cmp67wj-perl5.42.3-Compress-Raw-Zlib-2.222' from 'https://cache.nixos.org'...
+    38.1 copying path '/nix/store/parypa3yyx1rmrrkpbmzmi9a3i8jnxd9-aws-c-s3-1.1.2' from 'https://cache.nixos.org'...
+    38.2 copying path '/nix/store/yw1lpxjx1kw6vl57w3p816kf4l0a6dk3-perl5.42.3-HTTP-Date-6.08' from 'https://cache.nixos.org'...
+    38.2 copying path '/nix/store/f29sdflngq7m35kpf420sk4sczbvk160-perl5.42.3-Net-HTTP-6.23' from 'https://cache.nixos.org'...
+    38.2 copying path '/nix/store/vgk796r0l6padg4cr7cgbld5hzvwlwks-perl5.42.3-WWW-RobotRules-6.02' from 'https://cache.nixos.org'...
+    38.3 copying path '/nix/store/8zqgh4dbxdiz3v44af9iqdzk9jcrd73p-perl5.42.3-Net-SMTP-SSL-1.04' from 'https://cache.nixos.org'...
+    38.3 copying path '/nix/store/svl6q5ipb8mbk9gnlc6qajraghhs3gc3-aws-crt-cpp-0.43.6' from 'https://cache.nixos.org'...
+    38.3 copying path '/nix/store/dwbfcgi9613pv5kfjy4zhhdhvjj4aizc-perl5.42.3-File-Listing-6.16' from 'https://cache.nixos.org'...
+    38.3 copying path '/nix/store/9prqzs1g22ljaygnbvinrhpw478pavyn-perl5.42.3-HTTP-CookieJar-0.014' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/b9ij0m5a66fccyi1ssn2k07awlgxgkhw-boost-1.89.0' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/829fg85972zskv0jpq53jn6p98c6gfd0-cargo-auditable-0.7.7' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/vw6q0cafgsh3x85br30jg2jyila7dqaq-gettext-1.0' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/dziwxqddgjr6qi4vxanspjmy94qvfp15-libgit2-1.9.7-lib' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/4j50cwvkcdk598l61bdawh3agkmb7h75-libiconv-115.100.1-dev' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/q217gdi35g06rhcpppcsfsgykb85hjwk-libxml2-2.15.4' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/ghjpg8kixsxjrv2ybcf0r6ldjfcwcqva-libarchive-3.8.10-lib' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/5624rbw0a4nnhmjf46vgb642b2sganh2-llvm-23.1.3-lib' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/29wli9hgxjmnvj0i1h9if6icnihrxidh-xcbuild-0.1.1-unstable-2019-11-20' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/wi466rsng8r57wf2svi169kdqnbym53k-xar-minimal-503-lib' from 'https://cache.nixos.org'...
+    38.5 copying path '/nix/store/m70chr2yv1b5r5b3hdwi1z7fxsy5w14k-llvm-21.1.8-lib' from 'https://cache.nixos.org'...
+    38.6 copying path '/nix/store/2s3mmjpp070rwn4p925af74hzvkln5sh-nix-util-2.35.6' from 'https://cache.nixos.org'...
+    38.6 copying path '/nix/store/a298bf0l0ycjgasnnwfbv3kf8nyfcawn-xcbuild-0.1.1-unstable-2019-11-20-xcrun' from 'https://cache.nixos.org'...
+    38.7 copying path '/nix/store/5ak0ah061zl4d9wad7jca3hy277l4fj3-nix-store-2.35.6' from 'https://cache.nixos.org'...
+    38.9 copying path '/nix/store/pb9sc8jpw07bba22vlzzyp0i2ng36v30-ncurses-6.6-dev' from 'https://cache.nixos.org'...
+    38.9 copying path '/nix/store/zwvm2p59f7bzky5ywfkrhl2v4maj9n3k-readline-8.3p3' from 'https://cache.nixos.org'...
+    39.0 copying path '/nix/store/plx1qr03xaz5kb0vr8k7i15gcx0qw233-nix-main-2.35.6' from 'https://cache.nixos.org'...
+    39.0 copying path '/nix/store/zmn5nac91w2dmk77d0ky369mn8isig4f-nix-fetchers-2.35.6' from 'https://cache.nixos.org'...
+    39.0 copying path '/nix/store/ghj4cybrkzqv00yy6r3f0174kf3483h0-gnutar-1.35' from 'https://cache.nixos.org'...
+    39.0 copying path '/nix/store/ddjplyhxg5lq9wc1i86d19ycc8aslxr0-perl-5.42.3' from 'https://cache.nixos.org'...
+    39.0 copying path '/nix/store/8wgc3cbf9yignbzn7h1b24h7845yrkmg-nix-expr-2.35.6' from 'https://cache.nixos.org'...
+    39.1 copying path '/nix/store/9f562fb79h43cp5kzv7hj94pcb6npsfc-nix-flake-2.35.6' from 'https://cache.nixos.org'...
+    39.1 copying path '/nix/store/v9mbjdgxmm6rkrjz1rvagq21lf1wfyv5-stdenv-darwin-no-cc' from 'https://cache.nixos.org'...
+    39.9 building '/nix/store/qwr87hycnya160c7xf8s8gh1fkh0hjji-bumpalo-3.20.4.drv'...
+    40.1 building '/nix/store/a016x6g6cmhdh85i6yd14li6yf6986qc-clap-4.6.8.drv'...
+    40.4 building '/nix/store/v73mk0jjwwajvny4n5ihx04bcg9v5k90-clap_derive-4.6.8.drv'...
+    40.4 copying path '/nix/store/y0n2w4x4sfll744vynk9is9y98rg8p5w-nix-cmd-2.35.6' from 'https://cache.nixos.org'...
+    40.4 copying path '/nix/store/lq24jwaricpzasa8b3j3vv3x6rdmzm30-perl5.42.3-IO-Compress-2.221' from 'https://cache.nixos.org'...
+    40.7 building '/nix/store/sgf8ww9a4pilvkjk7hmklp818n3xrm30-crate-jsonschema-value-0.61.2.tar.gz.drv'...
+    40.9 building '/nix/store/av8r7v02xaqfrxw1p8fjq2ll3ykf5y65-num-cmp-0.1.0.drv'...
+    41.0 crate-jsonschema-value> 
+    41.0 crate-jsonschema-value> trying https://static.crates.io/crates/jsonschema-value/0.61.2/download
+    41.0 copying path '/nix/store/g2n4lw86lg8xa3kml84hmynm22kla7j5-nix-2.35.6' from 'https://cache.nixos.org'...
+    41.0 copying path '/nix/store/wgkwrh269vm7kdky7vp9l3pyg7imvqvg-perl5.42.3-HTTP-Message-7.02' from 'https://cache.nixos.org'...
+    41.0 copying path '/nix/store/4pi8fgb9yfnvd8dkkrwmdrl3w3c2b7k9-nix-eval-jobs-2.35.4' from 'https://cache.nixos.org'...
+    41.2 building '/nix/store/y8fqx1d6szqnnvga88zgg91di2y8x355-crate-borrow-or-share-0.2.4.tar.gz.drv'...
+    41.2 crate-jsonschema-value>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    41.2 crate-jsonschema-value>                                  Dload  Upload  Total   Spent   Left   Speed
+    41.2 crate-jsonschema-value> 
+    41.2 crate-jsonschema-value>   0      0   0      0   0      0      0      0                              0
+    41.2 crate-jsonschema-value> 100  97868 100  97868   0      0 778.5k      0                              0
+    41.2 crate-jsonschema-value> 100  97868 100  97868   0      0 778.3k      0                              0
+    41.2 crate-jsonschema-value> 100  97868 100  97868   0      0 778.1k      0                              0
+    41.2 copying path '/nix/store/cs2xsrgn9gwgh3mfxvr3rfhi9if55bgv-clang-21.1.8-lib' from 'https://cache.nixos.org'...
+    41.2 copying path '/nix/store/rhg7qpqlp46izvsffwayv37dcpac9bnn-ld64-957.1' from 'https://cache.nixos.org'...
+    41.2 copying path '/nix/store/mxzykyjd429llpnnvy1dvmvrv4sjb42f-llvm-21.1.8' from 'https://cache.nixos.org'...
+    41.2 copying path '/nix/store/ilpv0xyy5s8qlchsvswrx2hq07n38sm1-llvm-23.1.3' from 'https://cache.nixos.org'...
+    41.2 copying path '/nix/store/p959r3d926iaqiyjpd0s3mbzppcxfmck-nix-2.35.6' from 'https://cache.nixos.org'...
+    41.2 copying path '/nix/store/zs6irf118bj6fra8x1dzyvqjpia5yqyq-perl5.42.3-HTML-Parser-3.85' from 'https://cache.nixos.org'...
+    41.2 copying path '/nix/store/79gvaz4c1xk827w4clclfvcnr5l3h1li-perl5.42.3-HTTP-Cookies-6.10' from 'https://cache.nixos.org'...
+    41.2 copying path '/nix/store/hj7c985c3b8945m3333xvsrjqmx398s2-perl5.42.3-HTTP-Negotiate-6.01' from 'https://cache.nixos.org'...
+    41.7 building '/nix/store/8znx3qp846np5k087yhny287c57skva8-crate-fraction-0.17.0.tar.gz.drv'...
+    41.7 crate-borrow-or-share> 
+    41.7 crate-borrow-or-share> trying https://static.crates.io/crates/borrow-or-share/0.2.4/download
+    41.7 crate-borrow-or-share>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    41.7 crate-borrow-or-share>                                  Dload  Upload  Total   Spent   Left   Speed
+    41.7 crate-borrow-or-share> 
+    41.7 crate-borrow-or-share>   0      0   0      0   0      0      0      0                              0
+    41.7 crate-borrow-or-share> 100   5243 100   5243   0      0 109.4k      0                              0
+    41.7 crate-borrow-or-share> 100   5243 100   5243   0      0 109.3k      0                              0
+    41.7 crate-borrow-or-share> 100   5243 100   5243   0      0 109.3k      0                              0
+    41.8 copying path '/nix/store/m028wspl51qvjy3yqc7rcwgrm4sfnscw-cctools-1010.6-libtool' from 'https://cache.nixos.org'...
+    41.8 copying path '/nix/store/ajy7a49mfxa6441hzj1fym9vkjn4jzbi-perl5.42.3-libwww-perl-6.83' from 'https://cache.nixos.org'...
+    41.8 copying path '/nix/store/fbpjykbsibmxy17wimikvf2xwm4jh019-perl5.42.3-CGI-4.59' from 'https://cache.nixos.org'...
+    42.0 building '/nix/store/l7jzqshbj6saca1536w76b4x4japirav-crate-referencing-0.61.2.tar.gz.drv'...
+    42.0 crate-fraction> 
+    42.0 crate-fraction> trying https://static.crates.io/crates/fraction/0.17.0/download
+    42.0 crate-fraction>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    42.0 crate-fraction>                                  Dload  Upload  Total   Spent   Left   Speed
+    42.0 crate-fraction> 
+    42.0 crate-fraction>   0      0   0      0   0      0      0      0                              0
+    42.0 crate-fraction> 100 115.2k 100 115.2k   0      0  1.97M      0                              0
+    42.0 crate-fraction> 100 115.2k 100 115.2k   0      0  1.97M      0                              0
+    42.0 crate-fraction> 100 115.2k 100 115.2k   0      0  1.97M      0                              0
+    42.0 copying path '/nix/store/qw6wc1f91hrs74032fjd9jg9jbs2v27h-cctools-1010.6' from 'https://cache.nixos.org'...
+    42.0 copying path '/nix/store/4l1pkgns8c1gx8sdvickx7pywr0phy4w-perl5.42.3-CGI-Fast-2.16' from 'https://cache.nixos.org'...
+    42.0 copying path '/nix/store/zjp7c0q83l4ab8fvz6vvhq2kcinanf71-rustc-1.99.1' from 'https://cache.nixos.org'...
+    42.3 building '/nix/store/2sxa93pf7xcc3wfw508bnlf0wj74xlcb-jsonschema-value-0.61.2.drv'...
+    42.3 crate-referencing> 
+    42.3 crate-referencing> trying https://static.crates.io/crates/referencing/0.61.2/download
+    42.3 crate-referencing>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    42.3 crate-referencing>                                  Dload  Upload  Total   Spent   Left   Speed
+    42.3 crate-referencing> 
+    42.3 crate-referencing>   0      0   0      0   0      0      0      0                              0
+    42.3 crate-referencing> 100  61723 100  61723   0      0 857.6k      0                              0
+    42.3 crate-referencing> 100  61723 100  61723   0      0 857.1k      0                              0
+    42.3 crate-referencing> 100  61723 100  61723   0      0 857.0k      0                              0
+    42.6 building '/nix/store/6hxx3qx5jwvwssr3xbkmsb1w2j6c6mk0-crate-jsonschema-0.61.2.tar.gz.drv'...
+    42.9 building '/nix/store/9mp1mw7hjg461mj3j0fv64f4j4fs171p-crate-fluent-uri-0.4.1.tar.gz.drv'...
+    43.1 building '/nix/store/1hk5dysjri45y2qcrdsgw9pkd4y8myb2-fraction-0.17.0.drv'...
+    43.1 crate-fluent-uri> 
+    43.1 crate-fluent-uri> trying https://static.crates.io/crates/fluent-uri/0.4.1/download
+    43.1 crate-fluent-uri>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    43.1 crate-fluent-uri>                                  Dload  Upload  Total   Spent   Left   Speed
+    43.1 crate-fluent-uri> 
+    43.1 crate-fluent-uri>   0      0   0      0   0      0      0      0                              0
+    43.1 crate-fluent-uri> 100  51205 100  51205   0      0 758.3k      0                              0
+    43.1 crate-fluent-uri> 100  51205 100  51205   0      0 757.9k      0                              0
+    43.1 crate-fluent-uri> 100  51205 100  51205   0      0 756.9k      0                              0
+    43.1 crate-jsonschema> 
+    43.1 crate-jsonschema> trying https://static.crates.io/crates/jsonschema/0.61.2/download
+    43.1 crate-jsonschema>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    43.1 crate-jsonschema>                                  Dload  Upload  Total   Spent   Left   Speed
+    43.1 crate-jsonschema> 
+    43.1 crate-jsonschema>   0      0   0      0   0      0      0      0                              0
+    43.1 crate-jsonschema> 100 793.3k 100 793.3k   0      0  7.01M      0                              0
+    43.1 crate-jsonschema> 100 793.3k 100 793.3k   0      0  7.01M      0                              0
+    43.1 crate-jsonschema> 100 793.3k 100 793.3k   0      0  7.01M      0                              0
+    43.1 copying path '/nix/store/y5zh9q993q99swc083qs3cvxmww1qnp8-clang-21.1.8' from 'https://cache.nixos.org'...
+    43.4 building '/nix/store/pixlll1ynj96b8if8kjwp70zqcvxlsnf-referencing-0.61.2.drv'...
+    43.6 building '/nix/store/598m339y9ah7sj0mkqd6wrb24dxiiavw-toml-1.2.1+spec-1.1.0.drv'...
+    43.7 copying path '/nix/store/dmq4zj7r6ws065701klkb549xnf7xldl-cctools-binutils-darwin-1010.6' from 'https://cache.nixos.org'...
+    43.9 building '/nix/store/g21dlilmqayifc3lyjs86yax4m6z3jv2-jsonschema-0.61.2.drv'...
+    44.2 building '/nix/store/vvqb3prird92amdq8gi177rpzbw9y24r-toml_writer-1.2.0+spec-1.1.0.drv'...
+    44.2 copying path '/nix/store/dv782zq7nhscr843jljak8fvcqvv9a9a-apple-sdk-14.4' from 'https://cache.nixos.org'...
+    44.5 building '/nix/store/c10bgrwlkij6hkqyrhhvzamfzkiabi61-clap_lex-1.1.2.drv'...
+    44.8 building '/nix/store/ngvwkh865dqcrjpb1m1vmbmsk4qy7cl7-vsimd-0.8.0.drv'...
+    45.1 building '/nix/store/lg0zi6i11cw5si0wnm4h8rxpyxjxabwm-outref-0.5.2.drv'...
+    45.4 building '/nix/store/j1ppfwm74lspc1gs9rb3jb9y0kfn9h2k-smallvec-1.16.6.drv'...
+    45.7 building '/nix/store/1md2ca4sjvzx8qr99rcf263s4n53dnmp-crate-email_address-0.2.10.tar.gz.drv'...
+    46.0 building '/nix/store/w3p25l3pf242rlhy905cvddhlv1n8p6p-crate-fancy-regex-0.20.2.tar.gz.drv'...
+    46.0 crate-email_address> 
+    46.0 crate-email_address> trying https://static.crates.io/crates/email_address/0.2.10/download
+    46.0 crate-email_address>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    46.0 crate-email_address>                                  Dload  Upload  Total   Spent   Left   Speed
+    46.0 crate-email_address> 
+    46.0 crate-email_address>   0      0   0      0   0      0      0      0                              0
+    46.0 crate-email_address> 100  40268 100  40268   0      0 645.8k      0                              0
+    46.0 crate-email_address> 100  40268 100  40268   0      0 645.6k      0                              0
+    46.0 crate-email_address> 100  40268 100  40268   0      0 645.4k      0                              0
+    46.4 building '/nix/store/wabd8faqgl96a23d7mcrply030vghfys-fluent-uri-0.4.1.drv'...
+    46.4 crate-fancy-regex> 
+    46.4 crate-fancy-regex> trying https://static.crates.io/crates/fancy-regex/0.20.2/download
+    46.4 crate-fancy-regex>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    46.4 crate-fancy-regex>                                  Dload  Upload  Total   Spent   Left   Speed
+    46.4 crate-fancy-regex> 
+    46.4 crate-fancy-regex>   0      0   0      0   0      0      0      0                              0
+    46.4 crate-fancy-regex> 100 280.7k 100 280.7k   0      0  2.93M      0                              0
+    46.4 crate-fancy-regex> 100 280.7k 100 280.7k   0      0  2.93M      0                              0
+    46.4 crate-fancy-regex> 100 280.7k 100 280.7k   0      0  2.93M      0                              0
+    46.4 copying path '/nix/store/h35x7ybiw8jnbvsab9w6ibnwi2q5xh24-rustc-wrapper-1.99.1' from 'https://cache.nixos.org'...
+    46.6 building '/nix/store/dbrraslxx3cpvxf2492y3bvb1jb5sdd0-crate-jsonschema-regex-0.61.2.tar.gz.drv'...
+    46.7 copying path '/nix/store/pbzrwqjzlp20f7ikk5l16zsz7041f5lp-cargo-1.99.1' from 'https://cache.nixos.org'...
+    46.9 building '/nix/store/c9vrsn791sdql2p7r3iw7ccwq9dmk8qk-crate-strum_macros-0.28.0.tar.gz.drv'...
+    47.2 building '/nix/store/yi6rk33j7lzv0jrkvd14g8bb0x1b683b-email_address-0.2.10.drv'...
+    47.2 crate-jsonschema-regex> 
+    47.2 crate-jsonschema-regex> trying https://static.crates.io/crates/jsonschema-regex/0.61.2/download
+    47.2 crate-jsonschema-regex>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    47.2 crate-jsonschema-regex>                                  Dload  Upload  Total   Spent   Left   Speed
+    47.2 crate-jsonschema-regex> 
+    47.2 crate-jsonschema-regex>   0      0   0      0   0      0      0      0                              0
+    47.2 crate-jsonschema-regex> 100  27338 100  27338   0      0 508.9k      0                              0
+    47.2 crate-jsonschema-regex> 100  27338 100  27338   0      0 508.6k      0                              0
+    47.2 crate-jsonschema-regex> 100  27338 100  27338   0      0 508.5k      0                              0
+    47.2 crate-strum_macros> 
+    47.2 crate-strum_macros> trying https://static.crates.io/crates/strum_macros/0.28.0/download
+    47.2 crate-strum_macros>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    47.2 crate-strum_macros>                                  Dload  Upload  Total   Spent   Left   Speed
+    47.2 crate-strum_macros> 
+    47.2 crate-strum_macros>   0      0   0      0   0      0      0      0                              0
+    47.2 crate-strum_macros> 100  30964 100  30964   0      0 667.8k      0                              0
+    47.2 crate-strum_macros> 100  30964 100  30964   0      0 667.6k      0                              0
+    47.2 crate-strum_macros> 100  30964 100  30964   0      0 667.4k      0                              0
+    47.2 copying path '/nix/store/yvhrk9zf7c766mzrpwi79xcag010bxg4-auditable-cargo-1.99.1' from 'https://cache.nixos.org'...
+    47.5 building '/nix/store/q6zsrwb3wg3c4fhy990ajp3jylrbn6qg-crate-unicode-general-category-1.1.0.tar.gz.drv'...
+    47.8 building '/nix/store/9bgp0h4m0grf3abmz8vkzdbzyq71kjps-crate-uuid-simd-0.8.0.tar.gz.drv'...
+    47.8 crate-unicode-general-category> 
+    47.8 crate-unicode-general-category> trying https://static.crates.io/crates/unicode-general-category/1.1.0/download
+    47.8 crate-unicode-general-category>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    47.8 crate-unicode-general-category>                                  Dload  Upload  Total   Spent   Left   Speed
+    47.8 crate-unicode-general-category> 
+    47.8 crate-unicode-general-category>   0      0   0      0   0      0      0      0                              0
+    47.8 crate-unicode-general-category> 100  36486 100  36486   0      0 627.2k      0                              0
+    47.8 crate-unicode-general-category> 100  36486 100  36486   0      0 627.0k      0                              0
+    47.8 crate-unicode-general-category> 100  36486 100  36486   0      0 626.9k      0                              0
+    48.0 building '/nix/store/s123gwqpc9bgqcqiw47lsk7w887lkhvl-crate-micromap-0.3.0.tar.gz.drv'...
+    48.0 crate-uuid-simd> 
+    48.0 crate-uuid-simd> trying https://static.crates.io/crates/uuid-simd/0.8.0/download
+    48.0 crate-uuid-simd>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    48.0 crate-uuid-simd>                                  Dload  Upload  Total   Spent   Left   Speed
+    48.0 crate-uuid-simd> 
+    48.0 crate-uuid-simd>   0      0   0      0   0      0      0      0                              0
+    48.0 crate-uuid-simd> 100   6959 100   6959   0      0 131.5k      0                              0
+    48.0 crate-uuid-simd> 100   6959 100   6959   0      0 131.4k      0                              0
+    48.0 crate-uuid-simd> 100   6959 100   6959   0      0 131.4k      0                              0
+    48.3 building '/nix/store/gnmwy546awnq9w67dfgs6i6nsk7908cz-crate-strum-0.28.0.tar.gz.drv'...
+    48.3 crate-micromap> 
+    48.3 crate-micromap> trying https://static.crates.io/crates/micromap/0.3.0/download
+    48.3 crate-micromap>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    48.3 crate-micromap>                                  Dload  Upload  Total   Spent   Left   Speed
+    48.3 crate-micromap> 
+    48.3 crate-micromap>   0      0   0      0   0      0      0      0                              0
+    48.3 crate-micromap> 100  59760 100  59760   0      0 831.0k      0                              0
+    48.3 crate-micromap> 100  59760 100  59760   0      0 830.8k      0                              0
+    48.3 crate-micromap> 100  59760 100  59760   0      0 830.7k      0                              0
+    48.6 building '/nix/store/7r6v348al44jlkix36fpw5bm17ckj0pl-unicode-general-category-1.1.0.drv'...
+    48.6 crate-strum> 
+    48.6 crate-strum> trying https://static.crates.io/crates/strum/0.28.0/download
+    48.6 crate-strum>   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+    48.6 crate-strum>                                  Dload  Upload  Total   Spent   Left   Speed
+    48.6 crate-strum> 
+    48.6 crate-strum>   0      0   0      0   0      0      0      0                              0
+    48.6 crate-strum> 100   8550 100   8550   0      0 204.4k      0                              0
+    48.6 crate-strum> 100   8550 100   8550   0      0 204.3k      0                              0
+    48.6 crate-strum> 100   8550 100   8550   0      0 204.2k      0                              0
+    48.6 copying path '/nix/store/4sza0vqq5pq5s91vkqlk21hq040rmrs9-cctools-binutils-darwin-wrapper-1010.6' from 'https://cache.nixos.org'...
+    48.8 building '/nix/store/d3i3qs4lyqlmav7zbgwg06f03s8jq1yj-uuid-simd-0.8.0.drv'...
+    48.8 copying path '/nix/store/g8ygy4cj8gizpf47cpycr64fpkimchc8-clang-wrapper-21.1.8' from 'https://cache.nixos.org'...
+    49.0 building '/nix/store/4gq6pyz2ma2zpym6w72dld6jdq6gnyjz-borrow-or-share-0.2.4.drv'...
+    49.2 building '/nix/store/gggxf2ab15ryjhw7y18hxxqwd3y7wwfi-micromap-0.3.0.drv'...
+    49.2 copying path '/nix/store/2fdb80ib7lyyxvvwvsqvajc3xdl553db-cargo-build-hook.sh' from 'https://cache.nixos.org'...
+    49.2 copying path '/nix/store/rxyf1yaam92f0nzlkjw18xrmln89024b-cargo-setup-hook.sh' from 'https://cache.nixos.org'...
+    49.2 copying path '/nix/store/3j0hvszcqcb2vwm5dz0xxfb06cx49k86-python3-3.14.10' from 'https://cache.nixos.org'...
+    49.2 copying path '/nix/store/zvj6vj0irzl7d1isca6i25mn83i4al5z-stdenv-darwin' from 'https://cache.nixos.org'...
+    49.2 copying path '/nix/store/wh34bwly4jv9wfb0bcjzsmp1g0n4hlg5-cargo-check-hook.sh' from 'https://cache.nixos.org'...
+    49.5 building '/nix/store/klak4y72jswcz4h857z4z5dxfgiy7lfn-fancy-regex-0.20.2.drv'...
+    49.8 building '/nix/store/q2pfv69pa3ljcm0sj7j88wfpxwd9wzkm-strum-0.28.0.drv'...
+    50.1 building '/nix/store/d4nfqrf896kcfq1cl9shbdaas7qbzpq0-jsonschema-regex-0.61.2.drv'...
+    50.4 building '/nix/store/4g9sjrxfh622vvjy3q48vg7whr2qdv97-strum_macros-0.28.0.drv'...
+    50.4 copying path '/nix/store/5gpqd5y6g8wav4sgry5i9qmp0kwnnwby-git-2.56.0' from 'https://cache.nixos.org'...
+    50.7 building '/nix/store/k4mvl12ci5xhrj9xg91xmp1v7cj7ssy0-cargo-vendor-dir.drv'...
+    51.7 building '/nix/store/g2q1w9pnvwcifybrf6c78x35z0pm8wm7-nixtops-0.0.0.drv'...
+    51.8 nixtops> Running phase: unpackPhase
+    51.8 nixtops> unpacking source archive /nix/store/pdlsaf28ma7k3y775zbpvln12wgs53al-source
+    51.8 nixtops> source root is source
+    51.8 nixtops> Executing cargoSetupPostUnpackHook
+    52.6 nixtops> Finished cargoSetupPostUnpackHook
+    52.6 nixtops> Running phase: patchPhase
+    52.6 nixtops> Executing cargoSetupPostPatchHook
+    52.6 nixtops> Validating consistency between /nix/var/nix/builds/nix-1812-1149414531/source/Cargo.lock and /nix/var/nix/builds/nix-1812-1149414531/cargo-vendor-dir/Cargo.lock
+    52.6 nixtops> Finished cargoSetupPostPatchHook
+    52.6 nixtops> Running phase: updateAutotoolsGnuConfigScriptsPhase
+    52.6 nixtops> Running phase: configurePhase
+    52.6 nixtops> Running phase: buildPhase
+    52.7 nixtops> Executing cargoBuildHook
+    52.7 nixtops> cargoBuildHook flags: -j 3 --target aarch64-apple-darwin --offline --profile release
+    53.2 nixtops>    Compiling proc-macro2 v1.0.107
+    53.2 nixtops>    Compiling unicode-ident v1.0.27
+    53.2 nixtops>    Compiling quote v1.0.47
+    53.6 nixtops>    Compiling serde_core v1.0.229
+    54.1 nixtops>    Compiling autocfg v1.5.1
+    54.4 nixtops>    Compiling num-traits v0.2.19
+    54.7 nixtops>    Compiling zmij v1.0.23
+    54.7 nixtops>    Compiling syn v3.0.10
+    55.5 nixtops>    Compiling libc v0.2.191
+    55.6 nixtops>    Compiling memchr v2.8.3
+    55.8 nixtops>    Compiling serde v1.0.229
+    56.0 nixtops>    Compiling num-integer v0.1.47
+    56.2 nixtops>    Compiling cfg-if v1.0.5
+    56.3 nixtops>    Compiling getrandom v0.3.4
+    56.5 nixtops>    Compiling zerocopy v0.8.63
+    56.5 nixtops>    Compiling version_check v0.9.5
+    56.6 nixtops>    Compiling ahash v0.8.12
+    56.8 nixtops>    Compiling num-bigint v0.4.8
+    56.8 nixtops>    Compiling ref-cast v1.0.27
+    56.8 nixtops>    Compiling serde_derive v1.0.229
+    57.0 nixtops>    Compiling serde_json v1.0.154
+    57.1 nixtops>    Compiling regex-syntax v0.8.12
+    58.4 nixtops>    Compiling parking_lot_core v0.9.12
+    58.6 nixtops>    Compiling heck v0.5.0
+    58.9 nixtops>    Compiling num-rational v0.4.2
+    58.9 nixtops>    Compiling ref-cast-impl v1.0.27
+    59.6 nixtops>    Compiling num-iter v0.1.46
+    59.6 nixtops>    Compiling aho-corasick v1.1.5
+    60.2 nixtops>    Compiling num-complex v0.4.6
+    60.6 nixtops>    Compiling scopeguard v1.2.0
+    60.8 nixtops>    Compiling smallvec v1.16.6
+    60.9 nixtops>    Compiling itoa v1.0.19
+    61.0 nixtops>    Compiling utf8parse v0.2.2
+    61.1 nixtops>    Compiling once_cell v1.21.4
+    61.1 nixtops>    Compiling anstyle-parse v1.0.0
+    61.6 nixtops>    Compiling lock_api v0.4.14
+    62.0 nixtops>    Compiling num v0.4.3
+    62.0 nixtops>    Compiling regex-automata v0.4.19
+    62.7 nixtops>    Compiling syn v2.0.119
+    63.3 nixtops>    Compiling foldhash v0.2.0
+    63.4 nixtops>    Compiling allocator-api2 v0.2.21
+    63.8 nixtops>    Compiling jsonschema-value v0.61.2
+    64.0 nixtops>    Compiling unicode-general-category v1.1.0
+    64.0 nixtops>    Compiling is_terminal_polyfill v1.70.2
+    64.2 nixtops>    Compiling bit-vec v0.8.0
+    64.4 nixtops>    Compiling anstyle v1.0.14
+    64.5 nixtops>    Compiling anstyle-query v1.1.5
+    64.5 nixtops>    Compiling equivalent v1.0.3
+    64.5 nixtops>    Compiling colorchoice v1.0.5
+    64.6 nixtops>    Compiling borrow-or-share v0.2.4
+    64.6 nixtops>    Compiling fluent-uri v0.4.1
+    65.2 nixtops>    Compiling anstream v1.0.0
+    65.3 nixtops>    Compiling hashbrown v0.17.1
+    65.4 nixtops>    Compiling bit-set v0.8.0
+    65.7 nixtops>    Compiling strum_macros v0.28.0
+    65.8 nixtops>    Compiling fraction v0.17.0
+    66.2 nixtops>    Compiling parking_lot v0.12.5
+    66.5 nixtops>    Compiling bytecount v0.6.9
+    66.6 nixtops>    Compiling time-core v0.1.9
+    66.7 nixtops>    Compiling micromap v0.3.0
+    66.8 nixtops>    Compiling num-cmp v0.1.0
+    66.9 nixtops>    Compiling winnow v1.0.5
+    67.0 nixtops>    Compiling clap_lex v1.1.2
+    67.1 nixtops>    Compiling outref v0.5.2
+    67.1 nixtops>    Compiling percent-encoding v2.3.2
+    67.1 nixtops>    Compiling num-conv v0.2.2
+    67.2 nixtops>    Compiling strsim v0.11.1
+    67.2 nixtops>    Compiling vsimd v0.8.0
+    67.2 nixtops>    Compiling time-macros v0.2.32
+    67.5 nixtops>    Compiling uuid-simd v0.8.0
+    67.6 nixtops>    Compiling clap_builder v4.6.7
+    67.6 nixtops>    Compiling referencing v0.61.2
+    68.0 nixtops>    Compiling toml_parser v1.1.5+spec-1.1.0
+    69.0 nixtops>    Compiling strum v0.28.0
+    69.4 nixtops>    Compiling fancy-regex v0.20.2
+    69.6 nixtops>    Compiling nixtops v0.0.0 (/nix/var/nix/builds/nix-1812-1149414531/source/crates/nixtops)
+    70.2 nixtops>    Compiling regex v1.13.2
+    70.6 nixtops>    Compiling email_address v0.2.10
+    70.8 nixtops>    Compiling clap_derive v4.6.8
+    71.8 nixtops>    Compiling jsonschema-regex v0.61.2
+    71.9 nixtops>    Compiling serde_spanned v1.1.3
+    71.9 nixtops>    Compiling toml_datetime v1.1.3+spec-1.1.0
+    72.1 nixtops>    Compiling powerfmt v0.2.1
+    72.2 nixtops>    Compiling deranged v0.5.9
+    72.4 nixtops>    Compiling toml_writer v1.2.0+spec-1.1.0
+    72.6 nixtops>    Compiling data-encoding v2.11.1
+    72.7 nixtops>    Compiling toml v1.2.1+spec-1.1.0
+    72.9 nixtops>    Compiling time v0.3.55
+    73.7 nixtops>    Compiling jsonschema v0.61.2
+    74.4 nixtops>    Compiling clap v4.6.8
+   120.4 nixtops>     Finished `release` profile [optimized] target(s) in 1m 07s
+   120.4 nixtops> Executing cargoInstallPostBuildHook
+   120.4 nixtops> Finished cargoInstallPostBuildHook
+   120.4 nixtops> Finished cargoBuildHook
+   120.4 nixtops> buildPhase completed in 1 minutes 8 seconds
+   120.4 nixtops> Running phase: checkPhase
+   120.4 nixtops> Executing cargoCheckHook
+   120.4 nixtops> cargoCheckHook flags: -j 3 --profile release --target aarch64-apple-darwin --offline --
+   120.6 nixtops>    Compiling libc v0.2.191
+   120.6 nixtops>    Compiling serde_core v1.0.229
+   120.6 nixtops>    Compiling num-traits v0.2.19
+   121.2 nixtops>    Compiling cfg-if v1.0.5
+   121.2 nixtops>    Compiling memchr v2.8.3
+   121.2 nixtops>    Compiling num-integer v0.1.47
+   121.5 nixtops>    Compiling num-bigint v0.4.8
+   121.7 nixtops>    Compiling regex-syntax v0.8.12
+   122.4 nixtops>    Compiling serde v1.0.229
+   122.7 nixtops>    Compiling once_cell v1.21.4
+   122.9 nixtops>    Compiling num-rational v0.4.2
+   123.2 nixtops>    Compiling aho-corasick v1.1.5
+   123.5 nixtops>    Compiling num-iter v0.1.46
+   123.5 nixtops>    Compiling getrandom v0.3.4
+   123.6 nixtops>    Compiling num-complex v0.4.6
+   123.9 nixtops>    Compiling zmij v1.0.23
+   124.1 nixtops>    Compiling zerocopy v0.8.63
+   124.9 nixtops>    Compiling smallvec v1.16.6
+   125.0 nixtops>    Compiling itoa v1.0.19
+   125.1 nixtops>    Compiling utf8parse v0.2.2
+   125.2 nixtops>    Compiling scopeguard v1.2.0
+   125.2 nixtops>    Compiling anstyle-parse v1.0.0
+   125.2 nixtops>    Compiling lock_api v0.4.14
+   125.3 nixtops>    Compiling serde_json v1.0.154
+   125.3 nixtops>    Compiling parking_lot_core v0.9.12
+   125.5 nixtops>    Compiling regex-automata v0.4.19
+   126.5 nixtops>    Compiling ahash v0.8.12
+   126.7 nixtops>    Compiling num v0.4.3
+   126.7 nixtops>    Compiling ref-cast v1.0.27
+   126.7 nixtops>    Compiling equivalent v1.0.3
+   126.8 nixtops>    Compiling is_terminal_polyfill v1.70.2
+   126.8 nixtops>    Compiling allocator-api2 v0.2.21
+   126.8 nixtops>    Compiling colorchoice v1.0.5
+   126.8 nixtops>    Compiling anstyle v1.0.14
+   126.9 nixtops>    Compiling bit-vec v0.8.0
+   127.0 nixtops>    Compiling anstyle-query v1.1.5
+   127.0 nixtops>    Compiling borrow-or-share v0.2.4
+   127.1 nixtops>    Compiling foldhash v0.2.0
+   127.1 nixtops>    Compiling bit-set v0.8.0
+   127.2 nixtops>    Compiling hashbrown v0.17.1
+   127.2 nixtops>    Compiling fluent-uri v0.4.1
+   127.6 nixtops>    Compiling anstream v1.0.0
+   127.8 nixtops>    Compiling fraction v0.17.0
+   127.8 nixtops>    Compiling parking_lot v0.12.5
+   128.1 nixtops>    Compiling winnow v1.0.5
+   128.2 nixtops>    Compiling percent-encoding v2.3.2
+   128.3 nixtops>    Compiling rustix v1.1.6
+   128.4 nixtops>    Compiling vsimd v0.8.0
+   128.6 nixtops>    Compiling bytecount v0.6.9
+   128.7 nixtops>    Compiling micromap v0.3.0
+   128.7 nixtops>    Compiling outref v0.5.2
+   128.7 nixtops>    Compiling clap_lex v1.1.2
+   128.8 nixtops>    Compiling strsim v0.11.1
+   128.9 nixtops>    Compiling getrandom v0.4.3
+   129.1 nixtops>    Compiling num-cmp v0.1.0
+   129.2 nixtops>    Compiling clap_builder v4.6.7
+   129.3 nixtops>    Compiling jsonschema-value v0.61.2
+   130.0 nixtops>    Compiling referencing v0.61.2
+   130.5 nixtops>    Compiling uuid-simd v0.8.0
+   130.7 nixtops>    Compiling toml_parser v1.1.5+spec-1.1.0
+   131.3 nixtops>    Compiling fancy-regex v0.20.2
+   132.2 nixtops>    Compiling regex v1.13.2
+   132.8 nixtops>    Compiling jsonschema-regex v0.61.2
+   133.6 nixtops>    Compiling email_address v0.2.10
+   133.7 nixtops>    Compiling toml_datetime v1.1.3+spec-1.1.0
+   133.8 nixtops>    Compiling serde_spanned v1.1.3
+   133.9 nixtops>    Compiling strum v0.28.0
+   133.9 nixtops>    Compiling unicode-general-category v1.1.0
+   133.9 nixtops>    Compiling errno v0.3.15
+   134.0 nixtops>    Compiling data-encoding v2.11.1
+   134.2 nixtops>    Compiling num-conv v0.2.2
+   134.3 nixtops>    Compiling deranged v0.5.9
+   134.4 nixtops>    Compiling toml_writer v1.2.0+spec-1.1.0
+   134.5 nixtops>    Compiling time-core v0.1.9
+   134.6 nixtops>    Compiling bitflags v2.13.2
+   134.8 nixtops>    Compiling powerfmt v0.2.1
+   134.9 nixtops>    Compiling time v0.3.55
+   135.1 nixtops>    Compiling toml v1.2.1+spec-1.1.0
+   135.9 nixtops>    Compiling jsonschema v0.61.2
+   136.7 nixtops>    Compiling clap v4.6.8
+   136.8 nixtops>    Compiling fastrand v2.5.0
+   137.5 nixtops>    Compiling tempfile v3.27.0
+   141.2 nixtops>    Compiling nixtops v0.0.0 (/nix/var/nix/builds/nix-1812-1149414531/source/crates/nixtops)
+   434.6 nixtops>     Finished `release` profile [optimized] target(s) in 5m 14s
+   434.6 nixtops>      Running unittests src/lib.rs (target/aarch64-apple-darwin/release/deps/nixtops-cd0c695cff33ab6b)
+   434.6 nixtops> 
+   434.6 nixtops> running 143 tests
+   434.6 nixtops> test build_info::tests::the_protocol_and_package_are_set ... ok(B
+   434.6 nixtops> test build_info::tests::the_judge_is_the_entry_named_nix ... ok(B
+   434.6 nixtops> test build_info::tests::a_table_parses_in_order_and_drops_malformed_entries ... ok(B
+   434.6 nixtops> test cmd::doctor::tests::the_judge_line_names_the_pin_or_says_there_is_none ... ok(B
+   434.6 nixtops> test cmd::doctor::tests::settings_say_unknown_when_the_config_is_unreadable ... ok(B
+   434.6 nixtops> test cmd::version::tests::render_says_when_nothing_is_pinned ... ok(B
+   434.6 nixtops> test cmd::version::tests::render_lists_every_tool_after_the_header ... ok(B
+   434.6 nixtops> test config::baseline::tests::a_failed_status_is_not_clean ... ok(B
+   434.6 nixtops> test config::baseline::tests::every_state_is_reached ... ok(B
+   434.6 nixtops> test config::baseline::tests::only_a_missing_git_is_an_environment_failure ... ok(B
+   434.6 nixtops> test config::outputs::tests::an_unlisted_output_is_an_environment_failure_that_names_it_and_stops ... ok(B
+   434.6 nixtops> test config::outputs::tests::facets_and_systems_that_match_pass ... ok(B
+   434.6 nixtops> test config::outputs::tests::a_facet_the_outputs_do_not_show_fails_naming_its_index ... ok(B
+   434.6 nixtops> test config::outputs::tests::first_line_prefers_the_last_error_line_that_has_text ... ok(B
+   434.6 nixtops> test config::outputs::tests::fleet_root_and_image_are_refused_as_not_derived_in_m1 ... ok(B
+   434.6 nixtops> test config::outputs::tests::first_line_skips_blank_lines ... ok(B
+   434.6 nixtops> test config::outputs::tests::home_config_says_what_m1_derives_it_from ... ok(B
+   434.6 nixtops> test config::render::tests::an_end_marker_before_the_begin_marker_is_not_a_section ... ok(B
+   434.6 nixtops> test config::render::tests::floors_print_without_a_fraction_when_whole ... ok(B
+   434.6 nixtops> test config::render::tests::merge_appends_without_markers_and_creates_without_a_file ... ok(B
+   434.6 nixtops> test config::render::tests::merge_replaces_between_markers_and_keeps_the_rest ... ok(B
+   434.6 nixtops> test config::outputs::tests::systems_that_differ_from_the_exports_fail_and_say_how ... ok(B
+   434.6 nixtops> test config::render::tests::the_section_has_no_field_left_and_keeps_its_markers ... ok(B
+   434.6 nixtops> test config::render::tests::the_workflow_is_the_section_11_floor ... ok(B
+   434.6 nixtops> test config::render::tests::unmapped_layers_are_disabled ... ok(B
+   434.6 nixtops> test config::semantic::tests::a_blank_layer_reason_fails_naming_the_layer_and_a_real_one_passes ... ok(B
+   434.6 nixtops> test config::semantic::tests::a_clean_hard_config_passes ... ok(B
+   434.6 nixtops> test config::semantic::tests::a_kit_input_that_follows_nixpkgs_fails ... ok(B
+   434.6 nixtops> test config::semantic::tests::advisory_is_refused_naming_enforce ... ok(B
+   434.6 nixtops> test config::semantic::tests::an_expired_entry_fails_on_the_day_after_and_not_on_the_day ... ok(B
+   434.6 nixtops> test config::semantic::tests::an_impossible_date_fails ... ok(B
+   434.6 nixtops> test config::semantic::tests::facets_are_reported_by_status ... ok(B
+   434.6 nixtops> test config::semantic::tests::no_kit_input_is_reported_not_failed ... ok(B
+   434.6 nixtops> test config::semantic::tests::ratchet_needs_the_baseline_and_the_default_is_ratchet ... ok(B
+   434.6 nixtops> test config::semantic::tests::today_is_an_iso_date ... ok(B
+   434.6 nixtops> test config::tests::a_non_finite_float_becomes_null_not_a_panic ... ok(B
+   434.6 nixtops> test config::tests::toml_becomes_json_with_dates_as_strings ... ok(B
+   434.6 nixtops> test exec::tests::a_busy_program_is_tried_again_until_it_runs ... ok(B
+   434.6 nixtops> test exec::tests::a_program_that_stays_busy_gives_up_after_the_attempts_and_says_busy ... ok(B
+   434.6 nixtops> test exec::tests::any_other_error_is_returned_at_once ... ok(B
+   434.6 nixtops> test exec::tests::only_a_busy_executable_counts_as_busy ... ok(B
+   434.6 nixtops> test exec::tests::output_runs_a_program_and_returns_its_status ... ok(B
+   434.6 nixtops> test exit::tests::codes_follow_the_cli_table ... ok(B
+   434.6 nixtops> test exit::tests::output_constructors_fill_the_right_stream ... ok(B
+   434.6 nixtops> test gate::diag::tests::a_bad_table_is_an_error_naming_the_problem ... ok(B
+   434.6 nixtops> test gate::diag::tests::a_continuation_line_is_not_a_diagnostic_of_its_own ... ok(B
+   434.6 nixtops> test gate::diag::tests::a_known_line_takes_its_effect_and_an_unknown_one_is_unclassified ... ok(B
+   434.6 nixtops> test gate::diag::tests::evaluation_warnings_are_not_diagnostics ... ok(B
+   434.6 nixtops> test gate::diag::tests::only_the_entries_of_the_running_implementation_apply ... ok(B
+   434.6 nixtops> test gate::diag::tests::parse_reads_effect_and_defaults_to_report ... ok(B
+   434.6 nixtops> test gate::diag::tests::the_embedded_table_parses_and_every_fixture_is_classified_by_its_own_entry ... ok(B
+   434.6 nixtops> test gate::eval::tests::a_determinate_check_names_its_failed_attributes_and_they_decide ... ok(B
+   434.6 nixtops> test gate::eval::tests::a_records_system_is_its_own_or_the_second_part_of_a_per_system_path ... ok(B
+   434.6 nixtops> test gate::eval::tests::a_system_quoted_in_a_source_excerpt_does_not_make_the_error_the_selected_systems ... ok(B
+   434.6 nixtops> test gate::eval::tests::a_warning_is_about_the_selected_system_when_it_names_it_or_names_none ... ok(B
+   434.6 nixtops> test gate::eval::tests::an_error_is_about_the_systems_of_the_attributes_it_quotes ... ok(B
+   434.6 nixtops> test gate::eval::tests::evaluation_warnings_are_found_once_each_in_order ... ok(B
+   434.6 nixtops> test gate::eval::tests::first_lines_joins_the_first_six_non_empty_lines ... ok(B
+   434.6 nixtops> test gate::eval::tests::only_trace_lines_and_error_lines_name_attributes ... ok(B
+   434.6 nixtops> test gate::eval::tests::scrub_replaces_the_flake_path_with_a_dot ... ok(B
+   434.6 nixtops> test gate::eval::tests::the_error_block_starts_at_the_first_error_line ... ok(B
+   434.6 nixtops> test gate::eval::tests::the_root_cause_is_the_last_error_line_with_text ... ok(B
+   434.6 nixtops> test gate::layer::tests::a_built_layer_runs_and_cannot_be_switched_off ... ok(B
+   434.6 nixtops> test gate::layer::tests::a_switched_off_layer_is_skip_with_its_reason ... ok(B
+   434.6 nixtops> test gate::layer::tests::an_unbuilt_layer_that_is_on_is_not_run_and_fails ... ok(B
+   434.6 nixtops> test gate::layer::tests::only_gates_one_and_three_are_built ... ok(B
+   434.6 nixtops> test gate::ledger::tests::an_entry_expires_the_day_after_until ... ok(B
+   434.6 nixtops> test gate::ledger::tests::entries_read_the_allow_list ... ok(B
+   434.6 nixtops> test gate::ledger::tests::matching_is_a_substring_and_skips_expired_entries ... ok(B
+   434.6 nixtops> test gate::ledger::tests::the_ack_carries_the_entry_and_whether_it_expired ... ok(B
+   434.6 nixtops> test gate::run::tests::a_layer_switch_in_the_config_needs_enabled_false_and_names_its_reason ... ok(B
+   434.6 nixtops> test gate::run::tests::the_enforce_mode_defaults_to_hard_when_nothing_was_read ... ok(B
+   434.6 nixtops> test gate::run::tests::the_report_path_defaults_and_follows_the_config ... ok(B
+   434.6 nixtops> test gate::run::tests::today_is_a_utc_date ... ok(B
+   434.6 nixtops> test gate::source::tests::a_flake_declares_inputs_when_the_root_of_its_lock_lists_some ... ok(B
+   434.6 nixtops> test gate::source::tests::a_staged_rename_or_copy_counts_by_its_new_path_and_a_staged_delete_is_not_new ... ok(B
+   434.6 nixtops> test gate::source::tests::an_untracked_direnv_is_not_exempt_and_direnvx_never_was ... ok(B
+   434.6 nixtops> test gate::source::tests::ignored_nix_files_count_except_under_an_ignored_direnv ... ok(B
+   434.6 nixtops> test gate::source::tests::the_layer_is_pass_without_findings_and_refuse_naming_each_law_with_them ... ok(B
+   434.6 nixtops> test gate::source::tests::untracked_staged_and_renamed_nix_files_are_found ... ok(B
+   434.6 nixtops> test host::tests::major_minor_reads_prerelease_suffixes ... ok(B
+   434.6 nixtops> test host::tests::the_floor ... ok(B
+   434.6 nixtops> test host::tests::the_reasons_name_the_version ... ok(B
+   434.6 nixtops> test host::tests::version_lines_parse ... ok(B
+   434.6 nixtops> test inventory::collect::tests::a_container_error_takes_the_kind_of_its_name ... ok(B
+   434.7 nixtops> test config::render::tests::the_config_it_writes_passes_the_schema ... ok(B
+   434.7 nixtops> test inventory::collect::tests::names_reads_strings_only ... ok(B
+   434.7 nixtops> test inventory::collect::tests::the_check_system_is_the_first_exported_or_a_default ... ok(B
+   434.7 nixtops> test inventory::jobs::tests::a_failed_exit_keeps_the_lines_that_came_first ... ok(B
+   434.7 nixtops> test inventory::jobs::tests::a_job_without_an_attr_path_is_still_a_job_with_an_empty_path_when_the_key_is_not_an_array ... ok(B
+   434.7 nixtops> test inventory::collect::tests::copy_dir_copies_nested_files ... ok(B
+   434.7 nixtops> test inventory::jobs::tests::a_non_zero_exit_adds_a_record_for_the_set ... ok(B
+   434.7 nixtops> test inventory::jobs::tests::clean_drops_configuration_noise_and_cuts_to_the_limit ... ok(B
+   434.7 nixtops> test inventory::jobs::tests::parse_keeps_job_lines_and_skips_the_rest ... ok(B
+   434.7 nixtops> test inventory::jobs::tests::records_join_the_base_and_the_attribute_path ... ok(B
+   434.7 nixtops> test inventory::nix_expr::tests::a_hostile_pin_stays_inside_its_literal ... ok(B
+   434.7 nixtops> test inventory::nix_expr::tests::an_installable_is_the_reference_a_hash_and_the_path ... ok(B
+   434.7 nixtops> test inventory::nix_expr::tests::an_attribute_path_quotes_every_name_and_the_root_is_a_dot ... ok(B
+   434.7 nixtops> test inventory::nix_expr::tests::each_builder_names_the_thing_it_forces ... ok(B
+   434.7 nixtops> test inventory::nix_expr::tests::quote_escapes_what_could_end_or_open_a_literal ... ok(B
+   434.7 nixtops> test inventory::record::tests::a_failed_record_carries_its_error ... ok(B
+   434.7 nixtops> test inventory::record::tests::a_new_record_is_not_evaluated_for_coverage_and_has_no_error ... ok(B
+   434.7 nixtops> test inventory::record::tests::builders_set_their_field_only ... ok(B
+   434.7 nixtops> test inventory::record::tests::kinds_and_levels_serialize_in_kebab_case ... ok(B
+   434.7 nixtops> test inventory::record::tests::meta_is_pruned_to_the_stable_keys ... ok(B
+   434.7 nixtops> test inventory::record::tests::names_match_the_serialized_forms ... ok(B
+   434.7 nixtops> test inventory::structure::tests::a_flake_with_unknown_outputs_only_has_no_facet ... ok(B
+   434.7 nixtops> test inventory::structure::tests::a_listing_error_keeps_the_output_and_its_error_and_no_members ... ok(B
+   434.7 nixtops> test inventory::structure::tests::an_empty_set_of_outputs_does_not_derive_its_facet ... ok(B
+   434.7 nixtops> test inventory::structure::tests::an_output_that_could_not_be_listed_still_derives_its_facet ... ok(B
+   434.7 nixtops> test inventory::structure::tests::an_overlay_alone_makes_a_package_set ... ok(B
+   434.7 nixtops> test inventory::structure::tests::configurations_make_hosts ... ok(B
+   434.7 nixtops> test inventory::structure::tests::facet_names_are_the_catalog_names ... ok(B
+   434.7 nixtops> test inventory::structure::tests::every_known_name_has_a_shape ... ok(B
+   434.7 nixtops> test inventory::structure::tests::facets_follow_the_catalog ... ok(B
+   434.7 nixtops> test inventory::structure::tests::systems_are_the_union_of_per_system_outputs_only ... ok(B
+   434.7 nixtops> test inventory::tools::tests::a_missing_program_is_a_failed_run_that_says_so ... ok(B
+   434.7 nixtops> test inventory::tools::tests::a_session_cleans_up_its_directory ... ok(B
+   434.7 nixtops> test inventory::tools::tests::tools_need_all_three_parts ... ok(B
+   434.7 nixtops> test inventory::tools::tests::unique_dirs_differ ... ok(B
+   434.7 nixtops> test probe::tests::daemon_reads_url_and_version ... ok(B
+   434.7 nixtops> test probe::tests::nix_bin_defaults_to_nix ... ok(B
+   434.7 nixtops> test config::baseline::tests::the_real_git_reports_a_directory_that_is_not_a_repository ... ok(B
+   434.7 nixtops> test probe::tests::settings_render_by_kind ... ok(B
+   434.7 nixtops> test profiles::tests::each_profile_validates_against_the_schema_and_matches_the_protocol ... ok(B
+   434.7 nixtops> test profiles::tests::every_profile_file_is_embedded ... ok(B
+   434.7 nixtops> test profiles::tests::floors_take_the_highest_and_the_strictest ... ok(B
+   434.7 nixtops> test profiles::tests::layers_are_mapped_by_the_profiles ... ok(B
+   434.7 nixtops> test profiles::tests::status_follows_section_5_1 ... ok(B
+   434.7 nixtops> test profiles::tests::stricter_takes_the_higher_mode_in_either_order ... ok(B
+   434.7 nixtops> test report::model::tests::a_report_with_no_failing_layer_passed ... ok(B
+   434.7 nixtops> test report::model::tests::acks_are_counted_and_keep_the_match_key ... ok(B
+   434.7 nixtops> test report::model::tests::counts_include_layers_and_warnings_each_on_their_own ... ok(B
+   434.7 nixtops> test report::model::tests::layer_ids_round_trip_in_gate_order ... ok(B
+   434.7 nixtops> test report::model::tests::only_refuse_and_not_run_fail ... ok(B
+   434.7 nixtops> test report::model::tests::serialization_uses_schema_names_and_skips_absent_reasons ... ok(B
+   434.7 nixtops> test report::model::tests::verdict_names_and_keys_follow_the_schema ... ok(B
+   434.7 nixtops> test report::text::tests::a_layer_line_pads_the_id_and_shows_the_first_line_of_the_reason ... ok(B
+   434.7 nixtops> test report::text::tests::a_missing_field_does_not_panic ... ok(B
+   434.7 nixtops> test report::text::tests::a_report_with_the_laws_layer_switched_off_says_laws_are_not_enforced ... ok(B
+   434.7 nixtops> test report::text::tests::warnings_are_listed_under_a_heading ... ok(B
+   434.7 nixtops> test inventory::tools::tests::a_program_runs_with_the_cache_in_its_environment ... ok(B
+   434.7 nixtops> test probe::tests::run_returns_none_for_a_missing_binary_and_trims_output ... ok(B
+   434.7 nixtops> 
+   434.7 nixtops> test result: ok(B. 143 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+   434.7 nixtops> 
+   434.7 nixtops>      Running unittests src/main.rs (target/aarch64-apple-darwin/release/deps/nixtops-3f00c3312d3d28b0)
+   434.7 nixtops> 
+   434.7 nixtops> running 0 tests
+   434.7 nixtops> 
+   434.7 nixtops> test result: ok(B. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   434.7 nixtops> 
+   434.7 nixtops>      Running tests/check_config.rs (target/aarch64-apple-darwin/release/deps/check_config-239c3ea1dd9049d2)
+   434.7 nixtops> 
+   434.7 nixtops> running 12 tests
+   434.7 nixtops> test a_good_config_passes_and_reports_each_facet ... ok(B
+   434.7 nixtops> test a_host_below_the_daemon_floor_exits_3_and_a_config_failure_wins ... ok(B
+   434.7 nixtops> test a_blank_layer_reason_exits_2_naming_it_and_a_written_one_passes ... ok(B
+   434.7 nixtops> test a_kit_input_that_follows_nixpkgs_fails_and_one_that_does_not_passes ... ok(B
+   434.7 nixtops> test advisory_is_refused_naming_enforce_and_the_missing_key ... ok(B
+   434.7 nixtops> test broken_toml_and_a_missing_file_exit_2 ... ok(B
+   434.7 nixtops> test evaluate_returns_the_verdict_without_printing_or_exiting ... ok(B
+   434.7 nixtops> test an_unknown_key_a_wrong_type_and_an_unknown_facet_each_exit_2_naming_the_key ... ok(B
+   434.8 nixtops> test an_expired_ledger_entry_fails_and_a_future_one_passes ... ok(B
+   434.8 nixtops> test facet_is_refused_and_missing_facets_or_systems_are_named ... ok(B
+   434.8 nixtops> test the_schema_in_the_binary_is_the_file_in_the_repo ... ok(B
+   434.8 nixtops> test ratchet_needs_the_baseline_file ... ok(B
+   434.8 nixtops> 
+   434.8 nixtops> test result: ok(B. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+   434.8 nixtops> 
+   434.8 nixtops>      Running tests/check_outputs.rs (target/aarch64-apple-darwin/release/deps/check_outputs-50b3638de77a2aee)
+   434.8 nixtops> 
+   434.8 nixtops> running 7 tests
+   434.8 nixtops> test matching_facets_and_systems_pass_under_hard_without_touching_git ... ok(B
+   434.8 nixtops> test a_facet_the_outputs_do_not_show_and_wrong_systems_exit_2_naming_the_key ... ok(B
+   434.8 nixtops> test a_config_failure_wins_over_an_environment_failure ... ok(B
+   434.8 nixtops> test ratchet_without_a_baseline_file_fails_on_the_file_and_never_asks_git ... ok(B
+   434.8 nixtops> test unreadable_outputs_and_an_unlisted_output_exit_3_naming_what_failed ... ok(B
+   434.9 nixtops> test under_ratchet_the_baseline_must_be_tracked_and_clean_against_head ... ok(B
+   435.0 nixtops> test the_real_git_sees_a_committed_baseline_as_clean_and_an_edited_one_as_dirty ... ok(B
+   435.0 nixtops> 
+   435.0 nixtops> test result: ok(B. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+   435.0 nixtops> 
+   435.0 nixtops>      Running tests/check_read.rs (target/aarch64-apple-darwin/release/deps/check_read-ffc608c7167f5396)
+   435.0 nixtops> 
+   435.0 nixtops> running 4 tests
+   435.0 nixtops> test found_says_why_there_is_no_structure ... ok(B
+   435.0 nixtops> test init_run_in_reads_the_outputs_with_the_given_tools ... ok(B
+   435.0 nixtops> test read_reports_no_judge_a_failing_judge_and_a_found_structure ... ok(B
+   435.0 nixtops> test check_runs_end_to_end_with_stand_in_tools ... ok(B
+   435.0 nixtops> 
+   435.0 nixtops> test result: ok(B. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+   435.0 nixtops> 
+   435.0 nixtops>      Running tests/commands.rs (target/aarch64-apple-darwin/release/deps/commands-654b9423fbd9ecad)
+   435.1 nixtops> 
+   435.1 nixtops> running 3 tests
+   435.1 nixtops> test an_unknown_command_is_a_usage_error ... ok(B
+   435.1 nixtops> test an_unbuilt_command_exits_4_and_names_itself ... ok(B
+   435.1 nixtops> test flags_of_the_table_parse ... ok(B
+   435.1 nixtops> 
+   435.1 nixtops> test result: ok(B. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+   435.1 nixtops> 
+   435.1 nixtops>      Running tests/doctor.rs (target/aarch64-apple-darwin/release/deps/doctor-e475e1f8911b4f59)
+   435.1 nixtops> 
+   435.1 nixtops> running 5 tests
+   435.1 nixtops> test doctor_without_nix_is_an_environment_error ... ok(B
+   435.1 nixtops> test doctor_prints_every_field ... ok(B
+   435.1 nixtops> test below_the_floor_says_why ... ok(B
+   435.1 nixtops> test report_marks_kvm_and_names_the_judge ... ok(B
+   435.2 nixtops> test the_floor_table ... ok(B
+   435.2 nixtops> 
+   435.2 nixtops> test result: ok(B. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+   435.2 nixtops> 
+   435.2 nixtops>      Running tests/exec_only.rs (target/aarch64-apple-darwin/release/deps/exec_only-8224eeacf2eba49a)
+   435.2 nixtops> 
+   435.2 nixtops> running 2 tests
+   435.2 nixtops> test the_scan_finds_what_it_forbids_and_ignores_what_it_does_not ... ok(B
+   435.2 nixtops> test no_command_is_run_outside_exec ... ok(B
+   435.2 nixtops> 
+   435.2 nixtops> test result: ok(B. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+   435.2 nixtops> 
+   435.2 nixtops>      Running tests/gate_cli.rs (target/aarch64-apple-darwin/release/deps/gate_cli-f840a8d23d6c68e4)
+   435.2 nixtops> 
+   435.2 nixtops> running 10 tests
+   435.2 nixtops> test a_directory_without_a_config_is_exit_two_and_writes_a_not_run_report ... ok(B
+   435.2 nixtops> test a_base_is_refused_with_a_report_because_no_diff_law_is_built ... ok(B
+   435.2 nixtops> test a_dry_run_is_refused_when_ci_is_set ... ok(B
+   435.2 nixtops> test a_dry_run_shows_the_plan_and_writes_a_report_with_every_layer_not_run ... ok(B
+   435.2 nixtops> test a_command_line_that_does_not_parse_is_not_a_run_and_writes_no_report ... ok(B
+   435.2 nixtops> test a_report_file_that_is_not_json_is_an_environment_error ... ok(B
+   435.2 nixtops> test only_takes_a_layer_id ... ok(B
+   435.2 nixtops> test json_prints_the_report_and_text_prints_the_layers ... ok(B
+   435.2 nixtops> test only_tier_one_is_built_and_any_other_max_tier_is_refused_with_a_report ... ok(B
+   435.2 nixtops> test report_renders_the_last_report_as_text_or_json_and_says_when_there_is_none ... ok(B
+   435.2 nixtops> 
+   435.2 nixtops> test result: ok(B. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+   435.2 nixtops> 
+   435.2 nixtops>      Running tests/gate_fixtures.rs (target/aarch64-apple-darwin/release/deps/gate_fixtures-9910b3925402e974)
+   435.2 nixtops> 
+   435.2 nixtops> running 8 tests
+   435.2 nixtops> test a_non_derivation_member_fails_only_on_the_selected_system_with_the_real_tools ... ok(B
+   435.2 nixtops> test a_dirty_tree_is_evaluated_from_its_tracked_files_and_gate_one_still_refuses_it ... ok(B
+   435.2 nixtops> test a_member_named_like_an_output_is_not_read_as_that_output_with_the_real_tools ... ok(B
+   435.2 nixtops> test a_selected_system_narrows_the_run_with_the_real_tools ... ok(B
+   435.2 nixtops> test a_system_quoted_in_the_excerpt_of_another_systems_error_does_not_refuse_the_run ... ok(B
+   435.2 nixtops> test a_template_in_a_fresh_source_is_copied_from_the_store ... ok(B
+   435.2 nixtops> test a_throwing_packages_set_for_the_host_does_not_hide_the_other_outputs_with_the_real_tools ... ok(B
+   435.2 nixtops> test every_gate_fixture_has_the_verdicts_its_expected_json_says ... ok(B
+   435.2 nixtops> 
+   435.2 nixtops> test result: ok(B. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   435.2 nixtops> 
+   435.2 nixtops>      Running tests/gate_run.rs (target/aarch64-apple-darwin/release/deps/gate_run-8bf64b08a758bbb8)
+   435.2 nixtops> 
+   435.2 nixtops> running 55 tests
+   435.4 nixtops> test a_config_that_switches_off_gate_one_or_gate_three_is_invalid ... ok(B
+   435.5 nixtops> test a_clean_flake_passes_gates_one_and_three_and_the_report_says_so ... ok(B
+   435.6 nixtops> test a_configuration_that_failed_is_not_asked_for_warnings_and_other_outputs_never_are ... ok(B
+   435.6 nixtops> test a_determinate_host_gets_its_only_settings_turned_off ... ok(B
+   435.7 nixtops> test a_directory_outside_git_fails_gate_one ... ok(B
+   435.8 nixtops> test a_fail_effect_entry_fails_the_gate ... ok(B
+   435.9 nixtops> test a_failing_flake_check_refuses_gate_three_with_the_error ... ok(B
+   436.0 nixtops> test a_flake_with_no_outputs_does_not_pass_the_config_check_or_the_gate ... ok(B
+   436.1 nixtops> test a_flake_with_inputs_and_no_lock_still_fails_n05 ... ok(B
+   436.3 nixtops> test a_flake_without_inputs_needs_no_lock_and_the_report_says_why ... ok(B
+   436.3 nixtops> test a_gate_with_the_laws_layer_switched_off_says_laws_are_not_enforced ... ok(B
+   436.4 nixtops> test a_host_below_the_floor_is_exit_three_before_any_layer ... ok(B
+   436.6 nixtops> test a_failing_hash_or_system_probe_gives_none_and_unknown_not_a_guess ... ok(B
+   436.6 nixtops> test a_layer_switched_off_in_the_config_is_skip_with_the_configured_reason ... ok(B
+   436.7 nixtops> test a_lock_error_without_the_word_error_and_one_without_the_word_lock_both_surface ... ok(B
+   436.7 nixtops> test a_lock_that_is_not_current_fails_n05_with_the_nix_error ... ok(B
+   436.8 nixtops> test a_lock_that_is_not_committed_or_is_modified_fails_n05 ... ok(B
+   436.9 nixtops> test a_nix_file_inside_an_untracked_directory_is_found_at_any_depth ... ok(B
+   436.9 nixtops> test a_reason_that_is_only_whitespace_is_no_reason_and_exit_two ... ok(B
+   437.1 nixtops> test a_staged_not_committed_file_counts_as_untracked_and_an_ignored_direnv_is_exempt ... ok(B
+   437.1 nixtops> test a_staged_rename_counts_by_its_new_path ... ok(B
+   437.4 nixtops> test a_warning_that_stops_only_the_inventory_still_triggers_the_collect_rerun ... ok(B
+   437.5 nixtops> test a_member_that_is_not_a_derivation_on_the_selected_system_fails_and_on_another_passes ... ok(B
+   437.6 nixtops> test an_exit_two_report_names_every_problem_key ... ok(B
+   437.7 nixtops> test a_warning_that_stopped_the_run_without_nixs_abort_text_is_still_collected ... ok(B
+   437.7 nixtops> test an_expired_ledger_entry_stops_the_run_in_the_config_check_with_exit_two ... ok(B
+   437.8 nixtops> test a_warning_that_stops_the_run_is_collected_once_and_refused_without_a_ledger_entry ... ok(B
+   437.8 nixtops> test an_invalid_config_is_exit_two_and_still_writes_a_report ... ok(B
+   437.9 nixtops> test an_ignored_nix_file_counts_too ... ok(B
+   438.1 nixtops> test an_output_error_is_named_and_the_others_still_count ... ok(B
+   438.2 nixtops> test an_output_that_is_not_a_derivation_is_reported_at_instantiated ... ok(B
+   438.3 nixtops> test an_untracked_nix_file_fails_gate_one_names_n04_and_stops_gate_three ... ok(B
+   438.4 nixtops> test an_unclassified_diagnostic_fails_and_a_table_entry_for_it_turns_it_into_a_report_line ... ok(B
+   438.6 nixtops> test c19_the_same_throw_on_the_selected_system_still_fails ... ok(B
+   438.7 nixtops> test c18_a_throw_on_another_system_does_not_fail_a_run_that_selects_one ... ok(B
+   439.1 nixtops> test c20_a_warning_that_names_an_output_on_another_system_is_narrowed_out ... ok(B
+   439.3 nixtops> test direnvx_is_not_direnv_and_an_untracked_direnv_is_exempt_only_when_ignored ... ok(B
+   439.3 nixtops> test config_warnings_are_read_as_data_and_judged_like_the_others ... ok(B
+   439.4 nixtops> test every_collected_warning_matched_by_the_ledger_turns_the_failure_into_an_ack ... ok(B
+   439.5 nixtops> test every_layer_that_can_be_switched_off_is_skip_with_its_own_reason ... ok(B
+   439.6 nixtops> test import_from_derivation_is_named_n07 ... ok(B
+   439.6 nixtops> test import_from_derivation_named_only_in_an_output_error_is_still_n07 ... ok(B
+   439.8 nixtops> test keep_going_runs_gate_three_after_gate_one_failed ... ok(B
+   439.9 nixtops> test in_ci_the_tree_must_be_clean_and_outside_ci_it_need_not_be ... ok(B
+   440.0 nixtops> test no_pinned_judge_is_an_environment_error_with_a_report ... ok(B
+   440.1 nixtops> test layers_that_are_on_and_not_built_are_not_run_and_fail_the_gate ... ok(B
+   440.2 nixtops> test import_from_derivation_on_a_cold_store_is_named_n07_too ... ok(B
+   440.3 nixtops> test one_unmatched_warning_among_matched_ones_still_fails ... ok(B
+   440.3 nixtops> test only_runs_one_layer_and_the_rest_are_not_selected ... ok(B
+   440.4 nixtops> test r15_a_selected_system_with_no_outputs_is_a_run_with_no_output_evaluated ... ok(B
+   440.5 nixtops> test selecting_a_system_never_passes_the_restricted_setting_to_the_judge ... ok(B
+   440.5 nixtops> test the_flake_path_does_not_appear_in_the_report ... ok(B
+   440.7 nixtops> test the_host_evaluator_lists_derivations_one_attribute_at_a_time ... ok(B
+   440.9 nixtops> test the_report_is_written_where_the_config_says_and_by_default ... ok(B
+   441.2 nixtops> test under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names ... ok(B
+   441.2 nixtops> 
+   441.2 nixtops> test result: ok(B. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.92s
+   441.2 nixtops> 
+   441.2 nixtops>      Running tests/init_files.rs (target/aarch64-apple-darwin/release/deps/init_files-4580d0e988ef9a28)
+   441.2 nixtops> 
+   441.2 nixtops> running 8 tests
+   441.2 nixtops> test a_bad_or_missing_facet_exits_2_and_writes_nothing ... ok(B
+   441.2 nixtops> test a_directory_that_cannot_be_made_or_a_file_that_cannot_be_written_exits_3 ... ok(B
+   441.2 nixtops> test it_never_touches_flake_nix_and_never_writes_a_baseline ... ok(B
+   441.2 nixtops> test it_refuses_to_overwrite_without_force_and_a_forced_second_run_is_byte_identical ... ok(B
+   441.2 nixtops> test it_replaces_only_between_the_markers_and_keeps_the_rest_of_agents_md ... ok(B
+   441.2 nixtops> test it_writes_the_toml_the_workflow_and_the_agents_section_and_prints_the_flake_lines ... ok(B
+   441.2 nixtops> test without_a_pinned_judge_it_says_the_systems_are_not_verified ... ok(B
+   441.2 nixtops> test what_init_writes_passes_check ... ok(B
+   441.2 nixtops> 
+   441.2 nixtops> test result: ok(B. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+   441.2 nixtops> 
+   441.2 nixtops>      Running tests/init_goldens.rs (target/aarch64-apple-darwin/release/deps/init_goldens-ea70f1530d7d8cde)
+   441.2 nixtops> 
+   441.2 nixtops> running 1 test
+   441.2 nixtops> test init_matches_the_goldens ... ok(B
+   441.2 nixtops> 
+   441.2 nixtops> test result: ok(B. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+   441.2 nixtops> 
+   441.2 nixtops>      Running tests/init_inventory.rs (target/aarch64-apple-darwin/release/deps/init_inventory-2e31d48842c7862b)
+   441.2 nixtops> 
+   441.2 nixtops> running 8 tests
+   441.2 nixtops> test a_flake_with_no_facet_or_an_unsupported_system_is_refused ... ok(B
+   441.2 nixtops> test a_repeated_facet_is_written_once ... ok(B
+   441.2 nixtops> test cheap_refusals_come_before_the_outputs_are_read ... ok(B
+   441.2 nixtops> test facet_narrows_and_may_only_name_a_facet_the_outputs_show ... ok(B
+   441.2 nixtops> test facets_without_systems_or_systems_without_facets_are_each_refused ... ok(B
+   441.2 nixtops> test unreadable_outputs_exit_3_and_an_unlisted_output_exit_3 ... ok(B
+   441.2 nixtops> test with_the_outputs_read_there_is_no_unverified_note ... ok(B
+   441.2 nixtops> test without_facet_it_writes_every_derived_facet_and_the_exported_systems ... ok(B
+   441.2 nixtops> 
+   441.2 nixtops> test result: ok(B. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+   441.2 nixtops> 
+   441.2 nixtops>      Running tests/init_property.rs (target/aarch64-apple-darwin/release/deps/init_property-dee73de4c431f766)
+   441.2 nixtops> 
+   441.2 nixtops> running 3 tests
+   441.3 nixtops> test property_agents_merge_is_idempotent_and_leaves_no_field_for_every_facet_set ... ok(B
+   441.3 nixtops> test property_init_run_twice_with_force_is_byte_identical_for_each_single_facet ... ok(B
+   441.3 nixtops> test property_written_config_passes_the_schema_for_every_facet_set ... ok(B
+   441.3 nixtops> 
+   441.3 nixtops> test result: ok(B. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+   441.3 nixtops> 
+   441.3 nixtops>      Running tests/outputs_cli.rs (target/aarch64-apple-darwin/release/deps/outputs_cli-7daf07e2992b5bf2)
+   441.3 nixtops> 
+   441.3 nixtops> running 2 tests
+   441.3 nixtops> test a_build_without_a_pinned_judge_says_so_and_exits_3 ... ok(B
+   441.3 nixtops> test the_flake_argument_defaults_to_the_current_directory_and_json_is_a_flag ... ok(B
+   441.3 nixtops> 
+   441.3 nixtops> test result: ok(B. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   441.3 nixtops> 
+   441.3 nixtops>      Running tests/outputs_walk.rs (target/aarch64-apple-darwin/release/deps/outputs_walk-9d43c1a70e23ff1d)
+   441.3 nixtops> 
+   441.3 nixtops> running 22 tests
+   441.3 nixtops> test a_flake_whose_output_names_cannot_be_read_is_an_environment_error ... ok(B
+   441.3 nixtops> test a_member_list_that_is_not_json_becomes_that_outputs_error ... ok(B
+   441.4 nixtops> test a_member_that_is_not_a_derivation_is_an_error_record_not_a_silence ... ok(B
+   441.4 nixtops> test a_listing_error_stays_on_the_structure_and_in_the_report ... ok(B
+   441.4 nixtops> test a_set_that_cannot_be_listed_keeps_its_system ... ok(B
+   441.5 nixtops> test a_set_that_failed_as_a_whole_gets_no_per_member_errors ... ok(B
+   441.7 nixtops> test a_module_with_a_bad_option_does_not_reach_instantiated ... ok(B
+   441.7 nixtops> test an_empty_flake_has_no_outputs_and_no_facets ... ok(B
+   441.7 nixtops> test a_package_record_carries_drv_path_name_system_and_pruned_meta ... ok(B
+   441.8 nixtops> test an_unreadable_flake_is_an_environment_error ... ok(B
+   441.8 nixtops> test an_empty_per_system_set_exports_no_system_and_derives_no_facet ... ok(B
+   441.8 nixtops> test eval_jobs_gets_flakes_enabled_by_option_and_gate_three_options ... ok(B
+   441.9 nixtops> test an_app_is_never_instantiated_in_this_version ... ok(B
+   441.9 nixtops> test metadata_without_a_url_or_with_bad_json_is_an_error ... ok(B
+   442.1 nixtops> test errors_are_kept_per_output_and_the_walk_goes_on ... ok(B
+   442.2 nixtops> test every_output_kind_gets_a_record_with_its_level ... ok(B
+   442.2 nixtops> test modules_without_a_module_system_in_the_lock_stay_evaluated_with_a_reason ... ok(B
+   442.2 nixtops> test the_judge_gets_gate_three_options_and_an_empty_cache ... ok(B
+   442.3 nixtops> test structure_and_the_derived_sets_are_public_for_the_config_check ... ok(B
+   442.5 nixtops> test outputs_come_out_sorted_by_attribute ... ok(B
+   442.6 nixtops> test the_report_names_the_locked_flake_facets_and_systems ... ok(B
+   442.6 nixtops> test the_text_form_has_a_header_a_row_per_output_and_a_count ... ok(B
+   442.6 nixtops> 
+   442.6 nixtops> test result: ok(B. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+   442.6 nixtops> 
+   442.6 nixtops>      Running tests/validator.rs (target/aarch64-apple-darwin/release/deps/validator-970b44c5aa05fa77)
+   442.6 nixtops> 
+   442.6 nixtops> running 3 tests
+   442.6 nixtops> test the_report_schema_compiles_the_same_way ... ok(B
+   442.6 nixtops> test the_config_schema_accepts_the_quickstart_config ... ok(B
+   442.6 nixtops> test a_value_that_a_core_ref_forbids_is_rejected ... ok(B
+   442.6 nixtops> 
+   442.6 nixtops> test result: ok(B. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   442.6 nixtops> 
+   442.6 nixtops>      Running tests/version.rs (target/aarch64-apple-darwin/release/deps/version-80098dc85a9b89ee)
+   442.7 nixtops> 
+   442.7 nixtops> running 2 tests
+   442.7 nixtops> test no_version_literal_in_the_source ... ok(B
+   442.7 nixtops> test version_prints_the_schema_protocol_the_package_and_the_pinned_tools ... ok(B
+   442.7 nixtops> 
+   442.7 nixtops> test result: ok(B. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   442.7 nixtops> 
+   442.7 nixtops>    Doc-tests nixtops
+   442.9 nixtops> 
+   442.9 nixtops> running 0 tests
+   442.9 nixtops> 
+   442.9 nixtops> test result: ok(B. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   442.9 nixtops> 
+   442.9 nixtops> Finished cargoCheckHook
+   442.9 nixtops> checkPhase completed in 5 minutes 23 seconds
+   442.9 nixtops> Running phase: installPhase
+   442.9 nixtops> Executing cargoInstallHook
+   443.1 nixtops> Finished cargoInstallHook
+   443.1 nixtops> Running phase: fixupPhase
+   443.1 nixtops> checking for references to /nix/var/nix/builds/nix-1812-1149414531/ in /nix/store/2jqi8ma03ga0wyyrdvrzffmldcbs1jjf-nixtops-0.0.0...
+   443.2 nixtops> patching script interpreter paths in /nix/store/2jqi8ma03ga0wyyrdvrzffmldcbs1jjf-nixtops-0.0.0
+   443.2 nixtops> stripping (with command strip and flags -S) in /nix/store/2jqi8ma03ga0wyyrdvrzffmldcbs1jjf-nixtops-0.0.0/bin
