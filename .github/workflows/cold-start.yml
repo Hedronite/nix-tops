@@ -1,0 +1,54 @@
+name: cold-start
+
+# How long an adopter with an empty store waits for the runner: `nix run .#nixtops -- version` in
+# fixtures/adopter/, three times on each runner image, each on a fresh machine. No binary cache but
+# the Nix default, no prebuilt binary and no cache action. The time is reported, not gated. Runs on
+# demand, and on a pull request that changes the measurement or the kit's lock. The runner is built
+# from the pull request, so this workflow runs code from it: never use pull_request_target here.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/cold-start.yml
+      - fixtures/adopter/**
+      - flake.lock
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cold-start:
+    name: cold start (${{ matrix.os }}, run ${{ matrix.run }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+        run: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Time the runner from an empty store
+        run: python3 fixtures/adopter/measure.py "$RUNNER_TEMP/cold"
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/cold/summary.md" ]; then cat "$RUNNER_TEMP/cold/summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Keep the measurement
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cold-start-${{ matrix.os }}-${{ matrix.run }}
+          path: ${{ runner.temp }}/cold
+          if-no-files-found: warn
