@@ -1,6 +1,6 @@
 //! What git says about the baseline: whether `nixtops baseline` may write (an existing one must
-//! be the committed one, a missing one must never have been committed), which files are unchanged
-//! since a commit, and the committed version before the current one.
+//! be the committed one, a missing one must never have been committed, and the tree must be what
+//! `HEAD` has), and the committed version before the current one.
 
 use crate::config::baseline::{self, Git, State};
 
@@ -60,55 +60,12 @@ fn commits(git: Git<'_>, path: &str) -> Vec<String> {
     log.lines().map(str::to_string).collect()
 }
 
-/// The commit that last wrote `path`.
-pub fn last_write(git: Git<'_>, path: &str) -> Option<String> {
-    commits(git, path).into_iter().next()
-}
-
 fn object(commit: &str, path: &str) -> String {
     format!("{commit}:./{path}")
 }
 
 fn exists_at(git: Git<'_>, commit: &str, path: &str) -> bool {
     output(git, &["cat-file", "-e", &object(commit, path)]).is_some()
-}
-
-/// The commit before `commit`, when this clone has it: none for a first commit, and none at a
-/// shallow clone's boundary, where what came before is hidden.
-fn parent(git: Git<'_>, commit: &str) -> Option<String> {
-    output(
-        git,
-        &["rev-parse", "--verify", "--quiet", &format!("{commit}^")],
-    )
-}
-
-fn same(git: Git<'_>, revisions: &[&str], path: &str) -> bool {
-    let spec = format!(":(literal){path}");
-    let mut args = vec!["diff", "--quiet", "--no-ext-diff"];
-    args.extend_from_slice(revisions);
-    args.extend_from_slice(&["--", &spec]);
-    output(git, &args).is_some()
-}
-
-/// `path` existed before the commit `write` that wrote the baseline, and is the same in `write`
-/// and since: at `to`, or, with no `to`, at `HEAD`, in the index and in the working tree. What
-/// arrived with the baseline is not older than it, so it is never unchanged.
-pub fn unchanged(git: Git<'_>, write: &str, to: Option<&str>, path: &str) -> bool {
-    let Some(before) = parent(git, write) else {
-        return false;
-    };
-    let before = before.as_str();
-    if !exists_at(git, before, path) || !same(git, &[before, write], path) {
-        return false;
-    }
-    match to {
-        Some(to) => same(git, &[before, to], path),
-        None => {
-            same(git, &[before, "HEAD"], path)
-                && same(git, &[before], path)
-                && same(git, &["--cached", before], path)
-        }
-    }
 }
 
 /// `Err` names what differs from `HEAD`, untracked files included and ignored ones not. Paths in
@@ -149,30 +106,21 @@ pub fn tree_is_head(git: Git<'_>, allowed: &[&str]) -> Result<(), String> {
 pub struct Prior {
     /// The commit that wrote the earlier version.
     pub commit: String,
-    /// The commit that wrote the current one.
-    pub current: String,
     pub text: String,
 }
 
 /// `None` when `path` was written once. A commit that deleted it is passed over, so deleting and
 /// adding again is still held against what was there.
 pub fn prior(git: Git<'_>, path: &str) -> Result<Option<Prior>, String> {
-    let mut found = commits(git, path).into_iter();
-    let Some(current) = found.next() else {
-        return Ok(None);
-    };
-    let Some(commit) = found.find(|commit| exists_at(git, commit, path)) else {
+    let mut earlier = commits(git, path).into_iter().skip(1);
+    let Some(commit) = earlier.find(|commit| exists_at(git, commit, path)) else {
         return Ok(None);
     };
     let run = git(&["show", &object(&commit, path)]).filter(|run| run.ok);
     let text = run
         .map(|run| run.stdout)
         .ok_or_else(|| format!("cannot read {path} at {commit}"))?;
-    Ok(Some(Prior {
-        commit,
-        current,
-        text,
-    }))
+    Ok(Some(Prior { commit, text }))
 }
 
 #[cfg(test)]
@@ -244,92 +192,6 @@ mod tests {
     }
 
     #[test]
-    fn a_file_is_unchanged_only_when_it_predates_the_write_and_nothing_touched_it_since() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let root = dir.path();
-        real(root, &["init", "-q", "."]);
-        let git = baseline::real_git(root);
-        assert_eq!(last_write(&git, "b"), None);
-        assert_eq!(prior(&git, "b"), Ok(None));
-        save(
-            root,
-            &[
-                ("keep", "k"),
-                ("edit", "e"),
-                ("a[1]", "g"),
-                ("with", "w"),
-                ("back", "1"),
-            ],
-        );
-        let root_commit = output(&git, &["rev-parse", "HEAD"]).expect("head");
-        assert!(
-            !unchanged(&git, &root_commit, None, "keep"),
-            "a first commit has no parent"
-        );
-        save(root, &[("back", "2")]);
-        save(
-            root,
-            &[("b", "1"), ("bundled", "n"), ("with", "x"), ("back", "1")],
-        );
-        let base = last_write(&git, "b").expect("written");
-        for name in ["keep", "edit", "a[1]"] {
-            assert!(unchanged(&git, &base, None, name), "{name}");
-        }
-        assert!(!unchanged(&git, &base, None, "absent"));
-        assert!(
-            !unchanged(&git, &base, None, "bundled"),
-            "arrived with the baseline"
-        );
-        assert!(
-            !unchanged(&git, &base, None, "with"),
-            "changed with the baseline"
-        );
-        assert!(
-            !unchanged(&git, &base, None, "back"),
-            "changed by the write, even back"
-        );
-        std::fs::write(root.join("edit"), "f").expect("write");
-        assert!(!unchanged(&git, &base, None, "edit"), "unstaged");
-        real(root, &["add", "edit"]);
-        std::fs::write(root.join("edit"), "e").expect("write");
-        assert!(!unchanged(&git, &base, None, "edit"), "staged only");
-        real(root, &["add", "edit"]);
-        real(root, &["rm", "-q", "--cached", "keep"]);
-        assert!(!unchanged(&git, &base, None, "keep"), "untracked now");
-        real(root, &["add", "keep"]);
-        save(root, &[("edit", "g")]);
-        assert!(!unchanged(&git, &base, None, "edit"), "committed since");
-        std::fs::write(root.join("edit"), "e").expect("write");
-        real(root, &["add", "edit"]);
-        assert!(
-            !unchanged(&git, &base, None, "edit"),
-            "HEAD differs, tree and index do not"
-        );
-        real(root, &["reset", "-q", "--hard"]);
-        let head = output(&git, &["rev-parse", "HEAD"]).expect("head");
-        assert!(!unchanged(&git, &base, Some(&head), "edit"));
-        assert!(unchanged(&git, &base, Some(&head), "a[1]"));
-        assert!(!unchanged(&git, &base, Some(&head), "bundled"));
-
-        let shallow = tempfile::tempdir().expect("tempdir");
-        let from = format!("file://{}", root.display());
-        real(shallow.path(), &["clone", "-q", "--depth", "1", &from, "c"]);
-        let clone = shallow.path().join("c");
-        let cut = baseline::real_git(&clone);
-        let tip = output(&cut, &["rev-parse", "HEAD"]).expect("head");
-        assert!(
-            !unchanged(&cut, &tip, None, "a[1]"),
-            "the boundary hides its parent"
-        );
-        // Two deep, the tip still has its parent, so what it holds can be trusted.
-        real(shallow.path(), &["clone", "-q", "--depth", "2", &from, "d"]);
-        let deeper = shallow.path().join("d");
-        let git = baseline::real_git(&deeper);
-        let tip = output(&git, &["rev-parse", "HEAD"]).expect("head");
-        assert!(unchanged(&git, &tip, None, "a[1]"));
-    }
-
-    #[test]
     fn only_the_allowed_paths_may_differ_from_head() {
         let dir = tempfile::tempdir().expect("tempdir");
         let root = dir.path();
@@ -394,7 +256,7 @@ mod tests {
         let git = baseline::real_git(root);
         save(root, &[("b", "one")]);
         assert_eq!(prior(&git, "b"), Ok(None));
-        let first = last_write(&git, "b").expect("first");
+        let first = commits(&git, "b").remove(0);
         save(root, &[("other", "x")]);
         save(root, &[("b", "two")]);
         let got = prior(&git, "b").expect("reads").expect("a prior");
@@ -402,7 +264,6 @@ mod tests {
             (got.commit.as_str(), got.text.as_str()),
             (first.as_str(), "one")
         );
-        assert_eq!(Some(got.current), last_write(&git, "b"));
         real(root, &["rm", "-q", "b"]);
         save(root, &[]);
         save(root, &[("b", "three")]);

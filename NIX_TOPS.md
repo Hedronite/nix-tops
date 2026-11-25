@@ -636,21 +636,20 @@ holds no timestamp, so the same findings give the same bytes.
   the config files: `statix.toml` (`disabled`, `ignore`), `treefmt.toml` (`excludes`),
   `.gitleaks.toml` (`allowlist`, `allowlists`), `.gitleaksignore` and `lint.deadnix.fail`. The
   change is wider only when no entry that switches a check off was added and everything else is
-  equal. A wider tool passes with a re-baseline message.
-- **What a wider config excuses.** Only a count that rose in a file which existed before and is
-  unchanged since the commit that last wrote the baseline: it was there at that commit's parent and
-  is the same in that commit, in `HEAD`, in the index and in the working tree. The new checks found
-  it in code nobody touched. A rise in a new or changed file, one that arrived with the baseline
-  included, fails as always, in `gate` and in `baseline`. A tool the baseline does not have is
-  treated the same way. When that commit has no parent here, as a first commit or at a shallow
-  clone's boundary, nothing is excused.
+  equal. A wider tool whose counts do not rise passes with a re-baseline message.
+- **Counts never rise.** Under `ratchet` a per-file count above the baseline's fails, in `gate` and
+  in `baseline`: in a new file, which starts at 0, in an unchanged one, under a wider configuration,
+  and for a tool the baseline does not have, which starts at 0 everywhere. A wider configuration or
+  an added tool whose counts do not rise passes and asks for a re-baseline. So findings a newly
+  enabled check makes are fixed in the change that enables it; only the first baseline records
+  legacy findings. The one exception is
+  `deadnix` while `lint.deadnix.fail` is `false` (below).
 - **The committed baseline is held against the one before it.** Under `ratchet`, `gate` and
   `baseline` fail when the committed file is looser than its previous committed version by the same
-  rules: a dropped tool, a risen count (but for a wider tool in a file unchanged between the two),
-  more acks, a lost judged law, a narrower or unexplained config, or an earlier version that does
-  not read. This looks one version back, and only as far as the clone's history reaches.
-  `law-diff` compares the base's baseline with the change's and counts any of the same as a
-  weakening, a risen count under a wider config included.
+  rules: a dropped tool, a risen count, more acks, a lost judged law, a narrower or unexplained
+  config, or an earlier version that does not read. This looks one version back, and only as far as
+  the clone's history reaches. `law-diff` compares the base's baseline with the change's and counts
+  any of the same as a weakening.
 - **Fail closed.** A changed `config_hash` that those files do not explain is refused. The runner
   cannot read the `exclude` argument of `lib.mkChecks`, which is part of the hash: with a non-empty
   `exclude`, or after a kit update that changes how the hash is taken, any change to a tool's

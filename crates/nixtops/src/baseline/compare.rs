@@ -1,6 +1,7 @@
 //! A run held against a baseline (section 6.8): what fails, by layer, and why a re-baseline is
 //! due. The one comparison `gate` and `baseline` share, also used to hold a committed baseline
-//! against the one before it. Which files changed since comes in as a function.
+//! against the one before it. Counts never rise: no configuration change and no history excuses
+//! one.
 
 use super::{
     file::{Baseline, Tool},
@@ -10,9 +11,6 @@ use super::{
 use crate::report::LayerId;
 use serde_json::Value;
 use std::collections::BTreeMap;
-
-/// True for a file that existed when the baseline was written and has not changed since.
-pub type Unchanged<'a> = &'a dyn Fn(&str) -> bool;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Judgement {
@@ -43,12 +41,12 @@ impl Judgement {
     }
 }
 
-/// Counts that rose above the baseline's, in files `excused` does not cover; a file the baseline
-/// does not name starts at 0.
-fn rises(name: &str, old: Option<&Tool>, new: &Tool, excused: Unchanged<'_>, out: &mut Judgement) {
+/// Counts that rose above the baseline's; a file or a tool the baseline does not name starts
+/// at 0.
+fn rises(name: &str, old: Option<&Tool>, new: &Tool, out: &mut Judgement) {
     for (file, found) in &new.files {
         let allowed = old.and_then(|t| t.files.get(file)).copied().unwrap_or(0);
-        if *found > allowed && !excused(file) {
+        if *found > allowed {
             let why = format!("{name}: {file}: {found} finding(s), baseline {allowed}");
             out.fail(LayerId::Lint, why);
         }
@@ -65,85 +63,67 @@ fn moved(name: &str, old: &Tool, new: &Tool) -> Option<Change> {
     Some(widen::classify(name, &kept(old)?, &kept(new)?))
 }
 
-/// The configuration's verdict: `Ok(true)` when it is wider, `Err` when the tool fails on it.
-fn configuration(name: &str, old: &Tool, new: &Tool, out: &mut Judgement) -> Result<bool, String> {
+/// The configuration's verdict: a note when it moved acceptably, `Err` when the tool fails on it.
+fn configuration(name: &str, old: &Tool, new: &Tool, out: &mut Judgement) -> Result<(), String> {
     if old.config_hash == new.config_hash {
-        return Ok(false);
+        return Ok(());
     }
-    match moved(name, old, new) {
-        Some(Change::Same) => {
-            out.notes.push(format!(
-                "{name}: the config file changed; run nixtops baseline"
+    let note = match moved(name, old, new) {
+        Some(Change::Same) => "the config file changed",
+        Some(Change::Wider) => "the config is wider than the baseline's",
+        Some(Change::Narrower(why)) => {
+            return Err(format!(
+                "{name}: the config is narrower than the baseline's: {why}"
             ));
-            Ok(false)
         }
-        Some(Change::Wider) => {
-            out.notes.push(format!(
-                "{name}: the config is wider than the baseline's; run nixtops baseline"
+        None => {
+            return Err(format!(
+                "{name}: config_hash changed and the config files do not explain it \
+                 (an `exclude` in flake.nix, or a config file git does not track)"
             ));
-            Ok(true)
         }
-        Some(Change::Narrower(why)) => Err(format!(
-            "{name}: the config is narrower than the baseline's: {why}"
-        )),
-        None => Err(format!(
-            "{name}: config_hash changed and the config files do not explain it \
-             (an `exclude` in flake.nix, or a config file git does not track)"
-        )),
-    }
-}
-
-/// One tool: the configuration first, then the counts. A wider configuration may find more in
-/// code nobody touched, so only there may a count rise.
-fn tool(
-    name: &str,
-    old: &Tool,
-    new: &Tool,
-    counted: bool,
-    unchanged: Unchanged<'_>,
-    out: &mut Judgement,
-) {
-    let wider = match configuration(name, old, new, out) {
-        Ok(wider) => wider,
-        Err(why) => return out.fail(LayerId::Lint, why),
     };
+    out.notes
+        .push(format!("{name}: {note}; run nixtops baseline"));
+    Ok(())
+}
+
+/// One tool: the configuration first, then the counts.
+fn tool(name: &str, old: &Tool, new: &Tool, counted: bool, out: &mut Judgement) {
+    if let Err(why) = configuration(name, old, new, out) {
+        return out.fail(LayerId::Lint, why);
+    }
     if counted {
-        let excused = |file: &str| wider && unchanged(file);
-        rises(name, Some(old), new, &excused, out);
+        rises(name, Some(old), new, out);
     }
 }
 
-fn lint(
-    doc: &Value,
-    old: &BTreeMap<String, Tool>,
-    new: &BTreeMap<String, Tool>,
-    unchanged: Unchanged<'_>,
-) -> Judgement {
+fn lint(doc: &Value, old: &BTreeMap<String, Tool>, new: &BTreeMap<String, Tool>) -> Judgement {
     let mut out = Judgement::default();
     let counted = |name: &str| name != "deadnix" || deadnix_fails(doc);
     for (name, before) in old {
         match new.get(name) {
-            Some(after) => tool(name, before, after, counted(name), unchanged, &mut out),
+            Some(after) => tool(name, before, after, counted(name), &mut out),
             None => out.fail(
                 LayerId::Lint,
                 format!("{name}: in the baseline and not run now"),
             ),
         }
     }
-    // A tool the baseline does not have is the widest change of all: the same rule.
+    // A tool the baseline does not have starts at 0 everywhere.
     for (name, after) in new.iter().filter(|(name, _)| !old.contains_key(*name)) {
         out.notes
             .push(format!("{name}: not in the baseline; run nixtops baseline"));
         if counted(name) {
-            rises(name, None, after, unchanged, &mut out);
+            rises(name, None, after, &mut out);
         }
     }
     out
 }
 
 /// `now` held against `old`.
-pub fn judge(doc: &Value, old: &Baseline, now: &Baseline, unchanged: Unchanged<'_>) -> Judgement {
-    let mut out = lint(doc, &old.lint, &now.lint, unchanged);
+pub fn judge(doc: &Value, old: &Baseline, now: &Baseline) -> Judgement {
+    let mut out = lint(doc, &old.lint, &now.lint);
     if now.acks > old.acks {
         let why = format!("the ack count rose from {} to {}", old.acks, now.acks);
         out.fail(LayerId::Eval, why);
@@ -175,12 +155,6 @@ mod tests {
         }
     }
 
-    const NONE: Unchanged<'static> = &|_| false;
-
-    fn only_old(file: &str) -> bool {
-        file == "old.nix"
-    }
-
     fn base(name: &str, tool: Tool) -> Baseline {
         Baseline {
             lint: BTreeMap::from([(name.to_string(), tool)]),
@@ -189,12 +163,7 @@ mod tests {
     }
 
     fn statix(old: Tool, new: Tool) -> Judgement {
-        judge(
-            &json!({}),
-            &base("statix", old),
-            &base("statix", new),
-            &only_old,
-        )
+        judge(&json!({}), &base("statix", old), &base("statix", new))
     }
 
     #[test]
@@ -204,7 +173,6 @@ mod tests {
             let got = statix(old.clone(), found(None, same));
             assert_eq!(got, Judgement::default(), "{same:?}");
         }
-        // Without a wider config an unchanged file gets no excuse.
         let got = statix(old.clone(), found(None, &[("old.nix", 3), ("b.nix", 1)]));
         assert_eq!(
             got.reason(LayerId::Lint).as_deref(),
@@ -224,16 +192,19 @@ mod tests {
     }
 
     #[test]
-    fn a_wider_config_lets_a_count_rise_only_in_an_unchanged_file() {
-        let narrow = found(Some("disabled=['x']"), &[]);
-        let got = statix(narrow.clone(), found(None, &[("old.nix", 4)]));
-        assert_eq!(got.failures, []);
+    fn a_wider_config_passes_and_asks_for_a_baseline_only_while_no_count_rises() {
+        let narrow = found(Some("disabled=['x']"), &[("old.nix", 1)]);
+        let note = "statix: the config is wider than the baseline's; run nixtops baseline";
+        for same in [&[("old.nix", 1)][..], &[]] {
+            let got = statix(narrow.clone(), found(None, same));
+            assert_eq!(got.failures, [], "{same:?}");
+            assert_eq!(got.notes, [note]);
+        }
+        let got = statix(narrow, found(None, &[("old.nix", 2), ("s1.nix", 1)]));
         assert_eq!(
-            got.notes,
-            ["statix: the config is wider than the baseline's; run nixtops baseline"]
+            got.all(),
+            "statix: old.nix: 2 finding(s), baseline 1; statix: s1.nix: 1 finding(s), baseline 0"
         );
-        let got = statix(narrow, found(None, &[("old.nix", 4), ("s1.nix", 1)]));
-        assert_eq!(got.all(), "statix: s1.nix: 1 finding(s), baseline 0");
     }
 
     #[test]
@@ -263,10 +234,10 @@ mod tests {
     }
 
     #[test]
-    fn a_tool_that_stopped_running_fails_and_a_new_one_starts_at_zero_in_changed_files() {
+    fn a_tool_that_stopped_running_fails_and_a_new_one_starts_at_zero() {
         let old = base("statix", found(None, &[]));
-        let new = base("nixfmt", found(None, &[("old.nix", 1), ("a.nix", 1)]));
-        let got = judge(&json!({}), &old, &new, &only_old);
+        let new = base("nixfmt", found(None, &[("a.nix", 1)]));
+        let got = judge(&json!({}), &old, &new);
         assert_eq!(
             got.all(),
             "statix: in the baseline and not run now; nixfmt: a.nix: 1 finding(s), baseline 0"
@@ -275,9 +246,12 @@ mod tests {
             got.notes,
             ["nixfmt: not in the baseline; run nixtops baseline"]
         );
+        let clean = base("nixfmt", found(None, &[]));
+        let got = judge(&json!({}), &Baseline::default(), &clean);
+        assert_eq!((got.failures.len(), got.notes.len()), (0, 1));
         let new = base("deadnix", found(None, &[("a.nix", 1)]));
         let off = json!({"lint": {"deadnix": {"fail": false}}});
-        let got = judge(&off, &Baseline::default(), &new, NONE);
+        let got = judge(&off, &Baseline::default(), &new);
         assert_eq!(got.failures, []);
     }
 
@@ -285,9 +259,9 @@ mod tests {
     fn deadnix_counts_matter_only_while_it_fails() {
         let old = base("deadnix", found(None, &[]));
         let new = base("deadnix", found(None, &[("a.nix", 1)]));
-        assert_eq!(judge(&json!({}), &old, &new, NONE).failures.len(), 1);
+        assert_eq!(judge(&json!({}), &old, &new).failures.len(), 1);
         let off = json!({"lint": {"deadnix": {"fail": false}}});
-        assert_eq!(judge(&off, &old, &new, NONE).failures, []);
+        assert_eq!(judge(&off, &old, &new).failures, []);
     }
 
     #[test]
@@ -297,14 +271,14 @@ mod tests {
             laws: BTreeSet::from(["N-01".to_string(), "N-02".to_string()]),
             ..Baseline::default()
         };
-        let same = judge(&json!({}), &old, &old, NONE);
+        let same = judge(&json!({}), &old, &old);
         assert_eq!(same, Judgement::default());
         let now = Baseline {
             acks: 2,
             laws: BTreeSet::from(["N-02".to_string(), "N-03".to_string()]),
             ..Baseline::default()
         };
-        let got = judge(&json!({}), &old, &now, NONE);
+        let got = judge(&json!({}), &old, &now);
         assert_eq!(
             got.reason(LayerId::Eval).as_deref(),
             Some("the ack count rose from 1 to 2")
@@ -313,9 +287,6 @@ mod tests {
             got.reason(LayerId::Laws).as_deref(),
             Some("N-01: judged in the baseline and not now")
         );
-        assert_eq!(
-            judge(&json!({}), &now, &old, NONE).reason(LayerId::Eval),
-            None
-        );
+        assert_eq!(judge(&json!({}), &now, &old).reason(LayerId::Eval), None);
     }
 }

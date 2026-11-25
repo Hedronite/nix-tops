@@ -24,16 +24,6 @@ fn load(root: &Path, doc: &Value) -> Result<Option<Baseline>, String> {
     file::load(&root.join(semantic::baseline_path(doc)))
 }
 
-/// Whether a file of the flake is unchanged since the baseline was last written.
-pub fn since_last_write(root: &Path, doc: &Value) -> impl Fn(&str) -> bool {
-    let git = real_git(root);
-    let base = history::last_write(&git, semantic::baseline_path(doc));
-    move |file: &str| {
-        base.as_deref()
-            .is_some_and(|commit| history::unchanged(&git, commit, None, file))
-    }
-}
-
 /// The committed baseline held against the version before it: nobody but `nixtops baseline`
 /// writes it, and that never loosens it.
 fn against_prior(root: &Path, doc: &Value, current: &Baseline) -> Result<(), String> {
@@ -45,9 +35,7 @@ fn against_prior(root: &Path, doc: &Value, current: &Baseline) -> Result<(), Str
     let at = prior.commit.get(..12).unwrap_or(&prior.commit);
     let old = file::parse(&prior.text)
         .map_err(|e| format!("{path} at {at} is not a valid baseline: {e}"))?;
-    let unchanged =
-        |file: &str| history::unchanged(&git, &prior.commit, Some(&prior.current), file);
-    let found = compare::judge(doc, &old, current, &unchanged);
+    let found = compare::judge(doc, &old, current);
     if found.failures.is_empty() {
         return Ok(());
     }
@@ -64,7 +52,7 @@ fn missing(doc: &Value) -> String {
 /// The lint half alone: what the lint layer knows when it asks.
 fn lint_only(root: &Path, doc: &Value, lint: &LintReport, old: Baseline) -> Result<(), String> {
     let now = Baseline::of(root, doc, &report_of(lint));
-    compare::judge(doc, &old, &now, &since_last_write(root, doc))
+    compare::judge(doc, &old, &now)
         .reason(LayerId::Lint)
         .map_or(Ok(()), Err)
 }
@@ -141,7 +129,7 @@ fn judge_report(root: &Path, doc: &Value, report: &Report, old: &Baseline) -> Ju
     if report.lint.is_none() && lint != Some(Verdict::Skip) {
         now.lint = old.lint.clone();
     }
-    compare::judge(doc, old, &now, &since_last_write(root, doc))
+    compare::judge(doc, old, &now)
 }
 
 fn apply(report: &mut Report, found: &Judgement) {
