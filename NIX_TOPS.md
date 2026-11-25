@@ -618,6 +618,37 @@ Baseline rules:
 - Legacy findings stay in the baseline. They are not wrapped in `# nixtops-ack` to zero a count.
 <!-- tops-core:end -->
 
+**Baseline as built.** `schema/baseline.schema.json` is the shape of `.nix-tops/baseline.json`:
+per lint tool its version, its `config_hash`, the config files that hash was taken over, and the
+finding count of each file; the ack count; and the judged-law ID set, empty while the laws layer is
+off. Closure bytes, eval counters and coverage levels are reserved there and not yet recorded. It
+holds no timestamp, so the same findings give the same bytes.
+
+- `nixtops baseline` runs the gate and writes only when every layer that is on passed. With a
+  baseline present it also refuses, in every mode, to record a result the baseline would refuse:
+  counts fall and configurations widen, never the reverse.
+- It refuses (exit 4) when the existing baseline is untracked or differs from `HEAD`, when git
+  history has the baseline's path and the file is gone, and in a shallow clone with no baseline,
+  where a deletion cannot be ruled out.
+- **Narrower or wider.** When a tool's `config_hash` differs from the baseline's, the runner reads
+  the config files: `statix.toml` (`disabled`, `ignore`), `treefmt.toml` (`excludes`),
+  `.gitleaks.toml` (`allowlist`, `allowlists`), `.gitleaksignore` and `lint.deadnix.fail`. The
+  change is wider only when no entry that switches a check off was added and everything else is
+  equal. A wider tool passes with a re-baseline message and its counts are recorded by the next
+  baseline, not compared; every other tool is still compared.
+- **Fail closed.** A changed `config_hash` that those files do not explain is refused. The runner
+  cannot read the `exclude` argument of `lib.mkChecks`, which is part of the hash: with a non-empty
+  `exclude`, or after a kit update that changes how the hash is taken, any change to a tool's
+  configuration is refused, by `gate` and by `baseline`.
+- `deadnix` counts are not compared while `lint.deadnix.fail` is `false`; turning it off after a
+  baseline was taken is narrower.
+
+**Advisory as built.** `enforce = "advisory"` needs the `[advisory]` table (§9): `reason`, and
+`until`, a UTC date that has not passed. Without it, past its date, or left in place under another
+mode, the config is invalid (exit 2). Under it the layer verdicts stay as judged, the run exits 0,
+and the report says the run is not enforced. `law-diff` counts an added or later-dated exemption as
+a weakening.
+
 ---
 
 ## 7. Facet layers
@@ -810,7 +841,7 @@ unknown outputs, and the gate refuses warnings.
 ```toml
 protocol = "0.2.0"
 facets = ["dev-flake"]               # a subset of the facets the outputs show (§5.4)
-enforce = "ratchet"                  # hard | ratchet | advisory (§6.8)
+enforce = "ratchet"                  # hard | ratchet | advisory (§6.8); advisory needs [advisory]
 baseline = ".nix-tops/baseline.json"
 nixpkgs_input = "nixpkgs"            # the flake input that is your main nixpkgs
 
@@ -874,6 +905,10 @@ path = ".nix-tops/report.json"
   (gates 1 and 3) cannot be switched off. A layer that is on and has no command mapped is `not-run` and
   fails the gate (§3.3); switching it off with a reason is the one way to run without it. Switching
   off `laws` is allowed under every mode, and the report then says laws are not enforced (§3.3).
+- `[advisory]` is the dated exemption `enforce = "advisory"` needs (§6.8): `reason` and `until` (a
+  UTC date) are both required, for example
+  `advisory = { reason = "adopting", until = "2026-12-31" }`. It is an error under any other mode, and
+  after `until`.
 - Each `[[warnings.allow]]` entry is an ack with an expiry (§3.1). `match`, `reason` and `until` are all
   required.
 - There is no `version` or `flake` key: the package version is the kit's (`nixtops version`), and the
@@ -933,7 +968,7 @@ repeat the tools as separate steps, because steps that bypass `nixtops` judge no
 | `init [--facet <f>]...` | Writes `nix-tops.toml` with `facets = [...]` (the facets the outputs show, narrowed by each `--facet`), the CI workflow and the `AGENTS.md` section (§4). Prints the `flake.nix` lines; never edits `flake.nix`. Refuses to overwrite without `--force` |
 | `check` | Validates `nix-tops.toml` against the JSON Schema, plus semantic checks: protocol id, each listed facet is one the outputs show (§5.4) and has a profile (or is reported as having none), `[toolchain].systems` equals the systems the outputs export, the host daemon meets the floor, `advisory` has a dated exemption, the `nix-tops` input does not follow nixpkgs, and under `ratchet` the baseline exists and is clean |
 | `gate` | Runs enabled layers at or below `--max-tier` (default 1). `--base`, `--keep-going`, `--json`, `--only <layer>`, `--system <s>`, `--dry-run` (refused in CI), `--evaluator pinned\|host` (default `pinned`: the CppNix of the kit's lock judges; `host`: the host's own Nix judges, which is how the `determinate` job of §11 runs the gate, and the report's baseline key names that implementation) |
-| `baseline` | Writes `.nix-tops/baseline.json` after a passing run; the only writer |
+| `baseline [PATH]` | Runs the gate and writes `.nix-tops/baseline.json` when every layer that is on passed; the only writer. `--evaluator pinned\|host` as for `gate`. Never records a result looser than the baseline it replaces (§6.8). Exit 1 when the run fails or the result is looser; 4 when the baseline is uncommitted or was deleted, or the clone is shallow |
 | `laws [list \| run \| explain N-NN]` | Catalog with readers; laws alone; one law explained |
 | `outputs` | Lists every output with its coverage level (§6.1) |
 | `report [--format text \| json]` | Renders the last report |

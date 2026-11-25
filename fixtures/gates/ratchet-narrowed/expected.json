@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "lint": "Refuse",
+    "eval": "not-run"
+  },
+  "named": "statix: the config is narrower than the baseline's",
+  "note": "A statix.toml that disables a lint after the baseline was taken is refused."
+}

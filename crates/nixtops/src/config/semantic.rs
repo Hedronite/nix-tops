@@ -75,18 +75,51 @@ pub fn enforce_of(doc: &Value) -> &str {
         .unwrap_or("ratchet")
 }
 
-fn enforce_problems(doc: &Value, ctx: &Context<'_>) -> Vec<Problem> {
-    let enforce = enforce_of(doc);
+/// The exemption's own keys: a reason that says something and a date that has not passed.
+fn exemption_problems(table: &Value, today: &str) -> Vec<Problem> {
+    let text = |key: &str| table.get(key).and_then(Value::as_str).unwrap_or("");
     let mut out = Vec::new();
-    if enforce == "advisory" {
+    if text("reason").trim().is_empty() {
         out.push(Problem::new(
-            "enforce".into(),
-            format!(
-                "advisory needs a dated exemption, and protocol {} has no exemption key yet; use hard or ratchet",
-                crate::build_info::PROTOCOL
-            ),
+            "advisory.reason".into(),
+            "a blank reason is no reason; say why the run is not enforced".into(),
         ));
     }
+    let until = text("until");
+    if !valid_date(until) {
+        out.push(Problem::new(
+            "advisory.until".into(),
+            format!("{until} is not a calendar date"),
+        ));
+    } else if until < today {
+        out.push(Problem::new(
+            "advisory.until".into(),
+            format!("expired on {until} (today is {today}); an expired exemption fails the gate"),
+        ));
+    }
+    out
+}
+
+/// `advisory` and its `[advisory]` exemption come together or not at all (section 6.8).
+fn advisory_problems(doc: &Value, today: &str) -> Vec<Problem> {
+    let advisory = enforce_of(doc) == "advisory";
+    match (advisory, doc.get("advisory")) {
+        (true, Some(table)) => exemption_problems(table, today),
+        (true, None) => vec![Problem::new(
+            "enforce".into(),
+            "advisory needs a dated exemption, and there is no exemption key: add [advisory] with reason and until".into(),
+        )],
+        (false, Some(_)) => vec![Problem::new(
+            "advisory".into(),
+            "an exemption without enforce = advisory; remove it or set the mode".into(),
+        )],
+        (false, None) => Vec::new(),
+    }
+}
+
+fn enforce_problems(doc: &Value, ctx: &Context<'_>) -> Vec<Problem> {
+    let enforce = enforce_of(doc);
+    let mut out = advisory_problems(doc, ctx.today);
     if enforce == "ratchet" && !ctx.baseline_exists && !ctx.writing_baseline {
         out.push(Problem::new(
             "baseline".into(),
@@ -215,12 +248,49 @@ mod tests {
     }
 
     #[test]
-    fn advisory_is_refused_naming_enforce() {
+    fn advisory_without_an_exemption_fails_naming_enforce() {
         let mut d = doc();
         d["enforce"] = json!("advisory");
         let f = check(&d, &ctx("2026-11-18", None, true));
         assert_eq!(keys(&f), ["enforce"]);
-        assert!(f.problems[0].message.contains("no exemption key"));
+        assert!(
+            f.problems[0]
+                .message
+                .contains("no exemption key: add [advisory]")
+        );
+    }
+
+    #[test]
+    fn an_exemption_holds_through_its_date_and_fails_the_day_after() {
+        let mut d = doc();
+        d["enforce"] = json!("advisory");
+        d["advisory"] = json!({"reason": "adopting", "until": "2026-11-18"});
+        assert!(
+            check(&d, &ctx("2026-11-18", None, false))
+                .problems
+                .is_empty()
+        );
+        let f = check(&d, &ctx("2026-11-19", None, false));
+        assert_eq!(keys(&f), ["advisory.until"]);
+        assert!(f.problems[0].message.contains("expired on 2026-11-18"));
+    }
+
+    #[test]
+    fn a_blank_reason_and_an_impossible_date_fail_by_key() {
+        let mut d = doc();
+        d["enforce"] = json!("advisory");
+        d["advisory"] = json!({"reason": "  ", "until": "2026-02-31"});
+        let f = check(&d, &ctx("2026-11-18", None, false));
+        assert_eq!(keys(&f), ["advisory.reason", "advisory.until"]);
+        assert!(f.problems[1].message.contains("not a calendar date"));
+    }
+
+    #[test]
+    fn a_dormant_exemption_fails_naming_it() {
+        let mut d = doc();
+        d["advisory"] = json!({"reason": "later", "until": "2027-01-01"});
+        let f = check(&d, &ctx("2026-11-18", None, false));
+        assert_eq!(keys(&f), ["advisory"]);
     }
 
     #[test]

@@ -1,0 +1,42 @@
+{
+  "protocol": "0.2.0",
+  "lint": {
+    "deadnix": {
+      "version": "1.3.2",
+      "config_hash": "0c5b79b3e3e6b1b358d0fc2bd53b08ab3cf8073cda2f55e6eabe59cc2dc440f6",
+      "inputs": {
+        "fail": "true"
+      },
+      "files": {
+        "flake.nix": 1
+      }
+    },
+    "gitleaks": {
+      "version": "8.30.1",
+      "config_hash": "964d2d84ff7c154bca8bf217cbd9de90bf2d7646da92c6a0cfc3ca85389eca3e",
+      "inputs": {
+        "config": null,
+        "ignore": null
+      },
+      "files": {}
+    },
+    "nixfmt": {
+      "version": "1.5.0",
+      "config_hash": "f121b57b24f4451a47aab826dbb6d6bdc2f63835f990df67cedb1565412c0a0f",
+      "inputs": {
+        "config": null
+      },
+      "files": {}
+    },
+    "statix": {
+      "version": "0.5.8-unstable-2026-07-17",
+      "config_hash": "1bae66bddf1cdc86763a08c31d72219b836d9a6b9e0420a87d2a2d3dbd87ac77",
+      "inputs": {
+        "config": "disabled = [\"unquoted_uri\"]\n"
+      },
+      "files": {}
+    }
+  },
+  "acks": 0,
+  "laws": []
+}

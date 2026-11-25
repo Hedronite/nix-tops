@@ -344,6 +344,29 @@ class Ledger(Pair):
         self.assertEqual(self.keys(), [])
 
 
+class Advisory(Pair):
+    TABLE = '\n[advisory]\nreason = "r"\nuntil = "{u}"\n'
+
+    def based_on(self, until):
+        shutil.rmtree(self.base)
+        tree(self.base, config=CONFIG + self.TABLE.format(u=until))
+
+    def test_a_new_exemption_is_a_weakening(self):
+        self.make_head(config=CONFIG + self.TABLE.format(u="2027-01-01"))
+        self.assertEqual(self.keys(), [("nix-tops.toml", "advisory")])
+
+    def test_a_later_until_is_a_weakening(self):
+        self.based_on("2027-01-01")
+        self.make_head(config=CONFIG + self.TABLE.format(u="2027-02-01"))
+        self.assertEqual(self.keys(), [("nix-tops.toml", "advisory")])
+
+    def test_an_earlier_until_or_a_removed_exemption_is_fine(self):
+        self.based_on("2027-01-01")
+        for head in (CONFIG + self.TABLE.format(u="2026-12-01"), CONFIG):
+            self.make_head(config=head)
+            self.assertEqual(self.keys(), [])
+
+
 class LawsAndProfiles(Pair):
     def test_a_law_removed_lowered_or_narrowed(self):
         self.make_head(law=None)

@@ -13,7 +13,8 @@ nix-tops.toml   enforce lowered; a layer switched off, or a custom layer removed
                 mode lowered, a tolerance raised, an output dropped from the closure budget; a lint
                 key removed or deadnix.fail turned off; laws.enable narrowed; ack_ledger or
                 baseline moved; a facet or system dropped; a [[warnings.allow]] entry added, with
-                a changed match, or with a later until
+                a changed match, or with a later until; an [advisory] exemption added or with a
+                later until
 laws/*.toml     a law removed; severity lowered; judged turned off; reader changed; an artifact
                 dropped
 profiles/*.toml a profile removed; the same floor, layer, eval and budget rules as nix-tops.toml
@@ -203,6 +204,18 @@ def ledger_findings(base, head):
     return found
 
 
+def advisory_findings(base, head):
+    """A new or later-dated [advisory] exemption switches enforcement off for longer."""
+    old, new = table(base, "advisory"), table(head, "advisory")
+    if not new:
+        return []
+    until = str(new.get("until", ""))
+    if old and str(old.get("until", "")) >= until:
+        return []
+    before = f"until {old.get('until')}" if old else "no exemption"
+    return [("advisory", before, f"until {until}")]
+
+
 def config_findings(base, head):
     return (
         enforce_findings(base, head)
@@ -211,6 +224,7 @@ def config_findings(base, head):
         + law_set_findings(base, head)
         + scope_findings(base, head)
         + ledger_findings(base, head)
+        + advisory_findings(base, head)
     )
 
 

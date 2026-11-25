@@ -1,0 +1,10 @@
+{
+  "exit": 2,
+  "layers": {
+    "source": "not-run",
+    "lint": "not-run",
+    "eval": "not-run"
+  },
+  "named": "does not exist",
+  "note": "Under ratchet a missing baseline is a config failure."
+}

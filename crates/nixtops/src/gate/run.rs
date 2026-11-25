@@ -158,7 +158,7 @@ pub fn stopped_report(settings: &Settings, doc: Option<&Value>, reason: &str) ->
 
 fn settings_enforce(doc: Option<&Value>) -> String {
     let mode = doc.and_then(|d| d.get("enforce")).and_then(Value::as_str);
-    mode.unwrap_or("hard").to_string()
+    mode.unwrap_or("ratchet").to_string()
 }
 
 fn facets_of(doc: &Value) -> Vec<String> {
@@ -532,12 +532,10 @@ mod tests {
     }
 
     #[test]
-    fn the_enforce_mode_defaults_to_hard_when_nothing_was_read() {
-        assert_eq!(settings_enforce(None), "hard");
-        assert_eq!(
-            settings_enforce(Some(&json!({"enforce": "ratchet"}))),
-            "ratchet"
-        );
+    fn the_enforce_mode_defaults_to_ratchet_as_the_checks_do() {
+        assert_eq!(settings_enforce(None), "ratchet");
+        assert_eq!(settings_enforce(Some(&json!({}))), "ratchet");
+        assert_eq!(settings_enforce(Some(&json!({"enforce": "hard"}))), "hard");
         assert_eq!(facets_of(&json!({"facets": ["a", 1, "b"]})), ["a", "b"]);
     }
 }
