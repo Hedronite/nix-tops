@@ -76,22 +76,14 @@ fn names_from(value: Result<Value, String>) -> Vec<String> {
 }
 
 fn find_lint_system(session: &Session, flake_ref: &str, host_system: &str) -> Option<String> {
-    let systems = names_from(inventory::eval_json(
+    let mut systems = names_from(inventory::eval_json(
         session,
         flake_ref,
         &["checks"],
         "builtins.attrNames",
     ));
-    if systems.iter().any(|s| s == host_system) {
-        let attrs = names_from(inventory::eval_json(
-            session,
-            flake_ref,
-            &["checks", host_system],
-            "builtins.attrNames",
-        ));
-        if has_all_findings(&attrs) {
-            return Some(host_system.to_string());
-        }
+    if let Some(pos) = systems.iter().position(|s| s == host_system) {
+        systems.swap(0, pos);
     }
     systems.into_iter().find(|sys| {
         let attrs = names_from(inventory::eval_json(
