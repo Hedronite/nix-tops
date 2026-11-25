@@ -627,7 +627,9 @@ holds no timestamp, so the same findings give the same bytes.
 - `nixtops baseline` runs the gate and writes only when every layer that is on passed. With a
   baseline present it also refuses, in every mode, to record a result the baseline would refuse:
   counts fall and configurations widen, never the reverse.
-- It refuses (exit 4) when the existing baseline is untracked or differs from `HEAD`, when git
+- It refuses (exit 4) when any path but the baseline and the report differs from `HEAD`, untracked
+  files that are not ignored included, so a baseline is always taken from what `HEAD` has. It also
+  refuses when the existing baseline is untracked or differs from `HEAD`, when git
   history has the baseline's path and the file is gone, and in a shallow clone with no baseline,
   where a deletion cannot be ruled out.
 - **Narrower or wider.** When a tool's `config_hash` differs from the baseline's, the runner reads
@@ -635,11 +637,13 @@ holds no timestamp, so the same findings give the same bytes.
   `.gitleaks.toml` (`allowlist`, `allowlists`), `.gitleaksignore` and `lint.deadnix.fail`. The
   change is wider only when no entry that switches a check off was added and everything else is
   equal. A wider tool passes with a re-baseline message.
-- **What a wider config excuses.** Only a count that rose in a file which existed in the commit that
-  last wrote the baseline and has no committed, staged or unstaged change since: the new checks
-  found it in code nobody touched. A rise in a new or changed file fails as always, in `gate` and in
-  `baseline`. A tool the baseline does not have is treated the same way. In a shallow clone whose
-  history is cut off at that commit nothing is excused.
+- **What a wider config excuses.** Only a count that rose in a file which existed before and is
+  unchanged since the commit that last wrote the baseline: it was there at that commit's parent and
+  is the same in that commit, in `HEAD`, in the index and in the working tree. The new checks found
+  it in code nobody touched. A rise in a new or changed file, one that arrived with the baseline
+  included, fails as always, in `gate` and in `baseline`. A tool the baseline does not have is
+  treated the same way. When that commit has no parent here, as a first commit or at a shallow
+  clone's boundary, nothing is excused.
 - **The committed baseline is held against the one before it.** Under `ratchet`, `gate` and
   `baseline` fail when the committed file is looser than its previous committed version by the same
   rules: a dropped tool, a risen count (but for a wider tool in a file unchanged between the two),
@@ -979,7 +983,7 @@ repeat the tools as separate steps, because steps that bypass `nixtops` judge no
 | `init [--facet <f>]...` | Writes `nix-tops.toml` with `facets = [...]` (the facets the outputs show, narrowed by each `--facet`), the CI workflow and the `AGENTS.md` section (§4). Prints the `flake.nix` lines; never edits `flake.nix`. Refuses to overwrite without `--force` |
 | `check` | Validates `nix-tops.toml` against the JSON Schema, plus semantic checks: protocol id, each listed facet is one the outputs show (§5.4) and has a profile (or is reported as having none), `[toolchain].systems` equals the systems the outputs export, the host daemon meets the floor, `advisory` has a dated exemption, the `nix-tops` input does not follow nixpkgs, and under `ratchet` the baseline exists and is clean |
 | `gate` | Runs enabled layers at or below `--max-tier` (default 1). `--base`, `--keep-going`, `--json`, `--only <layer>`, `--system <s>`, `--dry-run` (refused in CI), `--evaluator pinned\|host` (default `pinned`: the CppNix of the kit's lock judges; `host`: the host's own Nix judges, which is how the `determinate` job of §11 runs the gate, and the report's baseline key names that implementation) |
-| `baseline [PATH]` | Runs the gate and writes `.nix-tops/baseline.json` when every layer that is on passed; the only writer. `--evaluator pinned\|host` as for `gate`. Never records a result looser than the baseline it replaces (§6.8). Exit 1 when the run fails or the result is looser; 4 when the baseline is uncommitted or was deleted, or the clone is shallow |
+| `baseline [PATH]` | Runs the gate and writes `.nix-tops/baseline.json` when every layer that is on passed; the only writer. `--evaluator pinned\|host` as for `gate`. Never records a result looser than the baseline it replaces (§6.8). Exit 1 when the run fails or the result is looser; 4 when the tree differs from `HEAD`, the baseline is uncommitted or was deleted, or a first one is asked of a shallow clone |
 | `laws [list \| run \| explain N-NN]` | Catalog with readers; laws alone; one law explained |
 | `outputs` | Lists every output with its coverage level (§6.1) |
 | `report [--format text \| json]` | Renders the last report |

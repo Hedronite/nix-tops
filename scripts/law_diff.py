@@ -192,8 +192,10 @@ def scope_findings(base, head):
     found += [("facets", name, "dropped") for name in base.get("facets", []) if name not in head.get("facets", [])]
     old, new = table(base, "toolchain").get("systems", []), table(head, "toolchain").get("systems", [])
     found += [("toolchain.systems", name, "dropped") for name in old if name not in new]
-    if "baseline" in base and base["baseline"] != head.get("baseline"):
-        found.append(("baseline", base["baseline"], head.get("baseline", "removed")))
+    # An absent key is the default path, so naming another one moves the baseline too.
+    old_path, new_path = base.get("baseline", BASELINE), head.get("baseline", BASELINE)
+    if old_path != new_path:
+        found.append(("baseline", old_path, new_path))
     return found
 
 

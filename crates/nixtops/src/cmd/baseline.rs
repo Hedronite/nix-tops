@@ -1,5 +1,6 @@
 //! `nixtops baseline`: runs the gate and, when every layer passed, writes the baseline. It is the
-//! only writer. It refuses to write over a baseline that is not the committed one, to start again
+//! only writer. It refuses to write over a baseline that is not the committed one, from a tree that
+//! differs from `HEAD`, to start again
 //! after a baseline was deleted, and to record anything looser than the baseline it replaces.
 
 use crate::{
@@ -40,11 +41,24 @@ fn config_of(settings: &Settings) -> Option<Value> {
     config::load(&text).ok()
 }
 
-/// The previous baseline, after git agreed that writing is allowed.
-fn previous(settings: &Settings, path: &str) -> Result<Option<Baseline>, Output> {
+/// Where a run stopped before any layer writes its report, whatever the config names.
+const DEFAULT_REPORT: &str = ".nix-tops/report.json";
+
+fn report_path(doc: &Value) -> &str {
+    doc.pointer("/report/path")
+        .and_then(Value::as_str)
+        .unwrap_or(DEFAULT_REPORT)
+}
+
+/// The previous baseline, after git agreed that writing is allowed: the baseline itself is in
+/// order, and nothing but it and the reports differs from `HEAD`.
+fn previous(settings: &Settings, doc: &Value) -> Result<Option<Baseline>, Output> {
+    let path = semantic::baseline_path(doc);
     let file = settings.root.join(path);
     let git = real_git(&settings.root);
-    history::may_write(&git, path, file.exists()).map_err(|why| fail(Exit::Refused, &why))?;
+    history::may_write(&git, path, file.exists())
+        .and_then(|()| history::tree_is_head(&git, &[path, report_path(doc), DEFAULT_REPORT]))
+        .map_err(|why| fail(Exit::Refused, &why))?;
     file::load(&file).map_err(|why| fail(Exit::GateFailed, &why))
 }
 
@@ -92,7 +106,7 @@ fn record(
     seams: &Seams,
 ) -> Result<Output, Output> {
     let path = semantic::baseline_path(doc);
-    let old = previous(settings, path)?;
+    let old = previous(settings, doc)?;
     let result = gate::run(settings, tools, seams);
     if !result.report.passed {
         return Err(not_written(&result));

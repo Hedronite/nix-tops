@@ -73,13 +73,13 @@ fn exists_at(git: Git<'_>, commit: &str, path: &str) -> bool {
     output(git, &["cat-file", "-e", &object(commit, path)]).is_some()
 }
 
-/// A shallow clone's boundary commit looks like the first one, so what came before it is hidden.
-fn truncated(git: Git<'_>, commit: &str) -> bool {
-    if output(git, &["rev-parse", "--is-shallow-repository"]).as_deref() == Some("false") {
-        return false;
-    }
-    let parents = output(git, &["rev-list", "--parents", "-n", "1", commit]);
-    parents.is_none_or(|line| line.split_whitespace().count() < 2)
+/// The commit before `commit`, when this clone has it: none for a first commit, and none at a
+/// shallow clone's boundary, where what came before is hidden.
+fn parent(git: Git<'_>, commit: &str) -> Option<String> {
+    output(
+        git,
+        &["rev-parse", "--verify", "--quiet", &format!("{commit}^")],
+    )
 }
 
 fn same(git: Git<'_>, revisions: &[&str], path: &str) -> bool {
@@ -90,16 +90,58 @@ fn same(git: Git<'_>, revisions: &[&str], path: &str) -> bool {
     output(git, &args).is_some()
 }
 
-/// `path` existed at `from` and is the same at `to`, or, with no `to`, in both the index and the
-/// working tree. Never true where history is cut off.
-pub fn unchanged(git: Git<'_>, from: &str, to: Option<&str>, path: &str) -> bool {
-    if !exists_at(git, from, path) || truncated(git, from) {
+/// `path` existed before the commit `write` that wrote the baseline, and is the same in `write`
+/// and since: at `to`, or, with no `to`, at `HEAD`, in the index and in the working tree. What
+/// arrived with the baseline is not older than it, so it is never unchanged.
+pub fn unchanged(git: Git<'_>, write: &str, to: Option<&str>, path: &str) -> bool {
+    let Some(before) = parent(git, write) else {
+        return false;
+    };
+    let before = before.as_str();
+    if !exists_at(git, before, path) || !same(git, &[before, write], path) {
         return false;
     }
     match to {
-        Some(to) => same(git, &[from, to], path),
-        None => same(git, &[from], path) && same(git, &["--cached", from], path),
+        Some(to) => same(git, &[before, to], path),
+        None => {
+            same(git, &[before, "HEAD"], path)
+                && same(git, &[before], path)
+                && same(git, &["--cached", before], path)
+        }
     }
+}
+
+/// `Err` names what differs from `HEAD`, untracked files included and ignored ones not. Paths in
+/// `allowed` (relative to the flake root) may differ: the baseline is then taken from the tree
+/// `HEAD` has.
+pub fn tree_is_head(git: Git<'_>, allowed: &[&str]) -> Result<(), String> {
+    let unreadable = || "git status cannot be read".to_string();
+    let prefix = output(git, &["rev-parse", "--show-prefix"]).ok_or_else(unreadable)?;
+    let status = git(&[
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--no-renames",
+        "--untracked-files=all",
+    ])
+    .filter(|run| run.ok)
+    .ok_or_else(unreadable)?;
+    let allowed: Vec<String> = allowed.iter().map(|p| format!("{prefix}{p}")).collect();
+    let entries = status.stdout.split('\0').filter(|entry| !entry.is_empty());
+    let differing: Vec<&str> = entries
+        .map(|entry| entry.get(3..).unwrap_or(entry))
+        .filter(|path| !allowed.iter().any(|a| a == path))
+        .collect();
+    if differing.is_empty() {
+        return Ok(());
+    }
+    let shown: Vec<&str> = differing.iter().take(5).copied().collect();
+    Err(format!(
+        "{} path(s) differ from HEAD ({}); commit or remove them first, so the baseline is \
+         taken from what HEAD has",
+        differing.len(),
+        shown.join(", ")
+    ))
 }
 
 /// The version of the baseline before the one now committed.
@@ -202,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn a_file_is_unchanged_only_when_no_commit_index_or_tree_edit_touched_it() {
+    fn a_file_is_unchanged_only_when_it_predates_the_write_and_nothing_touched_it_since() {
         let dir = tempfile::tempdir().expect("tempdir");
         let root = dir.path();
         real(root, &["init", "-q", "."]);
@@ -211,13 +253,41 @@ mod tests {
         assert_eq!(prior(&git, "b"), Ok(None));
         save(
             root,
-            &[("b", "1"), ("keep", "k"), ("edit", "e"), ("a[1]", "g")],
+            &[
+                ("keep", "k"),
+                ("edit", "e"),
+                ("a[1]", "g"),
+                ("with", "w"),
+                ("back", "1"),
+            ],
+        );
+        let root_commit = output(&git, &["rev-parse", "HEAD"]).expect("head");
+        assert!(
+            !unchanged(&git, &root_commit, None, "keep"),
+            "a first commit has no parent"
+        );
+        save(root, &[("back", "2")]);
+        save(
+            root,
+            &[("b", "1"), ("bundled", "n"), ("with", "x"), ("back", "1")],
         );
         let base = last_write(&git, "b").expect("written");
         for name in ["keep", "edit", "a[1]"] {
             assert!(unchanged(&git, &base, None, name), "{name}");
         }
         assert!(!unchanged(&git, &base, None, "absent"));
+        assert!(
+            !unchanged(&git, &base, None, "bundled"),
+            "arrived with the baseline"
+        );
+        assert!(
+            !unchanged(&git, &base, None, "with"),
+            "changed with the baseline"
+        );
+        assert!(
+            !unchanged(&git, &base, None, "back"),
+            "changed by the write, even back"
+        );
         std::fs::write(root.join("edit"), "f").expect("write");
         assert!(!unchanged(&git, &base, None, "edit"), "unstaged");
         real(root, &["add", "edit"]);
@@ -226,27 +296,94 @@ mod tests {
         real(root, &["add", "edit"]);
         real(root, &["rm", "-q", "--cached", "keep"]);
         assert!(!unchanged(&git, &base, None, "keep"), "untracked now");
-        save(root, &[("new", "n"), ("edit", "g")]);
-        assert!(!unchanged(&git, &base, None, "new"), "added since");
+        real(root, &["add", "keep"]);
+        save(root, &[("edit", "g")]);
         assert!(!unchanged(&git, &base, None, "edit"), "committed since");
+        std::fs::write(root.join("edit"), "e").expect("write");
+        real(root, &["add", "edit"]);
+        assert!(
+            !unchanged(&git, &base, None, "edit"),
+            "HEAD differs, tree and index do not"
+        );
+        real(root, &["reset", "-q", "--hard"]);
         let head = output(&git, &["rev-parse", "HEAD"]).expect("head");
         assert!(!unchanged(&git, &base, Some(&head), "edit"));
         assert!(unchanged(&git, &base, Some(&head), "a[1]"));
+        assert!(!unchanged(&git, &base, Some(&head), "bundled"));
 
         let shallow = tempfile::tempdir().expect("tempdir");
         let from = format!("file://{}", root.display());
         real(shallow.path(), &["clone", "-q", "--depth", "1", &from, "c"]);
         let clone = shallow.path().join("c");
         let cut = baseline::real_git(&clone);
-        let tip = last_write(&cut, "a[1]").expect("the boundary commit");
-        assert!(!unchanged(&cut, &tip, None, "a[1]"));
-
+        let tip = output(&cut, &["rev-parse", "HEAD"]).expect("head");
+        assert!(
+            !unchanged(&cut, &tip, None, "a[1]"),
+            "the boundary hides its parent"
+        );
         // Two deep, the tip still has its parent, so what it holds can be trusted.
         real(shallow.path(), &["clone", "-q", "--depth", "2", &from, "d"]);
         let deeper = shallow.path().join("d");
         let git = baseline::real_git(&deeper);
         let tip = output(&git, &["rev-parse", "HEAD"]).expect("head");
         assert!(unchanged(&git, &tip, None, "a[1]"));
+    }
+
+    #[test]
+    fn only_the_allowed_paths_may_differ_from_head() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        real(root, &["init", "-q", "."]);
+        std::fs::create_dir(root.join("sub")).expect("mkdir");
+        save(
+            root,
+            &[
+                (".gitignore", "ignored\n"),
+                ("sub/a", "1"),
+                ("sub/gone", "1"),
+            ],
+        );
+        let flake = root.join("sub");
+        let git = baseline::real_git(&flake);
+        let check = || tree_is_head(&git, &["b.json", "out/report.json"]);
+        std::fs::write(flake.join("ignored"), "x").expect("write");
+        std::fs::write(flake.join("b.json"), "x").expect("write");
+        std::fs::create_dir(flake.join("out")).expect("mkdir");
+        std::fs::write(flake.join("out/report.json"), "x").expect("write");
+        assert_eq!(check(), Ok(()));
+        std::fs::write(flake.join("a"), "2").expect("write");
+        assert!(
+            check()
+                .unwrap_err()
+                .starts_with("1 path(s) differ from HEAD (sub/a)")
+        );
+        real(root, &["add", "sub/a"]);
+        assert!(check().unwrap_err().contains("sub/a"), "staged");
+        real(root, &["reset", "-q", "--hard"]);
+        std::fs::remove_file(flake.join("gone")).expect("remove");
+        assert!(check().unwrap_err().contains("sub/gone"), "deleted");
+        real(root, &["reset", "-q", "--hard"]);
+        std::fs::write(root.join("outside"), "x").expect("write");
+        assert!(
+            check().unwrap_err().contains("outside"),
+            "untracked above the flake"
+        );
+        for n in 0..6 {
+            std::fs::write(flake.join(format!("n{n}")), "x").expect("write");
+        }
+        let why = check().unwrap_err();
+        assert!(why.starts_with("7 path(s)") && !why.contains("n5"), "{why}");
+        assert!(
+            tree_is_head(&|_: &[&str]| None, &[])
+                .unwrap_err()
+                .contains("cannot be read")
+        );
+        let no_status = |args: &[&str]| answer(args[0] == "rev-parse", "");
+        assert!(
+            tree_is_head(&no_status, &[])
+                .unwrap_err()
+                .contains("cannot be read")
+        );
     }
 
     #[test]

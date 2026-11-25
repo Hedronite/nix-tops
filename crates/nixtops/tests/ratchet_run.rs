@@ -537,3 +537,139 @@ fn a_report_stopped_by_an_invalid_exemption_names_the_stated_mode() {
     assert_eq!(got.exit, Exit::ConfigInvalid);
     assert_eq!(got.report.enforce, "advisory");
 }
+
+/// A baseline taken with a lint disabled, then a second one written after a fall, so that the
+/// last write is a commit of its own. `bundle` runs between taking it and committing it.
+fn rebased_narrow(bundle: impl Fn(&Rig)) -> Rig {
+    let rig = Rig::new(CONFIG);
+    rig.write("statix.toml", "disabled = [\"empty_pattern\"]\n");
+    rig.commit("narrow");
+    assert_eq!(rig.baseline(1).exit, Exit::Pass);
+    rig.commit("baseline");
+    let out = rig.baseline(0);
+    assert_eq!(out.exit, Exit::Pass, "{}", out.stderr);
+    bundle(&rig);
+    rig.commit("re-baseline");
+    rig
+}
+
+fn widen_and_expect_refusal(rig: &Rig) {
+    rig.write("statix.toml", "disabled = []\n");
+    rig.commit("widen");
+    let found = [("statix", "s1.nix", 1)];
+    let (exit, text) = rig.gate_finding(&found);
+    assert_eq!(exit, Exit::GateFailed, "{text}");
+    assert!(
+        text.contains("statix: s1.nix: 1 finding(s), baseline 0"),
+        "{text}"
+    );
+    assert_eq!(rig.baseline_finding(&found).exit, Exit::GateFailed);
+    assert_eq!(rig.recorded(), Some(0));
+}
+
+#[test]
+fn a_file_committed_with_the_baseline_is_not_excused_by_a_later_widening() {
+    let rig = rebased_narrow(|rig| rig.write("s1.nix", "{ }\n"));
+    widen_and_expect_refusal(&rig);
+
+    // The same with the widening in the commit that adds the file and writes the baseline.
+    let rig = rebased_narrow(|rig| {
+        rig.write("s1.nix", "{ }\n");
+        rig.write("statix.toml", "disabled = []\n");
+    });
+    let (exit, text) = rig.gate_finding(&[("statix", "s1.nix", 1)]);
+    assert_eq!(exit, Exit::GateFailed, "{text}");
+}
+
+#[test]
+fn a_file_from_before_the_baseline_commit_is_still_excused() {
+    let rig = Rig::new(CONFIG);
+    rig.write("statix.toml", "disabled = [\"empty_pattern\"]\n");
+    rig.commit("narrow");
+    assert_eq!(rig.baseline(1).exit, Exit::Pass);
+    rig.commit("baseline");
+    rig.write("s1.nix", "{ }\n");
+    rig.commit("code written while the lint was off");
+    assert_eq!(rig.baseline(0).exit, Exit::Pass);
+    rig.commit("re-baseline");
+    rig.write("statix.toml", "disabled = []\n");
+    rig.commit("widen");
+    let (exit, text) = rig.gate_finding(&[("statix", "s1.nix", 1)]);
+    assert_eq!(exit, Exit::Pass, "{text}");
+}
+
+#[test]
+fn baseline_refuses_a_tree_that_differs_from_head() {
+    let rig = Rig::new(CONFIG);
+    rig.write("s1.nix", "{ }\n");
+    rig.commit("a file");
+    let hidden = rig.stand_ins.path().join("hidden.nix");
+    let expect = |stage: &str| {
+        let out = rig.baseline(0);
+        assert_eq!(out.exit, Exit::Refused, "{stage}: {}", out.stderr);
+        assert!(
+            out.stderr.contains("differ from HEAD"),
+            "{stage}: {}",
+            out.stderr
+        );
+        assert_eq!(rig.recorded(), None, "{stage}");
+    };
+    // A file moved out of the way while the baseline is taken.
+    fs::rename(rig.root().join("s1.nix"), &hidden).unwrap();
+    expect("deleted");
+    fs::rename(&hidden, rig.root().join("s1.nix")).unwrap();
+    rig.write("s1.nix", "{ x = 1; }\n");
+    expect("modified");
+    git(rig.root(), &["add", "s1.nix"]);
+    expect("staged");
+    git(rig.root(), &["reset", "-q", "--hard"]);
+    rig.write("notes.txt", "x");
+    expect("untracked");
+    fs::remove_file(rig.root().join("notes.txt")).unwrap();
+    assert_eq!(rig.baseline(0).exit, Exit::Pass);
+}
+
+/// Under `advisory` the gate passes whatever is found, so `baseline`'s own comparison is the only
+/// guard.
+#[test]
+fn under_advisory_a_wider_config_still_excuses_no_new_file() {
+    let rig = narrow_rig();
+    let advisory = format!(
+        "{}\n[advisory]\nreason = \"adopting\"\nuntil = \"2026-11-25\"\n",
+        CONFIG.replace("ratchet", "advisory")
+    );
+    rig.write("nix-tops.toml", &advisory);
+    rig.write("s1.nix", "{ }\n");
+    rig.commit("widen under advisory");
+    let out = rig.baseline_finding(&[("statix", "s1.nix", 1)]);
+    assert_eq!(out.exit, Exit::GateFailed, "{}", out.stdout);
+    assert!(
+        out.stderr
+            .contains("looser than the baseline: statix: s1.nix: 1 finding(s), baseline 0"),
+        "{}",
+        out.stderr
+    );
+    assert_eq!(rig.recorded(), Some(0));
+    let out = rig.baseline_finding(&[("statix", "old.nix", 1)]);
+    assert_eq!(out.exit, Exit::Pass, "{}", out.stderr);
+}
+
+/// The report every run writes need not be ignored: it is not part of what a baseline is taken
+/// from, at its default path or the one the config names.
+#[test]
+fn an_unignored_report_does_not_stop_baseline() {
+    for (section, report) in [
+        ("", ".nix-tops/report.json"),
+        ("\n[report]\npath = \"out.json\"\n", "out.json"),
+    ] {
+        let rig = Rig::new(&format!("{CONFIG}{section}"));
+        fs::remove_file(rig.root().join(".gitignore")).unwrap();
+        rig.commit("nothing ignored");
+        // Stopped for want of a baseline: its report goes to the default path.
+        rig.gate(0);
+        assert!(rig.root().join(".nix-tops/report.json").is_file());
+        rig.write(report, "{}\n");
+        let out = rig.baseline(0);
+        assert_eq!(out.exit, Exit::Pass, "{report}: {}", out.stderr);
+    }
+}

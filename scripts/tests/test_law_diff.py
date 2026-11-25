@@ -321,6 +321,23 @@ class Config(Pair):
         self.edit(".nix-tops/baseline.json", "lenient.json")
         self.assertEqual(self.keys(), [("nix-tops.toml", "baseline")])
 
+    def test_the_default_baseline_path_is_a_path_too(self):
+        silent = CONFIG.replace('baseline = ".nix-tops/baseline.json"\n', "")
+        named = 'baseline = ".nix-tops/b2.json"\n' + silent
+        default = 'baseline = ".nix-tops/baseline.json"\n' + silent
+
+        def pair(base, head):
+            shutil.rmtree(self.base)
+            tree(self.base, config=base)
+            self.make_head(config=head)
+            return self.keys()
+
+        moved = [("nix-tops.toml", "baseline")]
+        self.assertEqual(pair(silent, named), moved)
+        self.assertEqual(pair(named, silent), moved)
+        self.assertEqual(pair(silent, default), [])
+        self.assertEqual(pair(default, silent), [])
+
     def test_the_config_file_removed(self):
         self.make_head(config=None)
         self.assertEqual(self.keys(), [("nix-tops.toml", "file")])
