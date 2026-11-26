@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Protocol 0.2.0. No $id on purpose, as in the other schemas. closure, eval and coverage are reserved for the layers that will feed them.",
+  "title": "Nix-TOPS baseline",
+  "description": ".nix-tops/baseline.json, written only by nixtops baseline (NIX_TOPS.md 6.8).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "lint", "acks", "laws"],
+  "properties": {
+    "protocol": { "const": "0.2.0" },
+    "lint": {
+      "description": "One entry per lint tool that ran.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/tool" }
+    },
+    "acks": { "$ref": "core/core.schema.json#/$defs/count" },
+    "laws": {
+      "description": "The IDs of the judged laws.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^N-[0-9]{2}$" }
+    },
+    "closure": { "type": "object" },
+    "eval": { "type": "object" },
+    "coverage": { "type": "object" }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "config_hash", "files"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "config_hash": { "type": "string", "minLength": 1 },
+        "inputs": {
+          "description": "The config files config_hash was taken over (null: absent). Left out when they do not reproduce the hash.",
+          "type": "object",
+          "additionalProperties": { "type": ["string", "null"] }
+        },
+        "files": {
+          "description": "Findings per file; a file with none is left out.",
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

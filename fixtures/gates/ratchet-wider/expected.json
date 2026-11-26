@@ -1,0 +1,10 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "lint": "pass",
+    "eval": "pass"
+  },
+  "named": "re-baseline: statix: the config is wider",
+  "note": "Enabling a lint the baseline was taken without passes and asks for a re-baseline."
+}

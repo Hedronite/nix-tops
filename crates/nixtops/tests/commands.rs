@@ -3,7 +3,7 @@
 mod common;
 use common::{nixtops, stderr};
 
-const UNBUILT: [&[&str]; 2] = [&["baseline"], &["laws"]];
+const UNBUILT: [&[&str]; 1] = [&["laws"]];
 
 #[test]
 fn an_unbuilt_command_exits_4_and_names_itself() {
