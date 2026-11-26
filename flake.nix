@@ -13,7 +13,6 @@
         "aarch64-linux"
       ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
-      planted = 1;
     in
     {
       lib = import ./nix/lib { inherit nixpkgs; };
