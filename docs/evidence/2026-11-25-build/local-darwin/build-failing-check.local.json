@@ -1,0 +1,110 @@
+{
+  "protocol": "0.2.0",
+  "enforce": "hard",
+  "baseline_identity": {
+    "implementation": "cppnix",
+    "version": "2.35.6",
+    "system": "aarch64-darwin",
+    "lock_hash": "sha256-1/Jdj8JrlKYs4UQ3aycTzd2njPNeVWVZ0wTCVEA2kHk="
+  },
+  "facets": [
+    "package-set"
+  ],
+  "passed": false,
+  "counts": {
+    "verdicts": {
+      "ack": 0,
+      "deferred": 0,
+      "not_evaluated": 0,
+      "not_run": 0,
+      "pass": 4,
+      "refuse": 1,
+      "skip": 4,
+      "vacuous": 0
+    },
+    "failed": 1
+  },
+  "layers": [
+    {
+      "id": "source",
+      "verdict": "pass"
+    },
+    {
+      "id": "lint",
+      "verdict": "skip",
+      "reason": "focus on gate 4"
+    },
+    {
+      "id": "eval",
+      "verdict": "pass"
+    },
+    {
+      "id": "build-test",
+      "verdict": "Refuse",
+      "reason": "flake check build failed: error: failed to build attribute 'checks.aarch64-darwin.fail', build of '/nix/store/663xbs5h3f1yikqrv1kbcnynfdbnr2ja-build-failing-check.drv^*' failed: Cannot build '/nix/store/663xbs5h3f1yikqrv1kbcnynfdbnr2ja-build-failing-check.drv'."
+    },
+    {
+      "id": "coverage",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "facet-layers",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    },
+    {
+      "id": "laws",
+      "verdict": "skip",
+      "reason": "not built in M1"
+    }
+  ],
+  "laws": [],
+  "outputs": [
+    {
+      "attr": "checks.aarch64-darwin.fail",
+      "level": "evaluated"
+    },
+    {
+      "attr": "checks.aarch64-linux.fail",
+      "level": "evaluated",
+      "deferred": true
+    },
+    {
+      "attr": "checks.x86_64-linux.fail",
+      "level": "evaluated",
+      "deferred": true
+    },
+    {
+      "attr": "packages.aarch64-darwin.default",
+      "level": "evaluated"
+    },
+    {
+      "attr": "packages.aarch64-linux.default",
+      "level": "evaluated",
+      "deferred": true
+    },
+    {
+      "attr": "packages.x86_64-linux.default",
+      "level": "evaluated",
+      "deferred": true
+    }
+  ],
+  "warnings": [
+    {
+      "source": "diagnostic",
+      "message": "warning: unknown setting 'eval-cores' [D-06]",
+      "verdict": "pass"
+    },
+    {
+      "source": "diagnostic",
+      "message": "warning: unknown setting 'lazy-trees' [D-07]",
+      "verdict": "pass"
+    }
+  ],
+  "acks": {
+    "count": 0,
+    "entries": []
+  },
+  "sandbox": "false"
+}
