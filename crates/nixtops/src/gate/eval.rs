@@ -6,7 +6,7 @@
 use super::{
     diag::{self, Effect},
     ledger::{self, Entry},
-    system::{check_failed_for_system, only_system},
+    system::{check_failed_for_system, only_system, record_concerns_system},
 };
 use crate::{
     inventory::{self, Inventory, Kind, Level, Record, Session},
@@ -44,6 +44,54 @@ struct Pass {
     check_ok: bool,
     check_text: String,
     inventory: Result<Inventory, String>,
+    warning_scopes: Option<Vec<(String, bool)>>,
+}
+
+fn record_warnings(record: &Record) -> Vec<String> {
+    record
+        .error
+        .as_deref()
+        .map(evaluation_warnings)
+        .unwrap_or_default()
+}
+
+fn warning_scopes_from_inventory(
+    inventory: &Result<Inventory, String>,
+    system: Option<&str>,
+) -> Option<Vec<(String, bool)>> {
+    let inv = inventory.as_ref().ok()?;
+    let mut scopes = Vec::new();
+    for record in &inv.records {
+        let warnings = record_warnings(record);
+        if warnings.is_empty() {
+            continue;
+        }
+        let concerns = record_concerns_system(record, system);
+        for warning in warnings {
+            scopes.push((warning, concerns));
+        }
+    }
+    Some(scopes)
+}
+
+/// Whether a warning is about the selected system using structured `strict` inventory records:
+/// - with no selection (`None`) or when inventory failed to collect, every warning counts;
+/// - when one or more `abort-on-warn` records carried the warning, counts iff any carrying record
+///   concerns `system` (via `record_concerns_system`, never by message text);
+/// - falls back to counting when no record carries the warning.
+pub fn warning_concerns_system(
+    message: &str,
+    scopes: Option<&[(String, bool)]>,
+    system: Option<&str>,
+) -> bool {
+    if system.is_none() {
+        return true;
+    }
+    let Some(scopes) = scopes else {
+        return true;
+    };
+    let mut matched = scopes.iter().filter(|(msg, _)| msg == message).peekable();
+    matched.peek().is_none() || matched.any(|(_, concerns)| *concerns)
 }
 
 fn run_pass(session: &mut Session, input: &Input, abort_on_warn: bool) -> Pass {
@@ -61,30 +109,13 @@ fn run_pass(session: &mut Session, input: &Input, abort_on_warn: bool) -> Pass {
     let check_text = format!("{}\n{}", run.stdout, run.stderr);
     let raw_inventory = inventory::collect(session, input.flake_ref);
     let check_ok = !check_failed_for_system(run.ok, &raw_inventory, input.system);
+    let warning_scopes = warning_scopes_from_inventory(&raw_inventory, input.system);
     let inventory = raw_inventory.map(|inv| only_system(inv, input.system));
     Pass {
         check_ok,
         check_text,
         inventory,
-    }
-}
-
-/// The systems the kit supports, and the one it dropped: how an error is told to be about one.
-const SYSTEMS: [&str; 4] = [
-    "aarch64-darwin",
-    "x86_64-linux",
-    "aarch64-linux",
-    "x86_64-darwin",
-];
-
-/// Whether a warning is about the selected system. With no selection every warning counts. With
-/// one, a warning that names only other systems does not (it is about an output on another
-/// system); one that names the selected system, or names no system at all (it cannot be tied to
-/// an output), does.
-fn concerns(text: &str, system: Option<&str>) -> bool {
-    match system {
-        None => true,
-        Some(wanted) => text.contains(wanted) || !SYSTEMS.iter().any(|s| text.contains(s)),
+        warning_scopes,
     }
 }
 
@@ -300,13 +331,14 @@ fn scrub(text: &str, flake_ref: &str) -> String {
 /// Runs gate 3.
 pub fn run(session: &mut Session, input: &Input) -> Outcome {
     let strict = run_pass(session, input, true);
+    let strict_scopes = strict.warning_scopes.clone();
     let lenient = stopped_by_warning(&strict).then(|| run_pass(session, input, false));
     let pass = lenient.unwrap_or(strict);
     let mut acks = Vec::new();
     let mut warnings: Vec<WarningEntry> = Vec::new();
     for message in evaluation_warnings(&pass.check_text)
         .into_iter()
-        .filter(|m| concerns(m, input.system))
+        .filter(|m| warning_concerns_system(m, strict_scopes.as_deref(), input.system))
     {
         warnings.push(judged(
             WarningSource::BuiltinsWarn,
@@ -319,7 +351,6 @@ pub fn run(session: &mut Session, input: &Input) -> Outcome {
         .inventory
         .iter()
         .flat_map(|inv| configuration_warnings(session, inv))
-        .filter(|m| concerns(m, input.system))
     {
         warnings.push(judged(
             WarningSource::ConfigWarnings,
@@ -402,22 +433,83 @@ mod tests {
     }
 
     #[test]
-    fn a_warning_is_about_the_selected_system_when_it_names_it_or_names_none() {
-        assert!(concerns("error: boom", None));
-        assert!(concerns("error: packages.x86_64-darwin.a", None));
-        assert!(concerns(
-            "error: packages.x86_64-linux.a",
+    fn warning_scopes_scope_by_structured_records_not_message_text() {
+        let inv = Ok(Inventory {
+            flake: "path:/x".into(),
+            structure: Default::default(),
+            records: vec![
+                // w1: selected x86_64-linux package warns naming aarch64-linux -> MUST count.
+                Record::failed(
+                    "packages.x86_64-linux.w1",
+                    Kind::Package,
+                    Some("x86_64-linux"),
+                    "evaluation warning: use the aarch64-linux build\nerror: aborting".into(),
+                ),
+                // w2: other aarch64-linux package warns naming x86_64-linux -> MUST NOT count.
+                Record::failed(
+                    "packages.aarch64-linux.w2",
+                    Kind::Package,
+                    Some("aarch64-linux"),
+                    "evaluation warning: not for x86_64-linux\nerror: aborting".into(),
+                ),
+                // w4: other aarch64-linux package warns naming no system -> MUST NOT count.
+                Record::failed(
+                    "packages.aarch64-linux.w4",
+                    Kind::Package,
+                    Some("aarch64-linux"),
+                    "evaluation warning: plain warning\nerror: aborting".into(),
+                ),
+                // w5: systemless overlay warns -> MUST count.
+                Record::failed(
+                    "overlays.default",
+                    Kind::Overlay,
+                    None,
+                    "evaluation warning: overlay warning\nerror: aborting".into(),
+                ),
+                // non-warning record (clean) is skipped when extracting warning scopes.
+                Record::new(
+                    "packages.x86_64-linux.ok",
+                    Kind::Package,
+                    Some("x86_64-linux"),
+                    Level::Evaluated,
+                ),
+            ],
+        });
+        let scopes = warning_scopes_from_inventory(&inv, Some("x86_64-linux"));
+        let sc = scopes.as_deref();
+        assert!(warning_concerns_system(
+            "use the aarch64-linux build",
+            sc,
             Some("x86_64-linux")
         ));
-        assert!(concerns("error: no system named", Some("x86_64-linux")));
-        assert!(!concerns(
-            "error: checks.aarch64-darwin.a",
+        assert!(!warning_concerns_system(
+            "not for x86_64-linux",
+            sc,
             Some("x86_64-linux")
         ));
-        assert!(concerns(
-            "error: a.aarch64-darwin and a.x86_64-linux",
+        assert!(!warning_concerns_system(
+            "plain warning",
+            sc,
             Some("x86_64-linux")
         ));
+        assert!(warning_concerns_system(
+            "overlay warning",
+            sc,
+            Some("x86_64-linux")
+        ));
+        // Unattributed warning falls back to counting; None system / Err inventory also count.
+        assert!(warning_concerns_system(
+            "unattributed warning",
+            sc,
+            Some("x86_64-linux")
+        ));
+        assert!(warning_concerns_system("not for x86_64-linux", sc, None));
+        assert!(warning_concerns_system(
+            "plain warning",
+            None,
+            Some("x86_64-linux")
+        ));
+        assert!(warning_scopes_from_inventory(&Err("bad".into()), Some("x86_64-linux")).is_none());
     }
 
     #[test]

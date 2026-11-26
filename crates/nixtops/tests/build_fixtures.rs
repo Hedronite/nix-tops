@@ -345,3 +345,83 @@ fn g1c_system_scoping_closes_q4_and_q9_on_pinned_and_host_evaluators() {
         );
     }
 }
+
+#[test]
+fn g1c_warnings_scope_by_structured_records_w1_w2_w4_on_both_evaluators() {
+    let Some(tools) = tools() else {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    };
+    let clean = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/gates/clean");
+    for use_host in [false, true] {
+        // w1: selected x86_64-linux warns naming aarch64-linux -> MUST REFUSE.
+        let repo_w1 = scratch_repo(&clean);
+        let f1 = repo_w1.path().join("flake.nix");
+        let base = fs::read_to_string(&f1).unwrap();
+        let needle_x86 = "packages.x86_64-linux.default = ";
+        let s1 = base.find(needle_x86).unwrap();
+        let mut src_w1 = base.clone();
+        src_w1.insert_str(
+            s1 + needle_x86.len(),
+            r#"builtins.warn "use the aarch64-linux build" "#,
+        );
+        fs::write(&f1, src_w1).unwrap();
+        git(repo_w1.path(), &["add", "-A"]);
+        git(repo_w1.path(), &["commit", "-q", "-m", "w1"]);
+        let (ev_w1, _, _) = run_eval_and_build(
+            tools.clone(),
+            repo_w1.path(),
+            use_host,
+            Some("x86_64-linux"),
+            false,
+        );
+        assert_eq!(
+            ev_w1.layer.verdict,
+            Verdict::Refuse,
+            "w1 host={use_host}: {:?}",
+            ev_w1.layer
+        );
+
+        // w2 (other warns naming x86_64-linux) and w4 (other warns naming no system) -> MUST PASS for x86_64-linux, REFUSE for aarch64-linux.
+        for (tag, msg) in [
+            ("w2", r#"builtins.warn "not for x86_64-linux" "#),
+            ("w4", r#"builtins.warn "plain other-system warning" "#),
+        ] {
+            let repo = scratch_repo(&clean);
+            let f = repo.path().join("flake.nix");
+            let needle_a64 = "packages.aarch64-linux.default = ";
+            let idx = base.find(needle_a64).unwrap();
+            let mut src = base.clone();
+            src.insert_str(idx + needle_a64.len(), msg);
+            fs::write(&f, src).unwrap();
+            git(repo.path(), &["add", "-A"]);
+            git(repo.path(), &["commit", "-q", "-m", tag]);
+            let (ev_x86, _, _) = run_eval_and_build(
+                tools.clone(),
+                repo.path(),
+                use_host,
+                Some("x86_64-linux"),
+                false,
+            );
+            assert_eq!(
+                ev_x86.layer.verdict,
+                Verdict::Pass,
+                "{tag} x86 host={use_host}: {:?}",
+                ev_x86.layer
+            );
+            let (ev_a64, _, _) = run_eval_and_build(
+                tools.clone(),
+                repo.path(),
+                use_host,
+                Some("aarch64-linux"),
+                false,
+            );
+            assert_eq!(
+                ev_a64.layer.verdict,
+                Verdict::Refuse,
+                "{tag} a64 host={use_host}: {:?}",
+                ev_a64.layer
+            );
+        }
+    }
+}

@@ -28,6 +28,7 @@ pub struct Job {
     pub drv_path: Option<String>,
     pub name: Option<String>,
     pub error: Option<String>,
+    pub warnings: Vec<String>,
     pub meta: Option<Value>,
 }
 
@@ -35,11 +36,13 @@ fn text(value: &Value, key: &str) -> Option<String> {
     value.get(key).and_then(Value::as_str).map(str::to_string)
 }
 
-fn attr_path(value: &Value) -> Vec<String> {
-    let parts = value.get("attrPath").and_then(Value::as_array);
-    parts
-        .map(|p| {
-            p.iter()
+fn string_array(value: &Value, key: &str) -> Vec<String> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
                 .filter_map(Value::as_str)
                 .map(str::to_string)
                 .collect()
@@ -54,10 +57,11 @@ pub fn parse(stdout: &str) -> Vec<Job> {
         .filter_map(|line| serde_json::from_str::<Value>(line).ok());
     let jobs = objects.filter(|value| value.get("attrPath").is_some());
     jobs.map(|value| Job {
-        attr_path: attr_path(&value),
+        attr_path: string_array(&value, "attrPath"),
         drv_path: text(&value, "drvPath"),
         name: text(&value, "name"),
         error: text(&value, "error").map(|e| clean(&e)),
+        warnings: string_array(&value, "warnings"),
         meta: value.get("meta").and_then(prune_meta),
     })
     .collect()
@@ -70,13 +74,28 @@ pub struct Target<'a> {
     pub system: &'a str,
 }
 
+fn with_warnings(warnings: Vec<String>, error: String) -> String {
+    if warnings.is_empty() {
+        return error;
+    }
+    let mut text: String = warnings
+        .into_iter()
+        .map(|w| format!("evaluation warning: {w}\n"))
+        .collect();
+    text.push_str(&error);
+    text
+}
+
 fn record(target: &Target, job: Job) -> Record {
     let attr = std::iter::once(target.base.to_string())
         .chain(job.attr_path)
         .collect::<Vec<_>>()
         .join(".");
     match job.error {
-        Some(error) => Record::failed(&attr, target.kind, Some(target.system), error),
+        Some(error) => {
+            let error = with_warnings(job.warnings, error);
+            Record::failed(&attr, target.kind, Some(target.system), error)
+        }
         None => Record::new(&attr, target.kind, Some(target.system), Level::Evaluated)
             .with_drv(job.drv_path, job.name)
             .with_meta(job.meta),
@@ -175,5 +194,17 @@ mod tests {
         let found = records(&target(), false, GOOD, "error: later");
         assert_eq!(found.len(), 2);
         assert!(!found[0].is_error() && found[1].is_error());
+    }
+
+    #[test]
+    fn failed_job_with_warnings_array_prepends_evaluation_warnings() {
+        let line =
+            r#"{"attr":"w","attrPath":["w"],"error":"error: aborting","warnings":["use other"]}"#;
+        let found = records(&target(), true, line, "");
+        assert_eq!(found.len(), 1);
+        assert_eq!(
+            found[0].error.as_deref(),
+            Some("evaluation warning: use other\nerror: aborting")
+        );
     }
 }

@@ -394,3 +394,134 @@ fn failing_check_or_build_or_unreadable_sandbox_refuses() {
     assert!(r3.layer.reason.unwrap().contains("build failed"));
     assert_eq!(pkg_outputs[0].level, "evaluated");
 }
+
+#[test]
+fn linux_passes_sandbox_fallback_false_and_enforces_daemon_and_namespace_failures() {
+    let dir = tempfile::tempdir().unwrap();
+    let log = dir.path().join("judge-args.log");
+    let nix = script(
+        dir.path(),
+        "nix",
+        &[(
+            "config show --json",
+            r#"{"sandbox":{"value":true},"sandbox-fallback":{"value":true}}"#,
+            "",
+            0,
+        )],
+    );
+    let judge_body = format!(
+        r#"#!/bin/sh
+echo "$*" >> {}
+case "$*" in
+*flake*metadata*--json*) echo '{{"url":"fake:locked"}}'; exit 0;;
+*flake*check*--option*sandbox-fallback*false*) exit 0;;
+*build*--no-link*--no-update-lock-file*--option*sandbox-fallback*false*) exit 0;;
+*) echo "unexpected args: $*" >&2; exit 99;;
+esac
+"#,
+        log.display()
+    );
+    let judge = dir.path().join("judge");
+    common::write_executable(&judge, &judge_body);
+    let eval_jobs = script(dir.path(), "nej", &[]);
+    let session = Session::new(Tools {
+        judge,
+        eval_jobs,
+        nixpkgs: "github:NixOS/nixpkgs/pin".into(),
+    })
+    .unwrap();
+    let mut outputs = vec![
+        out("checks.x86_64-linux.unit"),
+        out("packages.x86_64-linux.default"),
+    ];
+    let input = build::Input {
+        flake_ref: ".",
+        nix_bin: &nix.display().to_string(),
+        host_system: "x86_64-linux",
+        selected_system: None,
+        enforce: "hard",
+        ci: false,
+    };
+    let ok = build::run(&session, &input, &mut outputs);
+    assert_eq!(ok.layer.verdict, Verdict::Pass, "{:?}", ok.layer.reason);
+    assert_eq!(ok.sandbox.as_deref(), Some("true"));
+    let logged = std::fs::read_to_string(&log).unwrap();
+    assert!(logged.contains("flake check --no-update-lock-file --option sandbox-fallback false"));
+    assert!(
+        logged.contains("build --no-link --no-update-lock-file --option sandbox-fallback false")
+    );
+
+    // Untrusted daemon ignores --option sandbox-fallback false when config show is not false -> Refuse even on exit 0.
+    for (cfg, arms, want_verdict, desc) in [
+        (
+            r#"{"sandbox":{"value":true},"sandbox-fallback":{"value":true}}"#,
+            vec![(
+                "flake check",
+                "",
+                "warning: ignoring the client-specified setting 'sandbox-fallback', because it is a restricted setting and you are not a trusted user",
+                0,
+            )],
+            Verdict::Refuse,
+            "check ignores fallback while config is true",
+        ),
+        (
+            r#"{"sandbox":{"value":true},"sandbox-fallback":{"value":true}}"#,
+            vec![
+                ("flake metadata --json", r#"{"url":"fake:locked"}"#, "", 0),
+                ("flake check", "ok", "", 0),
+                (
+                    "build --no-link",
+                    "",
+                    "warning: ignoring the client-specified setting 'sandbox-fallback', because you are not a trusted user",
+                    0,
+                ),
+            ],
+            Verdict::Refuse,
+            "build ignores fallback while config is true",
+        ),
+        (
+            r#"{"sandbox":{"value":true},"sandbox-fallback":{"value":false}}"#,
+            vec![
+                ("flake metadata --json", r#"{"url":"fake:locked"}"#, "", 0),
+                (
+                    "flake check",
+                    "",
+                    "warning: ignoring the client-specified setting 'sandbox-fallback'",
+                    0,
+                ),
+                ("build --no-link", "", "", 0),
+            ],
+            Verdict::Pass,
+            "config already has sandbox-fallback = false",
+        ),
+        (
+            r#"{"sandbox":{"value":true},"sandbox-fallback":{"value":true}}"#,
+            vec![(
+                "flake check",
+                "",
+                "error: this system does not support the kernel namespaces that are required for sandboxing",
+                1,
+            )],
+            Verdict::Refuse,
+            "namespace unsupported build failure refuses",
+        ),
+    ] {
+        let sub = tempfile::tempdir().unwrap();
+        let (nix_s, sess) = mk_session(
+            sub.path(),
+            &[("config show --json", cfg, "", 0)],
+            &arms,
+            &[],
+        );
+        let mut out_s = vec![out("packages.x86_64-linux.default")];
+        let res = build::run(
+            &sess,
+            &build::Input {
+                nix_bin: &nix_s.display().to_string(),
+                ..input
+            },
+            &mut out_s,
+        );
+        assert_eq!(res.layer.verdict, want_verdict, "{desc}: {:?}", res.layer);
+    }
+}

@@ -53,17 +53,59 @@ pub fn normalize_sandbox(raw: &str) -> Result<String, String> {
     }
 }
 
-pub fn read_sandbox(session: &Session, nix_bin: &str) -> Result<String, String> {
+struct SandboxState {
+    sandbox: String,
+    fallback_is_false: bool,
+}
+
+fn read_sandbox_state(session: &Session, nix_bin: &str) -> Result<SandboxState, String> {
     if let Some(json) = probe::config_show(nix_bin)
         && let Some(val) = probe::setting(&json, "sandbox")
     {
-        return normalize_sandbox(&val);
+        let sandbox = normalize_sandbox(&val)?;
+        let fallback_is_false =
+            probe::setting(&json, "sandbox-fallback").as_deref() == Some("false");
+        return Ok(SandboxState {
+            sandbox,
+            fallback_is_false,
+        });
     }
     let run = session.judge(&["config", "show", "sandbox"], &[]);
     if run.ok && !run.stdout.trim().is_empty() {
-        return normalize_sandbox(&run.stdout);
+        return Ok(SandboxState {
+            sandbox: normalize_sandbox(&run.stdout)?,
+            fallback_is_false: false,
+        });
     }
     Err("cannot read nix sandbox setting".to_string())
+}
+
+pub fn read_sandbox(session: &Session, nix_bin: &str) -> Result<String, String> {
+    read_sandbox_state(session, nix_bin).map(|state| state.sandbox)
+}
+
+fn ignored_sandbox_fallback(stderr: &str) -> bool {
+    stderr.lines().any(|line| {
+        line.contains("ignoring the client-specified setting") && line.contains("sandbox-fallback")
+    })
+}
+
+fn check_build_run(
+    run: &inventory::Run,
+    label: &str,
+    is_linux: bool,
+    fallback_is_false: bool,
+) -> Result<(), String> {
+    if is_linux && !fallback_is_false && ignored_sandbox_fallback(&run.stderr) {
+        return Err(
+            "cannot enforce sandbox-fallback = false: daemon ignored client-specified setting"
+                .to_string(),
+        );
+    }
+    if !run.ok {
+        return Err(format!("{label}: {}", first_error(&run.stderr)));
+    }
+    Ok(())
 }
 
 pub fn check_linux_sandbox(host_system: &str, sandbox: &str) -> Result<(), String> {
@@ -77,11 +119,22 @@ pub fn check_linux_sandbox(host_system: &str, sandbox: &str) -> Result<(), Strin
 }
 
 fn first_error(stderr: &str) -> String {
+    let errors: Vec<&str> = stderr
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with("error:"))
+        .collect();
+    if let Some(&last) = errors.last() {
+        if last.contains("Invalid BuildResult status from remote")
+            && let Some(&prev) = errors[..errors.len() - 1].last()
+        {
+            return format!("{prev} | {last}");
+        }
+        return last.to_string();
+    }
     stderr
         .lines()
-        .rev()
-        .find(|line| line.trim_start().starts_with("error:"))
-        .or_else(|| stderr.lines().find(|line| !line.trim().is_empty()))
+        .find(|line| !line.trim().is_empty())
         .unwrap_or("nix build failed")
         .trim()
         .to_string()
@@ -257,27 +310,35 @@ fn partition_targets(
 
 fn execute_host_builds(
     session: &Session,
-    flake_ref: &str,
+    input: &Input<'_>,
+    fallback_is_false: bool,
     targets: &Targets,
     outputs: &mut [OutputEntry],
 ) -> Result<(), String> {
-    let check_run = session.judge(&["flake", "check"], &["--no-update-lock-file", flake_ref]);
-    if !check_run.ok {
-        return Err(format!(
-            "flake check build failed: {}",
-            first_error(&check_run.stderr)
-        ));
+    let is_linux = input.host_system.ends_with("-linux");
+    let mut check_args = vec!["--no-update-lock-file"];
+    if is_linux {
+        check_args.extend(["--option", "sandbox-fallback", "false"]);
     }
+    check_args.push(input.flake_ref);
+    let check_run = session.judge(&["flake", "check"], &check_args);
+    check_build_run(
+        &check_run,
+        "flake check build failed",
+        is_linux,
+        fallback_is_false,
+    )?;
     for &idx in &targets.check_indices {
         outputs[idx].level = "built";
     }
     if !targets.build_installables.is_empty() {
         let mut args = vec!["--no-link", "--no-update-lock-file"];
+        if is_linux {
+            args.extend(["--option", "sandbox-fallback", "false"]);
+        }
         args.extend(targets.build_installables.iter().map(String::as_str));
         let build_run = session.judge(&["build"], &args);
-        if !build_run.ok {
-            return Err(format!("build failed: {}", first_error(&build_run.stderr)));
-        }
+        check_build_run(&build_run, "build failed", is_linux, fallback_is_false)?;
         for &idx in &targets.build_indices {
             outputs[idx].level = "built";
         }
@@ -288,6 +349,7 @@ fn execute_host_builds(
 fn run_build_phase(
     session: &Session,
     input: &Input<'_>,
+    fallback_is_false: bool,
     outputs: &mut Vec<OutputEntry>,
 ) -> Result<Layer, String> {
     ensure_outputs(session, input, outputs)?;
@@ -297,7 +359,7 @@ fn run_build_phase(
         .selected_system
         .is_none_or(|sel| sel == input.host_system)
     {
-        execute_host_builds(session, input.flake_ref, &targets, outputs)?;
+        execute_host_builds(session, input, fallback_is_false, &targets, outputs)?;
     }
     let deferred_attrs: Vec<&str> = outputs
         .iter()
@@ -315,19 +377,19 @@ fn run_build_phase(
 
 /// Runs gate 4 (build-test) and updates `outputs` with `built` / `deferred` status.
 pub fn run(session: &Session, input: &Input<'_>, outputs: &mut Vec<OutputEntry>) -> Outcome {
-    let sandbox = match read_sandbox(session, input.nix_bin) {
+    let state = match read_sandbox_state(session, input.nix_bin) {
         Ok(s) => s,
         Err(reason) => return refuse(reason, None),
     };
-    if let Err(reason) = check_linux_sandbox(input.host_system, &sandbox) {
-        return refuse(reason, Some(sandbox));
+    if let Err(reason) = check_linux_sandbox(input.host_system, &state.sandbox) {
+        return refuse(reason, Some(state.sandbox));
     }
-    match run_build_phase(session, input, outputs) {
+    match run_build_phase(session, input, state.fallback_is_false, outputs) {
         Ok(layer) => Outcome {
             layer,
-            sandbox: Some(sandbox),
+            sandbox: Some(state.sandbox),
         },
-        Err(reason) => refuse(reason, Some(sandbox)),
+        Err(reason) => refuse(reason, Some(state.sandbox)),
     }
 }
 
@@ -615,6 +677,40 @@ mod tests {
         );
         assert_eq!(first_error("\n   \nplain error\nline2"), "plain error");
         assert_eq!(first_error("line\nerror: boom\n"), "error: boom");
+        assert_eq!(
+            first_error(
+                "error: builder for '/nix/store/x.drv' failed\nerror: Invalid BuildResult status from remote\n"
+            ),
+            "error: builder for '/nix/store/x.drv' failed | error: Invalid BuildResult status from remote"
+        );
+        assert_eq!(
+            first_error("noise\nerror: Invalid BuildResult status from remote\n"),
+            "error: Invalid BuildResult status from remote"
+        );
         assert_eq!(first_error("\n  \n"), "nix build failed");
+
+        assert!(ignored_sandbox_fallback(
+            "warning: ignoring the client-specified setting 'sandbox-fallback', because you are not a trusted user"
+        ));
+        assert!(!ignored_sandbox_fallback(
+            "warning: ignoring the client-specified setting 'max-jobs'"
+        ));
+        assert!(!ignored_sandbox_fallback("sandbox-fallback = false"));
+
+        let ok_run = inventory::Run {
+            ok: true,
+            stdout: String::new(),
+            stderr: String::new(),
+        };
+        assert!(check_build_run(&ok_run, "build failed", true, false).is_ok());
+
+        let ignored_run = inventory::Run {
+            ok: true,
+            stdout: String::new(),
+            stderr: "warning: ignoring the client-specified setting 'sandbox-fallback'".into(),
+        };
+        assert!(check_build_run(&ignored_run, "build failed", true, false).is_err());
+        assert!(check_build_run(&ignored_run, "build failed", true, true).is_ok());
+        assert!(check_build_run(&ignored_run, "build failed", false, false).is_ok());
     }
 }
