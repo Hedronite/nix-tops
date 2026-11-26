@@ -46,7 +46,6 @@
           (
             nixpkgs.lib.genAttrs systems (system: {
               inherit (self.packages.${system}) nixtops;
-              planted = nixpkgs.legacyPackages.${system}.runCommand "planted" { } "exit 1";
             })
           );
 
