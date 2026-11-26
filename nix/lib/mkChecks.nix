@@ -11,6 +11,10 @@ let
   inherit (nixpkgs) lib;
   _cfg = builtins.fromTOML (builtins.readFile config);
   lintCfg = _cfg.lint or { };
+  # The verdict checks fail on findings only under `hard`. Under `ratchet` (the default) and
+  # `advisory` the runner's gate 2 judges the findings, against the baseline or for the report, and
+  # a verdict that failed here would fail `nix flake check`, and with it gate 4.
+  verdictFail = (_cfg.enforce or "ratchet") == "hard";
 
   supportedSystems = [
     "aarch64-darwin"
@@ -201,13 +205,13 @@ let
     in
     {
       nixtops-nixfmt-findings = nixfmtFindings;
-      nixtops-nixfmt = mkVerdict "nixfmt" nixfmtFindings true;
+      nixtops-nixfmt = mkVerdict "nixfmt" nixfmtFindings verdictFail;
       nixtops-statix-findings = statixFindings;
-      nixtops-statix = mkVerdict "statix" statixFindings true;
+      nixtops-statix = mkVerdict "statix" statixFindings verdictFail;
       nixtops-deadnix-findings = deadnixFindings;
-      nixtops-deadnix = mkVerdict "deadnix" deadnixFindings deadnixFail;
+      nixtops-deadnix = mkVerdict "deadnix" deadnixFindings (verdictFail && deadnixFail);
       nixtops-gitleaks-findings = gitleaksFindings;
-      nixtops-gitleaks = mkVerdict "gitleaks" gitleaksFindings true;
+      nixtops-gitleaks = mkVerdict "gitleaks" gitleaksFindings verdictFail;
     };
 in
 builtins.listToAttrs (

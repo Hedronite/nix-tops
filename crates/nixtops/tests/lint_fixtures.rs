@@ -463,3 +463,122 @@ fn deadnix_fail_false_and_dot_directory_paths_work_with_real_tools() {
         .unwrap();
     assert_eq!(nixfmt["files"][".config/x.nix"].as_u64(), Some(1));
 }
+
+/// A flake that exports `lib.mkChecks`, with one unused binding and a package gate 4 can build.
+fn mkchecks_flake(dir: &Path, host: &str) {
+    let kit = dir.join("kit/nix/lib");
+    fs::create_dir_all(&kit).unwrap();
+    let root = repo_root();
+    fs::copy(root.join("nix/tools.nix"), dir.join("kit/nix/tools.nix")).unwrap();
+    for file in ["default.nix", "mkChecks.nix", "parse_findings.py"] {
+        fs::copy(root.join("nix/lib").join(file), kit.join(file)).unwrap();
+    }
+    let fixture = root.join("fixtures/gates/lint-deadnix");
+    fs::copy(fixture.join("flake.lock"), dir.join("flake.lock")).unwrap();
+    let flake = r#"{
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/04906337b6d53e8bb0eaf0470ae9f070a4d4eb55";
+  outputs =
+    { self, nixpkgs }:
+    let
+      legacy = 1;
+      kit = import ./kit/nix/lib { inherit nixpkgs; };
+      pkgs = nixpkgs.legacyPackages."HOST";
+    in
+    {
+      checks = kit.mkChecks {
+        inherit self;
+        systems = [ "HOST" ];
+        exclude = [ "kit" ];
+      };
+      packages."HOST".default = pkgs.runCommand "ok" { } "touch $out";
+    };
+}
+"#;
+    fs::write(dir.join("flake.nix"), flake.replace("HOST", host)).unwrap();
+    let config = format!(
+        "protocol = \"0.2.0\"\nfacets = [\"package-set\"]\nenforce = \"ratchet\"\n\n[toolchain]\nsystems = [\"{host}\"]\n\n[layers]\ncoverage = {{ enabled = false, reason = \"not built yet\" }}\nfacet-layers = {{ enabled = false, reason = \"not built yet\" }}\nlaws = {{ enabled = false, reason = \"not built yet\" }}\n"
+    );
+    fs::write(dir.join("nix-tops.toml"), config).unwrap();
+    fs::write(dir.join(".gitignore"), ".nix-tops/report.json\n").unwrap();
+}
+
+fn commit(dir: &Path, message: &str) {
+    git(dir, &["add", "-A"]);
+    git(dir, &["commit", "-q", "-m", message]);
+}
+
+fn edit(dir: &Path, name: &str, from: &str, to: &str) {
+    let path = dir.join(name);
+    let text = fs::read_to_string(&path).unwrap();
+    assert!(text.contains(from), "{from}");
+    fs::write(path, text.replace(from, to)).unwrap();
+}
+
+fn verdicts(report: &nixtops::report::Report) -> BTreeMap<&'static str, Verdict> {
+    let layers = report.layers.iter();
+    layers.map(|l| (l.id.as_str(), l.verdict)).collect()
+}
+
+/// The verdict checks are part of `nix flake check`, which gate 4 runs: under `ratchet` they must
+/// not fail on what the baseline holds, and under `hard` they must still fail.
+#[test]
+fn a_ratchet_flake_exporting_mk_checks_keeps_a_legacy_finding_through_gate_4() {
+    let Some(tools) = tools() else {
+        eprintln!("skipped: NIXTOPS_FX_* not set");
+        return;
+    };
+    let cache = tempfile::tempdir().unwrap();
+    let host = host_system(&tools.judge, cache.path());
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path();
+    git(repo, &["init", "-q", "."]);
+    git(repo, &["config", "user.email", "a@b"]);
+    git(repo, &["config", "user.name", "n"]);
+    mkchecks_flake(repo, &host);
+    commit(repo, "adopt");
+    let gate_now = |keep_going: bool| {
+        let settings = Settings {
+            keep_going,
+            ..settings_for(repo)
+        };
+        gate::run(&settings, Some(tools.clone()), &Seams::default())
+    };
+
+    let writing = Settings {
+        writing_baseline: true,
+        ..settings_for(repo)
+    };
+    let out = nixtops::cmd::baseline::run_with(&writing, Some(tools.clone()), &Seams::default());
+    assert_eq!(out.exit, Exit::Pass, "{}{}", out.stdout, out.stderr);
+    assert!(out.stdout.contains("1 finding(s)"), "{}", out.stdout);
+    commit(repo, "baseline");
+
+    let passed = gate_now(false);
+    assert_eq!(passed.exit, Exit::Pass, "{:?}", passed.report);
+    for layer in ["source", "lint", "eval", "build-test"] {
+        assert_eq!(verdicts(&passed.report)[layer], Verdict::Pass, "{layer}");
+    }
+
+    edit(
+        repo,
+        "flake.nix",
+        "legacy = 1;\n",
+        "legacy = 1;\n      second = 2;\n",
+    );
+    commit(repo, "a second finding");
+    let refused = gate_now(false);
+    assert_eq!(refused.exit, Exit::GateFailed, "{:?}", refused.report);
+    assert_eq!(verdicts(&refused.report)["lint"], Verdict::Refuse);
+
+    edit(
+        repo,
+        "nix-tops.toml",
+        "enforce = \"ratchet\"",
+        "enforce = \"hard\"",
+    );
+    commit(repo, "hard");
+    let hard = gate_now(true);
+    assert_eq!(hard.exit, Exit::GateFailed, "{:?}", hard.report);
+    assert_eq!(verdicts(&hard.report)["lint"], Verdict::Refuse);
+    assert_eq!(verdicts(&hard.report)["build-test"], Verdict::Refuse);
+}

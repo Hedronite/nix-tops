@@ -69,9 +69,12 @@ know about untracked files, does not set `abort-on-warn`, and does not write a r
 
 The kit's `lib.mkChecks` returns an attrset per system (`checks.<system>.nixtops-*`) that the
 adopter merges with its own checks (§4): two checks per tool (`nixtops-<tool>-findings`, which
-always succeeds and writes findings JSON to `$out`, and `nixtops-<tool>`, which fails on findings)
-for nixfmt, statix, deadnix, and gitleaks on the first supported system in `systems` (`{}` on the
-others). Source passes through a `.nix`-and-config filter for the Nix linters, and the tracked tree
+always succeeds and writes findings JSON to `$out`, and `nixtops-<tool>`, the verdict) for nixfmt,
+statix, deadnix, and gitleaks on the first supported system in `systems` (`{}` on the others). Under
+`enforce = "hard"` the verdict fails on findings. Under `ratchet`, the default, and `advisory` it
+succeeds and says how many there are, and gate 2 judges them (§6.8): `nix flake check`, and so gate
+4, does not fail on a finding the baseline holds. Under those modes `nix flake check` alone judges no
+lint finding. Source passes through a `.nix`-and-config filter for the Nix linters, and the tracked tree
 feeds gitleaks. When the host system differs from the check system, `nixtops gate` builds the
 findings on the host system (via `passthru.forSystem` or the kit's pinned `nix/lib`).
 
