@@ -1,0 +1,16 @@
+source        pass
+lint          pass
+eval          pass
+build-test    pass
+coverage      skip      not built in M2
+facet-layers  skip      not built in M2
+laws          skip      not built in M2
+laws are not enforced in this run: the laws layer is switched off
+lint (x86_64-linux)
+  deadnix 1.3.2: 0 finding(s)
+  gitleaks 8.30.1: 0 finding(s)
+  nixfmt 1.5.0: 0 finding(s)
+  statix 0.5.8-unstable-2026-07-17: 1 finding(s)
+sandbox: true
+12 outputs evaluated
+gate: passed

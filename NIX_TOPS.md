@@ -1205,7 +1205,7 @@ Python 3.10 or later. Schema precedence (§3.4): when the prose and a schema dis
 |---|---|---|
 | **M0** | Spec 0.2.0, the draft made true: schemas, six facet profiles (four launch, two specified and unproven), the laws as files, the agent template, one rule list with checked copies, and the `spec` job that checks them | Merged on `main` with the `spec` check required; §20 matches the trial |
 | **M1** | Honest runner: the kit flake with a pinned nixpkgs and CppNix, the `nixtops` binary (`version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `report.json`), CI on x86_64 Linux, aarch64-darwin and Determinate Nix | The kit's own flake gates green on gates 1 and 3; the 2026-11 trial reproduces from the kit's command. As built: the kit gates itself `hard` on x86_64 Linux and under Determinate Nix, with gates 2, 4, 5 and 6 and the laws switched off with a reason, and no `lib` output yet (its facets are `package-set` and `dev-flake`) |
-| **M2** | Sandbox plane (`lib.mkChecks` with nixfmt, statix, deadnix, gitleaks), gate 4, baseline and modes with expiring acks, kit distribution, first adopter | A deliberate deadnix finding fails under `hard` and passes as baseline under `ratchet`; the `rust-tops` flake passes gates 1 to 4 at tier 1 |
+| **M2** | Sandbox plane (`lib.mkChecks` with nixfmt, statix, deadnix, gitleaks), gate 4, baseline and modes with expiring acks, kit distribution, first adopter | A deliberate deadnix finding fails under `hard` and passes as baseline under `ratchet`; the `rust-tops` flake passes gates 1 to 4 at tier 1. As built: `lib.mkChecks`, gate 4, `baseline` with `ratchet` and `advisory`, and the kit gating itself on gates 1 to 4. An adopter pins the kit by commit; there is no release and no binary cache, so its CI builds the runner (`docs/evidence/2026-11-25-cold-start/`). `rust-tops` passes gates 1 to 4 at tier 1 on `x86_64-linux` on its pull request, not merged at the time of writing (§20) |
 | **M3** | Laws v0.1: `nixtops-lint` and readers, 29 judged; `fixtures/laws`; a probe of how many planted mistakes the laws catch | Report shows "29 of 49 judged"; the catch rate is recorded |
 | **M4** | Output coverage with evidence kinds; closure and eval-cost budgets; the VM-test layer; option and call coverage (advisory); one floor per facet calibrated from measurement | A `nixos-module` example fails when its VM test is removed; floors calibrated on three flakes |
 | **M5** | Adopters and the family toolchain: the dropped-systems fixes in five repos, laws, coverage and budgets on the first adopter, a Home Manager module adopter, a `nixos-module` adopter with a VM test, optional toolchain shells | Three adopters green at tier 1 |
@@ -1217,32 +1217,40 @@ Python 3.10 or later. Schema precedence (§3.4): when the prose and a schema dis
 ## 20. First adopter: the Rust-TOPS flake
 
 The Rust-TOPS repo has a `flake.nix` with packages, an overlay, apps, a dev shell and checks. Its
-outputs make it at least a `dev-flake` (§5.1), it is small, and it is already Hedronite's.
+facets are `package-set` and `dev-flake` (§5.1), it is small, and it is already Hedronite's.
 
-**What the gate does to it today.** The gate-3 command of §3.1 run against `rust-tops` at `77056c9`
-fails on both implementations, CppNix 2.35.2 and Determinate Nix 3.22.3
-(`docs/evidence/2026-11-16-gate3-trial/`, run 2026-11-16 and again 2026-11-17, same result). The cause is one
-input: `nixpkgs-26.05-darwin`, kept for `x86_64-darwin`, prints `evaluation warning: Nixpkgs 26.05
-will be the last release to support x86_64-darwin`, and `abort-on-warn` makes it fatal. Determinate
-Nix checks every output: 5 fail, all `x86_64-darwin`, and 29 pass.
+**Where it stands.** [Pull request #67](https://github.com/Hedronite/rust-tops/pull/67) adopts the
+gate, pinned at kit commit `616cd22c`. At head `b2c7704` the `gate` and `determinate` jobs and every
+existing check of the repository are green. It is open and not merged at the time of writing; its
+maintainers merge it under their own gate. The record, with run IDs and the report, is
+[`docs/evidence/2026-11-26-rust-tops-adoption/`](docs/evidence/2026-11-26-rust-tops-adoption/README.md).
 
-**The change it waits on.** Dropping `x86_64-darwin` (§2): remove the system from the flake's
-`systems` and delete the `nixpkgs-26.05-darwin` input. The same warning or throw fails three other
-flakes in the trial that declare the system, so the drop is one change per repo, outside this spec.
-After it, the gate-3 command has nothing to refuse, and the ack for the second nixpkgs input (N-06)
-is not needed.
+| As adopted | |
+|---|---|
+| Layers | `source`, `lint`, `eval` and `build-test`; `coverage`, `facet-layers` and `laws` switched off with a reason |
+| Enforcement | `ratchet`. The baseline holds one `statix` finding in `flake.nix` and no ack |
+| CI | The drop-in workflow: `x86_64-linux` outputs only (§11), 12 of them, `sandbox: true` |
+| Locally | All three systems: 40 outputs, host builds on `aarch64-darwin`, the rest `deferred` |
 
-The flake read on 2026-11-14 would otherwise meet Nix-TOPS like this:
+**What it cost.** The earlier readings of this section are gone: `x86_64-darwin` and the second
+`nixpkgs` input had already been dropped. Adopting took:
 
-| Finding | Law | Note |
-|---|---|---|
-| A second nixpkgs input (`nixpkgs-26.05-darwin`) for `x86_64-darwin`, which nixpkgs 26.11 dropped | N-06, Ack | Gone once the system is dropped |
-| `export RUST_TOPS_ROOT=${./.}` in two checks copies the whole tree into the store | N-31, Ack | Every edit, including to the README, rebuilds both checks. `lib.fileset.toSource` over the files the script reads fixes it |
-| "No GitHub job runs `nix flake check`" | gates 3–4 | The flake's checks are not part of CI today. The Nix-TOPS `gate` job would add them |
-| `pkgsFor` imports nixpkgs once per system with the overlay | N-09, pass | The pattern the law asks for |
+| Change | Why |
+|---|---|
+| The `nix-tops` input, `lib.mkChecks` merged into `checks`, the runner re-exported | The drop-in (§4) |
+| `RUST_TOPS_ROOT` pointed at a `lib.fileset.toSource` of the five files the Bend script reads | N-31: it copied the whole tree, so every edit rebuilt both checks |
+| The repository's `nixpkgs` lock moved forward | Its rustc was older than the workspace's `rust-version`; gate 4 builds the package |
+| `doCheck = false` on the package | Its tests call tools the build does not provide; CI runs them |
+| Three layers switched off by hand, and the report ignored in `.gitignore` | `init` does neither |
 
-The flake already uses `lib.getExe` for its app and splits Darwin-only and Linux-only outputs
-carefully. Adopting at `ratchet` costs the dropped system and one `fileset` change.
+Gate 4 also builds the repository's Nix check `bend-proof` on `x86_64-linux`, which no CI job built
+before (the repository's own job of that name runs Bend outside Nix).
+
+**What it showed about the kit.** The lint verdict checks of `lib.mkChecks` failed on any finding,
+so a `ratchet` adopter with one could not pass gate 4; they now fail only under `hard` (§1.4). The
+fixture behind the `ratchet` exit did not export `mkChecks`, which is why no test saw it. Open: the
+`AGENTS.md` section names commands a flake may not have, and gate 4's failure message can leave the
+failing derivation unnamed.
 
 ---
 
