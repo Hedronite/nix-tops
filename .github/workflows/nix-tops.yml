@@ -8,6 +8,8 @@ name: nix-tops
 # Every nix command passes --no-accept-flake-config, so a flake cannot change the gate's settings.
 # Never use pull_request_target here: this workflow runs code from the PR.
 # The tier 2 jobs of section 11 (build-matrix, nightly) arrive with the layers they run.
+# Both gate jobs run on x86_64-linux and name it with --system; the kit workflow still evaluates
+# every system and builds on aarch64-darwin.
 on:
   pull_request:
     # labeled and unlabeled re-run law-diff, so adding the protocol-change label clears it without a push
@@ -41,7 +43,7 @@ jobs:
             sandbox = true
             experimental-features = nix-command flakes
       - name: Gate
-        run: nix run .#nixtops --no-update-lock-file --no-accept-flake-config -- gate --max-tier 1
+        run: nix run .#nixtops --no-update-lock-file --no-accept-flake-config -- gate --max-tier 1 --system x86_64-linux
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
@@ -65,7 +67,7 @@ jobs:
           persist-credentials: false
       - uses: DeterminateSystems/determinate-nix-action@16f94ba7aae399b9f9077c254b6719ec6de7e3e3 # v3.24.2
       - name: Gate
-        run: nix run .#nixtops --no-update-lock-file --no-accept-flake-config -- gate --max-tier 1 --evaluator host
+        run: nix run .#nixtops --no-update-lock-file --no-accept-flake-config -- gate --max-tier 1 --system x86_64-linux --evaluator host
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"

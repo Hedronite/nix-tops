@@ -36,7 +36,7 @@ Nix-TOPS (Nix Testing and Optimization Protocol Suite) is a protocol for Nix tha
 
 The gate evaluates every output on every declared system with warnings fatal, then builds, tests, and measures what the flake produces. This repository holds the spec, the schemas, the facet profiles, the laws as files, and the kit flake with the `nixtops` runner, a single Rust binary.
 
-The package is unreleased (`0.0.0`) and has no tag. The runner covers the source and eval gates today; the sandbox checks, baseline and laws come in later milestones. No other repository has adopted it yet.
+The package is unreleased (`0.0.0`) and has no tag. The runner covers the source, lint, eval and build gates and the baseline today; output coverage and the laws come in later milestones. No other repository has adopted it yet.
 
 ## Pins
 
@@ -59,7 +59,7 @@ nix run .#nixtops -- check
 nix run .#nixtops -- gate
 ```
 
-`check` validates `nix-tops.toml` against the schema and the semantic rules. `gate` runs the enabled layers and writes `report.json`; `report` renders the last run, and `outputs` lists every output with its coverage level. `init` writes `nix-tops.toml`, the CI workflow and the `AGENTS.md` section into an adopting flake. `baseline` and `laws` print that they are not built yet and exit 4.
+`check` validates `nix-tops.toml` against the schema and the semantic rules. `gate` runs the enabled layers and writes `report.json`; `report` renders the last run, and `outputs` lists every output with its coverage level. `init` writes `nix-tops.toml`, the CI workflow and the `AGENTS.md` section into an adopting flake. `baseline` records what `ratchet` compares against, after a passing run. `laws` prints that it is not built yet and exits 4.
 
 The spec checks run without Nix:
 
@@ -76,16 +76,20 @@ The schema check needs `check-jsonschema` 0.38.0, which needs Python 3.10 or lat
 | | A flake on its own | This kit today |
 | --- | --- | --- |
 | Contract | Whatever the repo documents | Protocol 0.2.0, JSON Schemas, six facet profiles, and 49 laws as files |
-| A runner | `nix flake check` and the tools you wire | `nixtops` `version`, `doctor`, `check`, `init`, `gate`, `outputs`, `report`, run as `nix run .#nixtops` |
+| A runner | `nix flake check` and the tools you wire | `nixtops` `version`, `doctor`, `check`, `init`, `gate`, `baseline`, `outputs`, `report`, run as `nix run .#nixtops` |
+| Lint | The tools you remember to run | nixfmt, statix, deadnix and gitleaks as sandbox checks (`lib.mkChecks`), per file |
 | Eval gate | Warnings scroll past | Every output on every declared system, with `abort-on-warn` and import-from-derivation off |
-| CI on this repo | — | The kit gates itself `hard` (`nix-tops`), plus `kit`, `rust-tops`, `spec`, `fixtures` and `trial` workflows |
+| Build and test | `nix flake check` on one machine | Host checks, packages, dev shells and build roots, sandboxed on Linux; other systems reported as deferred |
+| Adopting with existing findings | All or nothing | `ratchet`: a baseline of what is there, and no count may rise |
+| CI on this repo | — | The kit gates itself `hard` (`nix-tops`) on gates 1 to 4, plus `kit`, `rust-tops`, `spec`, `fixtures`, `trial` and `cold-start` workflows |
 
 ### What you do not get
 
 | Claim | Reality |
 | --- | --- |
 | A released kit you can pin | The package is `0.0.0`, untagged. Kit distribution for adopters is M2 work |
-| Sandbox lint, baseline, or the laws layer | `lib.mkChecks` (nixfmt, statix, deadnix, gitleaks), `baseline` and `ratchet` arrive at M2; the laws at M3 |
+| Output coverage, budgets or the laws layer | Coverage and budgets arrive at M4, the laws at M3 |
+| Every system judged in CI | The drop-in workflow names `x86_64-linux`; other systems' outputs are not evaluated there until the tier 2 build matrix. See [§11](NIX_TOPS.md#11-ci-floor) |
 | Line coverage, CRAP, or mutation | Nix has no line coverage in this protocol. Coverage becomes output coverage, CRAP becomes closure and eval-cost budgets, and there is no mutation layer in 0.x. See [§6](NIX_TOPS.md#6-scoring-and-reporting) |
 | A drop-in for nixpkgs contribution checks | `nixpkgs-vet` and nixpkgs CI do that for nixpkgs itself |
 
@@ -110,7 +114,7 @@ A repo can adopt Nix-TOPS alongside its language protocol: the language protocol
 | --- | --- |
 | [`NIX_TOPS.md`](NIX_TOPS.md) | The protocol, draft 0.2.0 |
 | [`crates/nixtops/`](crates/nixtops/) | The runner |
-| [`flake.nix`](flake.nix), [`nix/`](nix/) | The kit flake: `packages.nixtops`, `apps.nixtops`, dev shell, formatter |
+| [`flake.nix`](flake.nix), [`nix/`](nix/) | The kit flake: `lib.mkChecks`, `packages.nixtops`, `apps.nixtops`, checks, dev shell, formatter |
 | [`nix-tops.toml`](nix-tops.toml) | Nix-TOPS gating itself, `hard` |
 | [`config/`](config/) | The `AGENTS.md` section and the CI workflow template that `nixtops init` writes |
 | [`laws/`](laws/README.md) | One TOML file per law (49), and the table of `nix` diagnostics |
@@ -127,13 +131,13 @@ A repo can adopt Nix-TOPS alongside its language protocol: the language protocol
 
 Draft. Protocol **0.2.0**. Package **0.0.0**, unreleased. No tag.
 
-This repo is at milestone M1: the runner. The kit gates itself `hard` on gates 1 and 3 (source and eval) on x86_64 Linux and under Determinate Nix; the other layers and the laws are switched off with a reason until they are built. The kit has no `lib` output yet, so its own facets are `package-set` and `dev-flake`.
+This repo is at milestone M2, in progress: the sandbox checks, gate 4 and the baseline have landed; the first adopter has not. The kit gates itself `hard` on gates 1 to 4 (source, lint, eval, build-test) on x86_64 Linux and under Determinate Nix; output coverage, the facet layers and the laws are switched off with a reason until they are built. Its own facets are `flake-lib`, `package-set` and `dev-flake`.
 
 | Milestone | Contents |
 | --- | --- |
 | **M0** spec (done) | `NIX_TOPS.md`, schemas, six facet profiles (four launch, two specified and unproven), the laws as files, the AGENTS template |
-| **M1** runner (current) | The kit flake and `nixtops`: `version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `report.json`; the kit gates itself |
-| M2 | Sandbox checks (`lib.mkChecks`): nixfmt, statix, deadnix, gitleaks; baseline and ratchet; first adopter |
+| **M1** runner (done) | The kit flake and `nixtops`: `version`, `doctor`, `check`, `init`, `gate` for gates 1 and 3, `report.json`; the kit gates itself |
+| **M2** (current) | Sandbox checks (`lib.mkChecks`): nixfmt, statix, deadnix, gitleaks; gate 4; baseline and ratchet; first adopter |
 | M3 | Laws v0.1: 29 of 49 judged; `nixtops-lint`; law fixtures |
 | M4 | Output coverage; closure and eval-cost budgets; VM tests; calibrated floors |
 | M5 | Adopters and the family toolchain |
