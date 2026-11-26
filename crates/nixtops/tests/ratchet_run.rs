@@ -34,6 +34,45 @@ fn git(dir: &Path, args: &[&str]) {
     assert!(ok, "git {args:?}");
 }
 
+/// The judge and the evaluator. The judge prints `build.json` for the findings build.
+fn write_stand_ins(dir: &Path) {
+    let names: Vec<String> = TOOLS
+        .iter()
+        .map(|t| format!("nixtops-{t}-findings"))
+        .collect();
+    let names = serde_json::to_string(&names).unwrap();
+    let arms = [
+        ("flake check", "ok"),
+        ("hash file", "sha256-LOCK"),
+        ("config show system", "x86_64-linux"),
+        (
+            "flake'*'metadata'*'--no-update-lock-file",
+            r#"{"url":"fake:locked"}"#,
+        ),
+        (r##"#. --apply"##, r#"["packages"]"#),
+        (r##"#."packages" --apply"##, r#"["x86_64-linux"]"#),
+        (r##"#."checks" --apply"##, r#"["x86_64-linux"]"#),
+        (r##"#."checks"."x86_64-linux" --apply"##, names.as_str()),
+    ];
+    let mut script = String::from("#!/bin/sh\ncase \"$*\" in\n");
+    for (pattern, out) in arms {
+        script.push_str(&format!(
+            "*'{pattern}'*)\ncat <<'__OUT__'\n{out}\n__OUT__\nexit 0;;\n"
+        ));
+    }
+    let build = dir.join("build.json");
+    script.push_str(&format!(
+        "*'build'*'--no-link'*) cat '{}'; exit 0;;\n",
+        build.display()
+    ));
+    script.push_str("*) echo \"no arm for: $*\" >&2; exit 99;;\nesac\n");
+    common::write_executable(&dir.join("judge"), &script);
+    common::write_executable(
+        &dir.join("nej"),
+        "#!/bin/sh\necho '{\"attr\":\"default\",\"attrPath\":[\"default\"],\"drvPath\":\"/nix/store/d.drv\",\"name\":\"p-1\"}'\n",
+    );
+}
+
 struct Rig {
     dir: tempfile::TempDir,
     stand_ins: tempfile::TempDir,
@@ -54,6 +93,7 @@ impl Rig {
         let stand_ins = tempfile::tempdir().unwrap();
         let nix = stand_ins.path().join("nix");
         common::write_executable(&nix, "#!/bin/sh\necho 'nix (Nix) 2.35.2'\n");
+        write_stand_ins(stand_ins.path());
         let rig = Self {
             dir,
             stand_ins,
@@ -96,16 +136,15 @@ impl Rig {
         self.tools_finding(&[("deadnix", "flake.nix", deadnix)])
     }
 
-    /// A judge with these findings: tool, file and count.
+    /// A judge with these findings: tool, file and count. Only the data it prints changes; the
+    /// executables are the ones written with the rig.
     fn tools_finding(&self, found: &[(&str, &str, usize)]) -> Tools {
         let mut outputs = Vec::new();
         for tool in TOOLS {
             let mut files = serde_json::Map::new();
             for (_, file, count) in found.iter().filter(|(t, _, n)| *t == tool && *n > 0) {
-                files.insert(
-                    (*file).to_string(),
-                    (0..*count).collect::<Vec<usize>>().into(),
-                );
+                let items: Vec<usize> = (0..*count).collect();
+                files.insert((*file).to_string(), items.into());
             }
             let payload = serde_json::json!({
                 "tool": tool, "version": "1", "config_hash": self.hash(tool), "files": files,
@@ -115,42 +154,10 @@ impl Rig {
             outputs.push(serde_json::json!({"outputs": {"out": path}}));
         }
         let build = serde_json::Value::Array(outputs).to_string();
-        let names: Vec<String> = TOOLS
-            .iter()
-            .map(|t| format!("nixtops-{t}-findings"))
-            .collect();
-        let names = serde_json::to_string(&names).unwrap();
-        let arms = [
-            ("flake check", "ok"),
-            ("hash file", "sha256-LOCK"),
-            ("config show system", "x86_64-linux"),
-            (
-                "flake'*'metadata'*'--no-update-lock-file",
-                r#"{"url":"fake:locked"}"#,
-            ),
-            (r##"#. --apply"##, r#"["packages"]"#),
-            (r##"#."packages" --apply"##, r#"["x86_64-linux"]"#),
-            (r##"#."checks" --apply"##, r#"["x86_64-linux"]"#),
-            (r##"#."checks"."x86_64-linux" --apply"##, names.as_str()),
-            ("build'*'--no-link", build.as_str()),
-        ];
-        let mut script = String::from("#!/bin/sh\ncase \"$*\" in\n");
-        for (pattern, out) in arms {
-            script.push_str(&format!(
-                "*'{pattern}'*)\ncat <<'__OUT__'\n{out}\n__OUT__\nexit 0;;\n"
-            ));
-        }
-        script.push_str("*) echo \"no arm for: $*\" >&2; exit 99;;\nesac\n");
-        let judge = self.stand_ins.path().join("judge");
-        common::write_executable(&judge, &script);
-        let nej = self.stand_ins.path().join("nej");
-        common::write_executable(
-            &nej,
-            "#!/bin/sh\necho '{\"attr\":\"default\",\"attrPath\":[\"default\"],\"drvPath\":\"/nix/store/d.drv\",\"name\":\"p-1\"}'\n",
-        );
+        fs::write(self.stand_ins.path().join("build.json"), build).unwrap();
         Tools {
-            judge,
-            eval_jobs: nej,
+            judge: self.stand_ins.path().join("judge"),
+            eval_jobs: self.stand_ins.path().join("nej"),
             nixpkgs: "github:NixOS/nixpkgs/pin".into(),
         }
     }
