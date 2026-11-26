@@ -169,7 +169,12 @@ fn builds_host_outputs_configurations_and_defers_other_systems() {
             ("darwinConfigurations", r#""aarch64-darwin""#, "", 0),
             ("homeConfigurations", r#""aarch64-darwin""#, "", 0),
             ("flake check", "ok", "", 0),
-            ("build --no-link", "", "", 0),
+            (
+                "build --no-link --no-update-lock-file fake:locked#",
+                "",
+                "",
+                0,
+            ),
         ],
         &[],
     );

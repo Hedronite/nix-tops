@@ -186,6 +186,54 @@ fn resolve_locked_url(
     }
 }
 
+fn classify_per_system(
+    host_system: &str,
+    locked_url: Option<&str>,
+    idx: usize,
+    entry: &mut OutputEntry,
+    targets: &mut Targets,
+) {
+    if let Some(sys) = is_deferrable_per_system(&entry.attr)
+        && sys != host_system
+    {
+        entry.deferred = Some(true);
+        return;
+    }
+    if entry.attr.starts_with("checks.") {
+        targets.check_indices.push(idx);
+    } else if is_buildable_per_system(&entry.attr) == Some(host_system)
+        && let Some(url) = locked_url
+    {
+        let parts: Vec<&str> = entry.attr.split('.').collect();
+        targets.build_installables.push(installable(url, &parts));
+        targets.build_indices.push(idx);
+    }
+}
+
+fn classify_config(
+    session: &Session,
+    host_system: &str,
+    locked_url: Option<&str>,
+    idx: usize,
+    entry: &mut OutputEntry,
+    targets: &mut Targets,
+) -> Result<(), String> {
+    if let Some((top, name, leaf)) = config_build_root(&entry.attr)
+        && let Some(url) = locked_url
+    {
+        let sys = eval_config_system(session, url, top, name, leaf)?;
+        if sys == host_system {
+            let mut path = vec![top, name];
+            path.extend_from_slice(leaf);
+            targets.build_installables.push(installable(url, &path));
+            targets.build_indices.push(idx);
+        } else {
+            entry.deferred = Some(true);
+        }
+    }
+    Ok(())
+}
+
 fn partition_targets(
     session: &Session,
     host_system: &str,
@@ -198,32 +246,10 @@ fn partition_targets(
         build_installables: Vec::new(),
     };
     for (idx, entry) in outputs.iter_mut().enumerate() {
-        if let Some(sys) = is_deferrable_per_system(&entry.attr) {
-            if sys != host_system {
-                entry.deferred = Some(true);
-            } else if entry.attr.starts_with("checks.") {
-                targets.check_indices.push(idx);
-            } else if is_buildable_per_system(&entry.attr) == Some(host_system)
-                && let Some(url) = locked_url
-            {
-                let parts: Vec<&str> = entry.attr.split('.').collect();
-                targets.build_installables.push(installable(url, &parts));
-                targets.build_indices.push(idx);
-            }
-            continue;
-        }
-        if let Some((top, name, leaf)) = config_build_root(&entry.attr)
-            && let Some(url) = locked_url
-        {
-            let sys = eval_config_system(session, url, top, name, leaf)?;
-            if sys == host_system {
-                let mut path = vec![top, name];
-                path.extend_from_slice(leaf);
-                targets.build_installables.push(installable(url, &path));
-                targets.build_indices.push(idx);
-            } else {
-                entry.deferred = Some(true);
-            }
+        if is_deferrable_per_system(&entry.attr).is_some() {
+            classify_per_system(host_system, locked_url, idx, entry, &mut targets);
+        } else {
+            classify_config(session, host_system, locked_url, idx, entry, &mut targets)?;
         }
     }
     Ok(targets)
@@ -259,6 +285,34 @@ fn execute_host_builds(
     Ok(())
 }
 
+fn run_build_phase(
+    session: &Session,
+    input: &Input<'_>,
+    outputs: &mut Vec<OutputEntry>,
+) -> Result<Layer, String> {
+    ensure_outputs(session, input, outputs)?;
+    let locked_url = resolve_locked_url(session, input.flake_ref, input.host_system, outputs)?;
+    let targets = partition_targets(session, input.host_system, locked_url.as_deref(), outputs)?;
+    if input
+        .selected_system
+        .is_none_or(|sel| sel == input.host_system)
+    {
+        execute_host_builds(session, input.flake_ref, &targets, outputs)?;
+    }
+    let deferred_attrs: Vec<&str> = outputs
+        .iter()
+        .filter(|o| o.deferred == Some(true))
+        .map(|o| o.attr.as_str())
+        .collect();
+    let built_count = outputs.iter().filter(|o| o.level == "built").count();
+    Ok(judge_build_layer(
+        &deferred_attrs,
+        built_count,
+        input.ci,
+        input.enforce,
+    ))
+}
+
 /// Runs gate 4 (build-test) and updates `outputs` with `built` / `deferred` status.
 pub fn run(session: &Session, input: &Input<'_>, outputs: &mut Vec<OutputEntry>) -> Outcome {
     let sandbox = match read_sandbox(session, input.nix_bin) {
@@ -268,37 +322,12 @@ pub fn run(session: &Session, input: &Input<'_>, outputs: &mut Vec<OutputEntry>)
     if let Err(reason) = check_linux_sandbox(input.host_system, &sandbox) {
         return refuse(reason, Some(sandbox));
     }
-    if let Err(reason) = ensure_outputs(session, input, outputs) {
-        return refuse(reason, Some(sandbox));
-    }
-    let locked_url = match resolve_locked_url(session, input.flake_ref, input.host_system, outputs)
-    {
-        Ok(url) => url,
-        Err(reason) => return refuse(reason, Some(sandbox)),
-    };
-    let targets =
-        match partition_targets(session, input.host_system, locked_url.as_deref(), outputs) {
-            Ok(t) => t,
-            Err(reason) => return refuse(reason, Some(sandbox)),
-        };
-    let run_host = input
-        .selected_system
-        .is_none_or(|sel| sel == input.host_system);
-    if run_host
-        && let Err(reason) = execute_host_builds(session, input.flake_ref, &targets, outputs)
-    {
-        return refuse(reason, Some(sandbox));
-    }
-
-    let deferred_attrs: Vec<&str> = outputs
-        .iter()
-        .filter(|o| o.deferred == Some(true))
-        .map(|o| o.attr.as_str())
-        .collect();
-    let built_count = outputs.iter().filter(|o| o.level == "built").count();
-    Outcome {
-        layer: judge_build_layer(&deferred_attrs, built_count, input.ci, input.enforce),
-        sandbox: Some(sandbox),
+    match run_build_phase(session, input, outputs) {
+        Ok(layer) => Outcome {
+            layer,
+            sandbox: Some(sandbox),
+        },
+        Err(reason) => refuse(reason, Some(sandbox)),
     }
 }
 
@@ -367,6 +396,41 @@ mod tests {
     }
 
     #[test]
+    fn resolve_locked_url_queries_only_when_needed() {
+        let dir = tempfile::tempdir().unwrap();
+        let nix = script(dir.path(), "nix", "#!/bin/sh\nexit 1\n");
+        let judge = script(
+            dir.path(),
+            "judge",
+            "#!/bin/sh\necho '{\"url\":\"fake:locked\"}'\n",
+        );
+        let session = Session::new(Tools {
+            judge,
+            eval_jobs: nix,
+            nixpkgs: "np".into(),
+        })
+        .unwrap();
+        let only_checks = [OutputEntry {
+            attr: "checks.aarch64-darwin.unit".into(),
+            level: "evaluated",
+            deferred: None,
+        }];
+        assert_eq!(
+            resolve_locked_url(&session, ".", "aarch64-darwin", &only_checks).unwrap(),
+            None
+        );
+        let with_pkg = [OutputEntry {
+            attr: "packages.aarch64-darwin.default".into(),
+            level: "evaluated",
+            deferred: None,
+        }];
+        assert_eq!(
+            resolve_locked_url(&session, ".", "aarch64-darwin", &with_pkg).unwrap(),
+            Some("fake:locked".into())
+        );
+    }
+
+    #[test]
     fn read_sandbox_fallback_requires_ok_exit_and_non_empty_stdout() {
         let dir = tempfile::tempdir().unwrap();
         let fail_nix = script(dir.path(), "nix", "#!/bin/sh\nexit 1\n");
@@ -431,7 +495,6 @@ mod tests {
     fn selected_non_host_system_skips_host_builds() {
         let dir = tempfile::tempdir().unwrap();
         let nix = script(dir.path(), "nix", "#!/bin/sh\necho false\n");
-        // judge fails on flake check/build if ever called!
         let judge = script(
             dir.path(),
             "judge",
