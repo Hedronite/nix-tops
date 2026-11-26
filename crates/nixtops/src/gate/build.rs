@@ -10,14 +10,6 @@ use crate::{
     report::{Layer, LayerId, OutputEntry, Verdict},
 };
 
-fn installable(url: &str, path: &[&str]) -> String {
-    let quoted: Vec<String> = path
-        .iter()
-        .map(|name| format!("\"{}\"", name.replace('\\', "\\\\").replace('"', "\\\"")))
-        .collect();
-    format!("{url}#.{}", quoted.join("."))
-}
-
 /// Inputs needed to run gate 4.
 pub struct Input<'a> {
     pub flake_ref: &'a str,
@@ -34,7 +26,21 @@ pub struct Outcome {
     pub sandbox: Option<String>,
 }
 
+struct Targets {
+    check_indices: Vec<usize>,
+    build_indices: Vec<usize>,
+    build_installables: Vec<String>,
+}
+
 const SANDBOX_VALUES: [&str; 3] = ["true", "false", "relaxed"];
+
+fn installable(url: &str, path: &[&str]) -> String {
+    let quoted: Vec<String> = path
+        .iter()
+        .map(|name| format!("\"{}\"", name.replace('\\', "\\\\").replace('"', "\\\"")))
+        .collect();
+    format!("{url}#.{}", quoted.join("."))
+}
 
 pub fn normalize_sandbox(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
@@ -81,7 +87,7 @@ fn first_error(stderr: &str) -> String {
         .to_string()
 }
 
-pub fn config_build_root(attr: &str) -> Option<(&str, &str, &'static [&'static str])> {
+pub fn config_build_root(attr: &str) -> Option<(&str, &str, &[&'static str])> {
     let (top, name) = attr.split_once('.')?;
     match top {
         "homeConfigurations" => Some((top, name, &["activationPackage"])),
@@ -141,6 +147,118 @@ fn refuse(reason: String, sandbox: Option<String>) -> Outcome {
     }
 }
 
+fn ensure_outputs(
+    session: &Session,
+    input: &Input<'_>,
+    outputs: &mut Vec<OutputEntry>,
+) -> Result<(), String> {
+    if !outputs.is_empty() {
+        return Ok(());
+    }
+    let inv = inventory::collect(session, input.flake_ref)?;
+    let collected = only_system(inv, input.selected_system);
+    if let Some(broken) = collected.records.iter().find(|r| r.is_error()) {
+        return Err(format!(
+            "{} failed: {}",
+            broken.attr,
+            broken.error.as_deref().unwrap_or("evaluation error")
+        ));
+    }
+    populate_outputs_from_inventory(&collected, outputs);
+    Ok(())
+}
+
+fn resolve_locked_url(
+    session: &Session,
+    flake_ref: &str,
+    host_system: &str,
+    outputs: &[OutputEntry],
+) -> Result<Option<String>, String> {
+    let needed = outputs.iter().any(|o| {
+        config_build_root(&o.attr).is_some()
+            || (matches!(o.attr.split('.').next(), Some("packages" | "devShells"))
+                && attr_system(&o.attr) == Some(host_system))
+    });
+    if needed {
+        inventory::locked_url(session, flake_ref).map(Some)
+    } else {
+        Ok(None)
+    }
+}
+
+fn partition_targets(
+    session: &Session,
+    host_system: &str,
+    locked_url: Option<&str>,
+    outputs: &mut [OutputEntry],
+) -> Result<Targets, String> {
+    let mut targets = Targets {
+        check_indices: Vec::new(),
+        build_indices: Vec::new(),
+        build_installables: Vec::new(),
+    };
+    for (idx, entry) in outputs.iter_mut().enumerate() {
+        if let Some(sys) = is_deferrable_per_system(&entry.attr) {
+            if sys != host_system {
+                entry.deferred = Some(true);
+            } else if entry.attr.starts_with("checks.") {
+                targets.check_indices.push(idx);
+            } else if is_buildable_per_system(&entry.attr) == Some(host_system)
+                && let Some(url) = locked_url
+            {
+                let parts: Vec<&str> = entry.attr.split('.').collect();
+                targets.build_installables.push(installable(url, &parts));
+                targets.build_indices.push(idx);
+            }
+            continue;
+        }
+        if let Some((top, name, leaf)) = config_build_root(&entry.attr)
+            && let Some(url) = locked_url
+        {
+            let sys = eval_config_system(session, url, top, name, leaf)?;
+            if sys == host_system {
+                let mut path = vec![top, name];
+                path.extend_from_slice(leaf);
+                targets.build_installables.push(installable(url, &path));
+                targets.build_indices.push(idx);
+            } else {
+                entry.deferred = Some(true);
+            }
+        }
+    }
+    Ok(targets)
+}
+
+fn execute_host_builds(
+    session: &Session,
+    flake_ref: &str,
+    targets: &Targets,
+    outputs: &mut [OutputEntry],
+) -> Result<(), String> {
+    let check_run = session.judge(&["flake", "check"], &["--no-update-lock-file", flake_ref]);
+    if !check_run.ok {
+        return Err(format!(
+            "flake check build failed: {}",
+            first_error(&check_run.stderr)
+        ));
+    }
+    for &idx in &targets.check_indices {
+        outputs[idx].level = "built";
+    }
+    if !targets.build_installables.is_empty() {
+        let mut args = vec!["--no-link", "--no-update-lock-file"];
+        args.extend(targets.build_installables.iter().map(String::as_str));
+        let build_run = session.judge(&["build"], &args);
+        if !build_run.ok {
+            return Err(format!("build failed: {}", first_error(&build_run.stderr)));
+        }
+        for &idx in &targets.build_indices {
+            outputs[idx].level = "built";
+        }
+    }
+    Ok(())
+}
+
 /// Runs gate 4 (build-test) and updates `outputs` with `built` / `deferred` status.
 pub fn run(session: &Session, input: &Input<'_>, outputs: &mut Vec<OutputEntry>) -> Outcome {
     let sandbox = match read_sandbox(session, input.nix_bin) {
@@ -150,114 +268,26 @@ pub fn run(session: &Session, input: &Input<'_>, outputs: &mut Vec<OutputEntry>)
     if let Err(reason) = check_linux_sandbox(input.host_system, &sandbox) {
         return refuse(reason, Some(sandbox));
     }
-
-    if outputs.is_empty() {
-        let collected = match inventory::collect(session, input.flake_ref) {
-            Ok(inv) => only_system(inv, input.selected_system),
+    if let Err(reason) = ensure_outputs(session, input, outputs) {
+        return refuse(reason, Some(sandbox));
+    }
+    let locked_url = match resolve_locked_url(session, input.flake_ref, input.host_system, outputs)
+    {
+        Ok(url) => url,
+        Err(reason) => return refuse(reason, Some(sandbox)),
+    };
+    let targets =
+        match partition_targets(session, input.host_system, locked_url.as_deref(), outputs) {
+            Ok(t) => t,
             Err(reason) => return refuse(reason, Some(sandbox)),
         };
-        if let Some(broken) = collected.records.iter().find(|r| r.is_error()) {
-            return refuse(
-                format!(
-                    "{} failed: {}",
-                    broken.attr,
-                    broken.error.as_deref().unwrap_or("evaluation error")
-                ),
-                Some(sandbox),
-            );
-        }
-        populate_outputs_from_inventory(&collected, outputs);
-    }
-
-    let has_configs = outputs.iter().any(|o| config_build_root(&o.attr).is_some());
-    let has_host_packages_or_shells = outputs.iter().any(|o| {
-        matches!(o.attr.split('.').next(), Some("packages" | "devShells"))
-            && attr_system(&o.attr) == Some(input.host_system)
-    });
-    let locked_url = if has_configs || has_host_packages_or_shells {
-        match inventory::locked_url(session, input.flake_ref) {
-            Ok(url) => Some(url),
-            Err(reason) => return refuse(reason, Some(sandbox)),
-        }
-    } else {
-        None
-    };
-
-    let mut check_indices = Vec::new();
-    let mut build_indices = Vec::new();
-    let mut build_installables = Vec::new();
-
-    for (idx, entry) in outputs.iter_mut().enumerate() {
-        if let Some(sys) = is_deferrable_per_system(&entry.attr) {
-            if sys != input.host_system {
-                entry.deferred = Some(true);
-                continue;
-            }
-            if entry.attr.starts_with("checks.") {
-                check_indices.push(idx);
-            } else if is_buildable_per_system(&entry.attr) == Some(input.host_system)
-                && let Some(ref url) = locked_url
-            {
-                let parts: Vec<&str> = entry.attr.split('.').collect();
-                build_installables.push(installable(url, &parts));
-                build_indices.push(idx);
-            }
-            continue;
-        }
-        if let Some((top, name, leaf)) = config_build_root(&entry.attr)
-            && let Some(ref url) = locked_url
-        {
-            match eval_config_system(session, url, top, name, leaf) {
-                Ok(sys) if sys == input.host_system => {
-                    let mut path = vec![top, name];
-                    path.extend_from_slice(leaf);
-                    build_installables.push(installable(url, &path));
-                    build_indices.push(idx);
-                }
-                Ok(_) => {
-                    entry.deferred = Some(true);
-                }
-                Err(reason) => return refuse(reason, Some(sandbox)),
-            }
-        }
-    }
-
-    let run_host_builds = input
+    let run_host = input
         .selected_system
         .is_none_or(|sel| sel == input.host_system);
-
-    if run_host_builds {
-        let check_run = session.judge(
-            &["flake", "check"],
-            &["--no-update-lock-file", input.flake_ref],
-        );
-        if !check_run.ok {
-            return refuse(
-                format!(
-                    "flake check build failed: {}",
-                    first_error(&check_run.stderr)
-                ),
-                Some(sandbox),
-            );
-        }
-        for idx in check_indices {
-            outputs[idx].level = "built";
-        }
-        if !build_installables.is_empty() {
-            let mut args = vec!["--no-link", "--no-update-lock-file"];
-            let refs: Vec<&str> = build_installables.iter().map(String::as_str).collect();
-            args.extend(refs);
-            let build_run = session.judge(&["build"], &args);
-            if !build_run.ok {
-                return refuse(
-                    format!("build failed: {}", first_error(&build_run.stderr)),
-                    Some(sandbox),
-                );
-            }
-            for idx in build_indices {
-                outputs[idx].level = "built";
-            }
-        }
+    if run_host
+        && let Err(reason) = execute_host_builds(session, input.flake_ref, &targets, outputs)
+    {
+        return refuse(reason, Some(sandbox));
     }
 
     let deferred_attrs: Vec<&str> = outputs
@@ -266,10 +296,8 @@ pub fn run(session: &Session, input: &Input<'_>, outputs: &mut Vec<OutputEntry>)
         .map(|o| o.attr.as_str())
         .collect();
     let built_count = outputs.iter().filter(|o| o.level == "built").count();
-
-    let layer = judge_build_layer(&deferred_attrs, built_count, input.ci, input.enforce);
     Outcome {
-        layer,
+        layer: judge_build_layer(&deferred_attrs, built_count, input.ci, input.enforce),
         sandbox: Some(sandbox),
     }
 }
@@ -317,18 +345,129 @@ pub fn judge_build_layer(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::inventory::{Kind, Record, Structure, Tools};
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn script(dir: &std::path::Path, name: &str, body: &str) -> std::path::PathBuf {
+        let path = dir.join(name);
+        fs::write(&path, body).unwrap();
+        let mut perms = fs::metadata(&path).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&path, perms).unwrap();
+        path
+    }
+
+    #[test]
+    fn installable_escapes_segments_cleanly() {
+        assert_eq!(
+            installable("path:/r", &["packages", "x86_64-linux", "a\"b"]),
+            r#"path:/r#."packages"."x86_64-linux"."a\"b""#
+        );
+    }
+
+    #[test]
+    fn read_sandbox_fallback_requires_ok_exit_and_non_empty_stdout() {
+        let dir = tempfile::tempdir().unwrap();
+        let fail_nix = script(dir.path(), "nix", "#!/bin/sh\nexit 1\n");
+
+        let bad_judge = script(dir.path(), "bad_judge", "#!/bin/sh\necho true\nexit 1\n");
+        let empty_ok_judge = script(
+            dir.path(),
+            "empty_judge",
+            "#!/bin/sh\necho \"  \"\nexit 0\n",
+        );
+        let ok_judge = script(dir.path(), "ok_judge", "#!/bin/sh\necho true\nexit 0\n");
+
+        let mk = |judge| {
+            Session::new(Tools {
+                judge,
+                eval_jobs: fail_nix.clone(),
+                nixpkgs: "np".into(),
+            })
+            .unwrap()
+        };
+        assert!(read_sandbox(&mk(bad_judge), &fail_nix.display().to_string()).is_err());
+        assert!(read_sandbox(&mk(empty_ok_judge), &fail_nix.display().to_string()).is_err());
+        assert_eq!(
+            read_sandbox(&mk(ok_judge), &fail_nix.display().to_string()).unwrap(),
+            "true"
+        );
+    }
+
+    #[test]
+    fn populate_outputs_skips_errors_and_listed_records() {
+        let inv = Inventory {
+            flake: "f".into(),
+            structure: Structure::default(),
+            records: vec![
+                Record::new(
+                    "packages.x86_64-linux.a",
+                    Kind::Package,
+                    Some("x86_64-linux"),
+                    Level::Evaluated,
+                ),
+                Record::new(
+                    "legacyPackages.x86_64-linux",
+                    Kind::LegacyPackages,
+                    Some("x86_64-linux"),
+                    Level::Listed,
+                ),
+                Record::failed(
+                    "packages.x86_64-linux.bad",
+                    Kind::Package,
+                    Some("x86_64-linux"),
+                    "boom".into(),
+                ),
+            ],
+        };
+        let mut out = Vec::new();
+        populate_outputs_from_inventory(&inv, &mut out);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].attr, "packages.x86_64-linux.a");
+    }
+
+    #[test]
+    fn selected_non_host_system_skips_host_builds() {
+        let dir = tempfile::tempdir().unwrap();
+        let nix = script(dir.path(), "nix", "#!/bin/sh\necho false\n");
+        // judge fails on flake check/build if ever called!
+        let judge = script(
+            dir.path(),
+            "judge",
+            "#!/bin/sh\ncase \"$*\" in *config*show*sandbox*) echo false; exit 0;; *) echo boom >&2; exit 99;; esac\n",
+        );
+        let session = Session::new(Tools {
+            judge,
+            eval_jobs: nix.clone(),
+            nixpkgs: "np".into(),
+        })
+        .unwrap();
+        let mut outputs = vec![OutputEntry {
+            attr: "packages.x86_64-linux.default".into(),
+            level: "evaluated",
+            deferred: None,
+        }];
+        let out = run(
+            &session,
+            &Input {
+                flake_ref: ".",
+                nix_bin: &nix.display().to_string(),
+                host_system: "aarch64-darwin",
+                selected_system: Some("x86_64-linux"),
+                enforce: "hard",
+                ci: false,
+            },
+            &mut outputs,
+        );
+        assert_eq!(out.layer.verdict, Verdict::Deferred);
+        assert_eq!(outputs[0].deferred, Some(true));
+    }
 
     #[test]
     fn sandbox_normalization_and_linux_requirement_behave_as_specified() {
         assert_eq!(normalize_sandbox("true").unwrap(), "true");
-        assert_eq!(
-            normalize_sandbox(
-                " false
-"
-            )
-            .unwrap(),
-            "false"
-        );
+        assert_eq!(normalize_sandbox(" false\n").unwrap(), "false");
         assert_eq!(normalize_sandbox("relaxed").unwrap(), "relaxed");
         assert!(normalize_sandbox("bogus").is_err());
 
@@ -411,14 +550,8 @@ mod tests {
             is_deferrable_per_system("formatter.aarch64-darwin"),
             Some("aarch64-darwin")
         );
-        assert_eq!(
-            first_error(
-                "line
-error: boom
-"
-            ),
-            "error: boom"
-        );
-        assert_eq!(first_error(""), "nix build failed");
+        assert_eq!(first_error("\n   \nplain error\nline2"), "plain error");
+        assert_eq!(first_error("line\nerror: boom\n"), "error: boom");
+        assert_eq!(first_error("\n  \n"), "nix build failed");
     }
 }
