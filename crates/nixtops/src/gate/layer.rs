@@ -2,9 +2,12 @@
 
 use crate::report::{Layer, LayerId, Verdict};
 
-/// Layers this version builds: gate 1, gate 2, and gate 3. Everything else is not built yet.
+/// Layers this version builds: gates 1 through 4. Everything else is not built yet.
 pub fn is_built(id: LayerId) -> bool {
-    matches!(id, LayerId::Source | LayerId::Lint | LayerId::Eval)
+    matches!(
+        id,
+        LayerId::Source | LayerId::Lint | LayerId::Eval | LayerId::BuildTest
+    )
 }
 
 /// Gates 1 and 3 cannot be switched off; the others can, with a reason.
@@ -37,11 +40,20 @@ mod tests {
     use crate::report::ALL_LAYERS;
 
     #[test]
-    fn gates_one_two_and_three_are_built_and_one_and_three_cannot_switch_off() {
+    fn gates_one_through_four_are_built_and_one_and_three_cannot_switch_off() {
         let built: Vec<LayerId> = ALL_LAYERS.into_iter().filter(|id| is_built(*id)).collect();
-        assert_eq!(built, [LayerId::Source, LayerId::Lint, LayerId::Eval]);
+        assert_eq!(
+            built,
+            [
+                LayerId::Source,
+                LayerId::Lint,
+                LayerId::Eval,
+                LayerId::BuildTest
+            ]
+        );
         assert!(!can_switch_off(LayerId::Source) && !can_switch_off(LayerId::Eval));
         assert!(can_switch_off(LayerId::Lint));
+        assert!(can_switch_off(LayerId::BuildTest));
         assert!(can_switch_off(LayerId::Laws));
     }
 
@@ -66,6 +78,7 @@ mod tests {
     fn a_built_layer_runs_and_cannot_be_switched_off() {
         assert_eq!(fixed_state(LayerId::Source, None), None);
         assert_eq!(fixed_state(LayerId::Lint, None), None);
+        assert_eq!(fixed_state(LayerId::BuildTest, None), None);
         assert_eq!(fixed_state(LayerId::Eval, Some("because")), None);
     }
 }

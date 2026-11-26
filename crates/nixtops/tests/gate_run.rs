@@ -292,17 +292,19 @@ fn layers_that_are_on_and_not_built_are_not_run_and_fail_the_gate() {
         "",
         0,
     ));
+    arms.push(("config show sandbox", "true", "", 0));
     arms.push(("build'*'--no-link", &build_json, "", 0));
     let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
     let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
     assert_eq!(exit, Exit::GateFailed);
     assert_eq!(verdict(&report, "lint"), "pass");
     assert_eq!(verdict(&report, "eval"), "pass");
-    for id in ["build-test", "coverage", "facet-layers", "laws"] {
+    assert_eq!(verdict(&report, "build-test"), "pass");
+    for id in ["coverage", "facet-layers", "laws"] {
         assert_eq!(verdict(&report, id), "not-run", "{id}");
         assert_eq!(reason(&report, id), "not built in this version");
     }
-    assert_eq!(report["counts"]["failed"], 4);
+    assert_eq!(report["counts"]["failed"], 3);
     assert_eq!(report["passed"], false);
 }
 
@@ -312,7 +314,10 @@ fn a_layer_switched_off_in_the_config_is_skip_with_the_configured_reason() {
     rig.set_config(&format!(
         "{CONFIG_ALL_ON}\n[layers]\nlint = {{ enabled = false, reason = \"from the file\" }}\n"
     ));
-    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let mut arms = judge_arms();
+    arms.push(("config show sandbox", "true", "", 0));
+    arms.push(("build'*'--no-link", "", "", 0));
+    let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
     let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
     assert_eq!(
         (
@@ -321,7 +326,8 @@ fn a_layer_switched_off_in_the_config_is_skip_with_the_configured_reason() {
         ),
         ("skip", "from the file")
     );
-    for id in ["build-test", "coverage", "facet-layers", "laws"] {
+    assert_eq!(verdict(&report, "build-test"), "pass");
+    for id in ["coverage", "facet-layers", "laws"] {
         assert_eq!(verdict(&report, id), "not-run", "{id}");
     }
     assert_eq!(exit, Exit::GateFailed);
