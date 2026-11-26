@@ -14,6 +14,7 @@
       "items": { "enum": ["dev-flake", "package-set", "nixos-module", "flake-lib", "nixos-host", "home-config"] }
     },
     "passed": { "type": "boolean" },
+    "sandbox": { "enum": ["true", "false", "relaxed"] },
     "counts": {
       "description": "Every verdict counted on its own, and failed: failures include a required law that is not_evaluated, a deferred output no leg built, and a missing merge base in CI.",
       "type": "object",

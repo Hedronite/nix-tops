@@ -114,7 +114,7 @@ Gates run in this order. A failing gate stops the run unless `--keep-going` is s
 | 1 | **Source** | runner: every `.nix` file under the flake root is tracked by git; `flake.lock` is committed; evaluation runs with `--no-update-lock-file`; the tree is clean in CI | Every `.nix` tracked; lock current |
 | 2 | **Lint** | sandbox: `checks.<system>.nixtops-<tool>{,-findings}` runs `treefmt --ci` (nixfmt), `statix check`, `deadnix`, `gitleaks` (`nixtops-lint` waits for M3); runner reads findings JSON into `report.json` | All clean, or within ratchet |
 | 3 | **Eval** | runner, three warning sources. (a) `nix flake check --no-build --all-systems --no-update-lock-file --option abort-on-warn true --option allow-import-from-derivation false`, then each configuration's build root (`config.system.build.toplevel.drvPath`, `activationPackage.drvPath`) under the same options; `abort-on-warn` makes every `builtins.warn` fatal. (b) `config.warnings` of every NixOS, Home Manager and nix-darwin configuration, read as data. (c) the `nix` command's own diagnostics, captured and classified by `laws/diagnostics.toml`. Then record eval-cost counters (§6.4) | No error; no warning from any source that `[[warnings.allow]]` does not match; no IFD |
-| 4 | **Build and test** | `nix flake check` (builds every `checks` derivation: nix-unit, module eval tests, VM tests) and `nix build` of every `packages`, `devShells` and configuration build root for the host system. Linux runs with `sandbox = true` | Everything builds; every test passes |
+| 4 | **Build and test** | runner: `nix flake check --no-update-lock-file` (builds every host `checks` derivation) and `nix build --no-link --no-update-lock-file` of every host `packages`, `devShells` and configuration build root (`config.system.build.toplevel`, `activationPackage`). Linux requires `sandbox = true`; `sandbox` (`true`/`false`/`relaxed`) is recorded in `report.json` | Everything on host builds (non-host outputs are `deferred`); every test passes |
 | 5 | **Output coverage** | runner: maps each exported output to the checks that exercise it (§6.1) | Facet floor or ratchet met |
 | 6 | **Facet layers** | closure-size budgets, eval-cost budgets; at tier 2, rebuild determinism, `vulnix`, cross-system builds | Per facet (§7) |
 | ★ | **Laws** | maps findings from gates 1–6 to law IDs, then runs the eval and diff readers (§8) | No `Refuse`; `not-evaluated` never counts as a pass |
@@ -195,7 +195,7 @@ escape: dropping `x86_64-darwin` (§2) removes the `rust-tops` case that motivat
 | `skip` | The facet's artifact is absent (the reason names it), or config switches the layer off with `enabled = false` and a reason (§9) | Printed with the reason |
 | `not-run` | The layer is enabled but has no command mapped | **Fails the gate** |
 | `not-evaluated` | The reader or tool could not judge, or its config is off | Reported; never a pass. **Fails the gate under `hard` and `ratchet` when the law is required** |
-| `deferred` | The output cannot be built on this host and a `build-matrix` leg owns it (§11) | Printed locally. **CI fails while any output is `deferred` that no leg built** |
+| `deferred` | The output cannot be built on this host and a `build-matrix` leg owns it (§11) | Printed locally (layer verdict `deferred` when no host outputs run). **CI fails under `hard` while any output is `deferred` that no leg built** |
 | `vacuous` | A diff law ran with nothing to compare: an empty diff, or no merge base | Printed; never counted as a pass for another law (see below) |
 <!-- tops-core:end -->
 
@@ -214,9 +214,10 @@ not enforced. The switch is a protocol decision: a pull request that changes it 
 `not-evaluated` is the verdict and `not_evaluated` is its key in the JSON report (§6.7): one name
 for one thing, with the hyphen written as an underscore. The same holds for `not-run` and `not_run`.
 
-**`deferred`** exists because a host cannot always build what the flake exports: a NixOS
-configuration has no buildable output on an `aarch64-darwin` machine. The local run reports it and
-goes on; it never counts as built.
+**`deferred`** exists because a host cannot always build what the flake exports: a Linux-only package or NixOS
+configuration has no buildable output on an `aarch64-darwin` machine. The runner marks non-host outputs
+`deferred = true` (and the `build-test` layer `deferred` when no host outputs run); local runs and non-`hard`
+modes report it and exit 0, while CI under `hard` refuses while any output stays `deferred`. It never counts as built.
 
 **`vacuous`** is for the diff laws. With a merge base present and an empty diff, a diff law is
 `vacuous` and passes: there was nothing to compare, and the report says so. With no merge base

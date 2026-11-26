@@ -1,0 +1,11 @@
+judge: CppNix 2.35.6 (pinned in the kit's lock) /nix/store/p959r3d926iaqiyjpd0s3mbzppcxfmck-nix-2.35.6/bin/nix
+nix: Determinate Nix 3.22.3 (reports Nix 2.35.2)
+daemon: daemon 2.35.2
+sandbox: false
+experimental-features: 
+kvm: no
+remote builders: @/etc/nix/machines
+substituters: https://cache.nixos.org/ https://install.determinate.systems/
+lazy-trees: true
+eval-cores: 0
+floor: met (CppNix 2.24 or later, or Determinate Nix 3.x)

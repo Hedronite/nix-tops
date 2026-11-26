@@ -1,7 +1,7 @@
 //! The gate run: config first, then the layers in order, then the report.
 
 use super::{
-    diag, eval, layer, ledger, lint,
+    build, diag, eval, layer, ledger, lint,
     source::{self, Input as SourceInput},
 };
 use crate::{
@@ -121,6 +121,7 @@ fn make_report(
     facets: Vec<String>,
     body: Collected,
 ) -> Report {
+    let sandbox = body.sandbox;
     Report::finish(Parts {
         protocol: build_info::PROTOCOL.to_string(),
         enforce,
@@ -132,6 +133,7 @@ fn make_report(
         acks: body.acks,
         lint: body.lint,
     })
+    .with_sandbox(sandbox)
 }
 
 /// A report for a run that stopped before any layer: every layer `not-run` with the reason.
@@ -147,6 +149,7 @@ pub fn stopped_report(settings: &Settings, doc: Option<&Value>, reason: &str) ->
         warnings: Vec::new(),
         acks: Vec::new(),
         lint: None,
+        sandbox: None,
     };
     make_report(
         settings_enforce(doc),
@@ -206,6 +209,7 @@ struct Collected {
     warnings: Vec<WarningEntry>,
     acks: Vec<AckEntry>,
     lint: Option<LintReport>,
+    sandbox: Option<String>,
 }
 
 fn skipped(settings: &Settings, id: LayerId) -> Option<Layer> {
@@ -262,6 +266,20 @@ fn dispatch_layer(
             got.acks = outcome.acks;
             outcome.layer
         }
+        LayerId::BuildTest => {
+            let enforce = settings_enforce(Some(doc));
+            let input = build::Input {
+                flake_ref: context.flake_ref,
+                nix_bin: &settings.nix,
+                host_system: context.system,
+                selected_system: settings.system.as_deref(),
+                enforce: &enforce,
+                ci: settings.ci,
+            };
+            let outcome = build::run(session, &input, &mut got.outputs);
+            got.sandbox = outcome.sandbox;
+            outcome.layer
+        }
         _ => Layer::new(
             id,
             Verdict::NotRun,
@@ -303,6 +321,7 @@ fn run_layers(
         warnings: Vec::new(),
         acks: Vec::new(),
         lint: None,
+        sandbox: None,
     };
     let mut stopped_by: Option<LayerId> = None;
     for id in ALL_LAYERS {

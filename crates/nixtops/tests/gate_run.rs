@@ -292,17 +292,19 @@ fn layers_that_are_on_and_not_built_are_not_run_and_fail_the_gate() {
         "",
         0,
     ));
+    arms.push(("config show sandbox", "true", "", 0));
     arms.push(("build'*'--no-link", &build_json, "", 0));
     let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
     let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
     assert_eq!(exit, Exit::GateFailed);
     assert_eq!(verdict(&report, "lint"), "pass");
     assert_eq!(verdict(&report, "eval"), "pass");
-    for id in ["build-test", "coverage", "facet-layers", "laws"] {
+    assert_eq!(verdict(&report, "build-test"), "pass");
+    for id in ["coverage", "facet-layers", "laws"] {
         assert_eq!(verdict(&report, id), "not-run", "{id}");
         assert_eq!(reason(&report, id), "not built in this version");
     }
-    assert_eq!(report["counts"]["failed"], 4);
+    assert_eq!(report["counts"]["failed"], 3);
     assert_eq!(report["passed"], false);
 }
 
@@ -312,7 +314,10 @@ fn a_layer_switched_off_in_the_config_is_skip_with_the_configured_reason() {
     rig.set_config(&format!(
         "{CONFIG_ALL_ON}\n[layers]\nlint = {{ enabled = false, reason = \"from the file\" }}\n"
     ));
-    let tools = rig.tools(&with_check(CHECK_OK, judge_arms()), &NEJ_PACKAGES);
+    let mut arms = judge_arms();
+    arms.push(("config show sandbox", "true", "", 0));
+    arms.push(("build'*'--no-link", "", "", 0));
+    let tools = rig.tools(&with_check(CHECK_OK, arms), &NEJ_PACKAGES);
     let (exit, report) = run_json(&rig, &rig.settings(), tools, &Seams::default());
     assert_eq!(
         (
@@ -321,7 +326,8 @@ fn a_layer_switched_off_in_the_config_is_skip_with_the_configured_reason() {
         ),
         ("skip", "from the file")
     );
-    for id in ["build-test", "coverage", "facet-layers", "laws"] {
+    assert_eq!(verdict(&report, "build-test"), "pass");
+    for id in ["coverage", "facet-layers", "laws"] {
         assert_eq!(verdict(&report, id), "not-run", "{id}");
     }
     assert_eq!(exit, Exit::GateFailed);
@@ -1025,30 +1031,50 @@ fn c19_the_same_throw_on_the_selected_system_still_fails() {
 }
 
 #[test]
-fn under_a_selected_system_a_check_error_is_scoped_by_the_attribute_it_names() {
+fn under_a_selected_system_a_check_error_is_scoped_by_structured_attribute_data() {
     let rig = two_system_rig();
-    let tools_for = |text: &'static str| {
-        let check = ("flake check", "", text, 1);
-        rig.tools(
-            &with_check(check, two_system_arms()),
-            &nej_two(OK_LINE, OK_LINE),
-        )
-    };
-    // The progress lines before the error name every attribute: they do not count.
-    let progress = "checking derivation packages.x86_64-linux.default\nerror: bad\n  … while checking the derivation 'packages.aarch64-linux.default'";
-    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(progress), &switched());
+    // CppNix q9: error message quotes 'x86_64-linux' on a failing aarch64-linux derivation.
+    // Structured inventory shows the error is exclusively on aarch64-linux, so x86_64-linux passes.
+    let q9_check = (
+        "flake check",
+        "",
+        "error: incompatible with 'x86_64-linux' in dependency",
+        1,
+    );
+    let q9_tools = rig.tools(
+        &with_check(q9_check, two_system_arms()),
+        &nej_two(THROW_LINE, OK_LINE),
+    );
+    let (_, report) = run_json(&rig, &x86_only(&rig), q9_tools, &switched());
     assert_eq!(
         verdict(&report, "eval"),
         "pass",
         "{}",
         reason(&report, "eval")
     );
-    // One that names the selected system, or no attribute at all, counts.
-    let mine = "error: bad\n  … while checking the derivation 'packages.x86_64-linux.default'";
-    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(mine), &switched());
+
+    // When inventory shows zero errors despite flake check failing, scoping fails closed.
+    let clean_inv_tools = rig.tools(
+        &with_check(
+            (
+                "flake check",
+                "",
+                "error: bad\n  … while checking 'packages.aarch64-linux.default'",
+                1,
+            ),
+            two_system_arms(),
+        ),
+        &nej_two(OK_LINE, OK_LINE),
+    );
+    let (_, report) = run_json(&rig, &x86_only(&rig), clean_inv_tools, &switched());
     assert_eq!(verdict(&report, "eval"), "Refuse");
-    let none = "error: something broke";
-    let (_, report) = run_json(&rig, &x86_only(&rig), tools_for(none), &switched());
+
+    // When inventory shows the error is on the selected system, it refuses.
+    let mine_tools = rig.tools(
+        &with_check(("flake check", "", "error: bad", 1), two_system_arms()),
+        &nej_two(OK_LINE, THROW_LINE),
+    );
+    let (_, report) = run_json(&rig, &x86_only(&rig), mine_tools, &switched());
     assert_eq!(verdict(&report, "eval"), "Refuse");
 }
 
@@ -1135,9 +1161,24 @@ fn warning_arms<'a>() -> Vec<Arm<'a>> {
 }
 
 #[test]
-fn c20_a_warning_that_names_an_output_on_another_system_is_narrowed_out() {
+fn c20_a_warning_attributed_to_another_system_record_is_narrowed_out() {
     let rig = two_system_rig();
-    let tools = rig.tools(&warning_arms(), &nej_two(OK_LINE, OK_LINE));
+    let nej = [
+        (
+            "fake:locked#packages.aarch64-linux'*'abort-on-warn'*'true",
+            r#"{"attr":"default","attrPath":["default"],"error":"evaluation warning: packages.aarch64-linux.default is deprecated\nerror: aborting"}"#,
+            "",
+            0,
+        ),
+        (
+            "fake:locked#packages.aarch64-linux'*'abort-on-warn'*'false",
+            OK_LINE,
+            "",
+            0,
+        ),
+        ("fake:locked#packages.x86_64-linux", OK_LINE, "", 0),
+    ];
+    let tools = rig.tools(&warning_arms(), &nej);
     let (_, report) = run_json(&rig, &x86_only(&rig), tools, &switched());
     let messages: Vec<&str> = report["warnings"]
         .as_array()
@@ -1145,17 +1186,114 @@ fn c20_a_warning_that_names_an_output_on_another_system_is_narrowed_out() {
         .iter()
         .map(|w| w["message"].as_str().unwrap())
         .collect();
-    // The warning that cannot be tied to an output still counts.
+    // Unattributed warning falls back to counting; aarch64-linux record warning is scoped out.
     assert_eq!(messages, ["a warning that names no output"]);
     assert_eq!(verdict(&report, "eval"), "Refuse");
-    // Selecting the system the warning names keeps both.
-    let tools = rig.tools(&warning_arms(), &nej_two(OK_LINE, OK_LINE));
+    // Selecting aarch64-linux keeps both.
+    let tools = rig.tools(&warning_arms(), &nej);
     let aarch64 = Settings {
         system: Some("aarch64-linux".into()),
         ..rig.settings()
     };
     let (_, report) = run_json(&rig, &aarch64, tools, &switched());
     assert_eq!(report["warnings"].as_array().unwrap().len(), 2);
+}
+
+#[test]
+fn warnings_under_selected_system_scope_by_structured_records_w1_w2_w4() {
+    let rig = two_system_rig();
+
+    // w1: selected x86_64-linux output warns "use the aarch64-linux build" -> MUST REFUSE.
+    let w1_check = [
+        (
+            "flake'*'check'*'abort-on-warn false",
+            "",
+            "evaluation warning: use the aarch64-linux build",
+            0,
+        ),
+        (
+            "flake'*'check'*'abort-on-warn true",
+            "",
+            "evaluation warning: use the aarch64-linux build\nerror: aborting",
+            1,
+        ),
+    ];
+    let w1_nej = [
+        ("fake:locked#packages.aarch64-linux", OK_LINE, "", 0),
+        (
+            "fake:locked#packages.x86_64-linux'*'abort-on-warn'*'true",
+            r#"{"attr":"default","attrPath":["default"],"error":"evaluation warning: use the aarch64-linux build\nerror: aborting"}"#,
+            "",
+            0,
+        ),
+        (
+            "fake:locked#packages.x86_64-linux'*'abort-on-warn'*'false",
+            OK_LINE,
+            "",
+            0,
+        ),
+    ];
+    let mut arms_w1 = w1_check.to_vec();
+    arms_w1.extend(two_system_arms());
+    let (exit, report) = run_json(
+        &rig,
+        &x86_only(&rig),
+        rig.tools(&arms_w1, &w1_nej),
+        &switched(),
+    );
+    assert_eq!(exit, Exit::GateFailed, "{report}");
+    assert_eq!(verdict(&report, "eval"), "Refuse");
+    assert!(reason(&report, "eval").contains("use the aarch64-linux build"));
+
+    // w2: other aarch64-linux output warns mentioning x86_64-linux -> MUST PASS.
+    // w4: other aarch64-linux output warns naming no system -> MUST PASS.
+    for (msg, label) in [
+        ("not for x86_64-linux", "w2"),
+        ("plain other-system warning", "w4"),
+    ] {
+        let strict_err = format!("evaluation warning: {msg}\nerror: aborting");
+        let lenient_err = format!("evaluation warning: {msg}");
+        let nej_err = serde_json::json!({
+            "attr": "default",
+            "attrPath": ["default"],
+            "error": strict_err,
+        })
+        .to_string();
+        let mut arms = vec![
+            (
+                "flake'*'check'*'abort-on-warn false",
+                "",
+                lenient_err.as_str(),
+                0,
+            ),
+            (
+                "flake'*'check'*'abort-on-warn true",
+                "",
+                strict_err.as_str(),
+                1,
+            ),
+        ];
+        arms.extend(two_system_arms());
+        let nej = [
+            (
+                "fake:locked#packages.aarch64-linux'*'abort-on-warn'*'true",
+                nej_err.as_str(),
+                "",
+                0,
+            ),
+            (
+                "fake:locked#packages.aarch64-linux'*'abort-on-warn'*'false",
+                OK_LINE,
+                "",
+                0,
+            ),
+            ("fake:locked#packages.x86_64-linux", OK_LINE, "", 0),
+        ];
+        let (exit, report) = run_json(&rig, &x86_only(&rig), rig.tools(&arms, &nej), &switched());
+        assert_eq!(exit, Exit::Pass, "{label}: {report}");
+        assert_eq!(verdict(&report, "eval"), "pass", "{label}");
+        assert_eq!(report["warnings"], serde_json::json!([]), "{label}");
+    }
 }
 
 #[test]

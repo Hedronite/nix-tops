@@ -86,8 +86,19 @@ pub fn render_text(report: &Value) -> String {
         lines.push("warnings".to_string());
         lines.extend(warnings);
     }
+    let sandbox = str_of(report, "sandbox");
+    if !sandbox.is_empty() {
+        lines.push(format!("sandbox: {sandbox}"));
+    }
     let outputs = items(report, "outputs").count();
-    lines.push(format!("{outputs} outputs evaluated"));
+    let deferred = items(report, "outputs")
+        .filter(|o| o.get("deferred").and_then(Value::as_bool) == Some(true))
+        .count();
+    if deferred > 0 {
+        lines.push(format!("{outputs} outputs evaluated ({deferred} deferred)"));
+    } else {
+        lines.push(format!("{outputs} outputs evaluated"));
+    }
     let passed = report
         .get("passed")
         .and_then(Value::as_bool)
