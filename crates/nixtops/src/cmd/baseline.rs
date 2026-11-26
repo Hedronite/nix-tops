@@ -1,11 +1,188 @@
-//! `nixtops baseline`: not built yet.
+//! `nixtops baseline`: runs the gate and, when every layer passed, writes the baseline. It is the
+//! only writer. It refuses to write over a baseline that is not the committed one, from a tree that
+//! differs from `HEAD`, to start again
+//! after a baseline was deleted, and to record anything looser than the baseline it replaces.
 
-use crate::{cmd::not_built, exit::Output};
+use crate::{
+    baseline::{compare, file, file::Baseline, history},
+    build_info,
+    cmd::gate::EvaluatorArg,
+    config::{self, baseline::real_git, semantic},
+    exit::{Exit, Output},
+    gate::{self, Evaluator, Seams, Settings},
+    inventory::Tools,
+    probe,
+    report::render_text,
+};
 use clap::Args as ClapArgs;
+use serde_json::Value;
+use std::{ffi::OsString, fs, path::PathBuf};
 
 #[derive(Debug, ClapArgs)]
-pub struct Args {}
+pub struct Args {
+    /// The flake directory
+    #[arg(default_value = ".")]
+    pub path: PathBuf,
+    /// Which Nix judges
+    #[arg(long, value_enum, default_value = "pinned")]
+    pub evaluator: EvaluatorArg,
+}
 
-pub fn run(_args: &Args) -> Output {
-    not_built("baseline")
+fn fail(exit: Exit, why: &str) -> Output {
+    Output::fail(exit, format!("nixtops baseline: {why}\n"))
+}
+
+fn config_of(settings: &Settings) -> Option<Value> {
+    let text = fs::read_to_string(settings.root.join("nix-tops.toml")).ok()?;
+    config::load(&text).ok()
+}
+
+/// Where a run stopped before any layer writes its report, whatever the config names.
+const DEFAULT_REPORT: &str = ".nix-tops/report.json";
+
+fn report_path(doc: &Value) -> &str {
+    doc.pointer("/report/path")
+        .and_then(Value::as_str)
+        .unwrap_or(DEFAULT_REPORT)
+}
+
+/// The previous baseline, after git agreed that writing is allowed: the baseline itself is in
+/// order, and nothing but it and the reports differs from `HEAD`.
+fn previous(settings: &Settings, doc: &Value) -> Result<Option<Baseline>, Output> {
+    let path = semantic::baseline_path(doc);
+    let file = settings.root.join(path);
+    let git = real_git(&settings.root);
+    history::may_write(&git, path, file.exists())
+        .and_then(|()| history::tree_is_head(&git, &[path, report_path(doc), DEFAULT_REPORT]))
+        .map_err(|why| fail(Exit::Refused, &why))?;
+    file::load(&file).map_err(|why| fail(Exit::GateFailed, &why))
+}
+
+/// The gate's own failure, passed on with its exit code and its report.
+fn not_written(result: &gate::run::RunResult) -> Output {
+    let report = serde_json::to_value(&result.report).unwrap_or_default();
+    let exit = match result.exit {
+        Exit::Pass | Exit::GateFailed => Exit::GateFailed,
+        other => other,
+    };
+    let mut stderr: String = result.problems.iter().map(|p| format!("{p}\n")).collect();
+    stderr.push_str("nixtops baseline: not written: the gate did not pass\n");
+    Output {
+        exit,
+        stdout: render_text(&report),
+        stderr,
+    }
+}
+
+fn written(path: &str, new: &Baseline) -> Output {
+    Output::ok(format!(
+        "wrote {path}: {} finding(s) from {} lint tool(s), {} ack(s)\ncommit it with the change\n",
+        new.total(),
+        new.lint.len(),
+        new.acks
+    ))
+}
+
+/// What `old` refuses in `new`, in every enforcement mode.
+fn looser(doc: &Value, old: Option<&Baseline>, new: &Baseline) -> Result<(), Output> {
+    let found = old.map(|old| compare::judge(doc, old, new));
+    match found.filter(|f| !f.failures.is_empty()) {
+        Some(found) => {
+            let why = format!("not written, looser than the baseline: {}", found.all());
+            Err(fail(Exit::GateFailed, &why))
+        }
+        None => Ok(()),
+    }
+}
+
+fn record(
+    settings: &Settings,
+    doc: &Value,
+    tools: Option<Tools>,
+    seams: &Seams,
+) -> Result<Output, Output> {
+    let path = semantic::baseline_path(doc);
+    let old = previous(settings, doc)?;
+    let result = gate::run(settings, tools, seams);
+    if !result.report.passed {
+        return Err(not_written(&result));
+    }
+    let new = Baseline::of(&settings.root, doc, &result.report);
+    looser(doc, old.as_ref(), &new)?;
+    file::write(&settings.root.join(path), &new)
+        .map_err(|e| fail(Exit::Environment, &format!("cannot write {path}: {e}")))?;
+    Ok(written(path, &new))
+}
+
+/// Runs with the settings and tools given. A config that does not load goes straight to the gate,
+/// which names the problem.
+pub fn run_with(settings: &Settings, tools: Option<Tools>, seams: &Seams) -> Output {
+    match config_of(settings) {
+        Some(doc) => record(settings, &doc, tools, seams).unwrap_or_else(|refusal| refusal),
+        None => not_written(&gate::run(settings, tools, seams)),
+    }
+}
+
+/// `CI` set to anything but the empty string.
+fn ci_of(value: Option<OsString>) -> bool {
+    value.is_some_and(|value| !value.is_empty())
+}
+
+fn settings_of(args: &Args, ci: bool) -> Settings {
+    Settings {
+        root: args.path.clone(),
+        keep_going: false,
+        only: None,
+        system: None,
+        evaluator: match args.evaluator {
+            EvaluatorArg::Pinned => Evaluator::Pinned,
+            EvaluatorArg::Host => Evaluator::Host,
+        },
+        ci,
+        today: gate::run::today(),
+        nix: probe::nix_bin(),
+        writing_baseline: true,
+    }
+}
+
+pub fn run(args: &Args) -> Output {
+    let tools = Tools::from_parts(
+        build_info::JUDGE_PATH,
+        build_info::EVAL_JOBS_PATH,
+        build_info::NIXPKGS_REF,
+    );
+    let settings = settings_of(args, ci_of(std::env::var_os("CI")));
+    run_with(&settings, tools, &Seams::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_run_writes_a_baseline_with_the_flags_given() {
+        for (flag, evaluator) in [
+            (EvaluatorArg::Pinned, Evaluator::Pinned),
+            (EvaluatorArg::Host, Evaluator::Host),
+        ] {
+            let args = Args {
+                path: PathBuf::from("p"),
+                evaluator: flag,
+            };
+            for ci in [false, true] {
+                let got = settings_of(&args, ci);
+                assert!(got.writing_baseline && !got.keep_going);
+                assert_eq!((got.only, got.system), (None, None));
+                assert_eq!((got.root, got.ci), (PathBuf::from("p"), ci));
+                assert_eq!(got.evaluator, evaluator);
+            }
+        }
+    }
+
+    #[test]
+    fn ci_is_set_only_by_a_value() {
+        assert!(!ci_of(None));
+        assert!(!ci_of(Some(OsString::new())));
+        assert!(ci_of(Some(OsString::from("1"))));
+    }
 }

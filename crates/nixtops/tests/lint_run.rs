@@ -469,21 +469,25 @@ fn host_system_wins_over_other_system_when_both_are_listed_and_bootstrap_skips_m
         .collect();
     assert_eq!(ordered, vec!["deadnix", "gitleaks", "nixfmt", "statix"]);
 
-    // Under ratchet without writing_baseline, the G0 stub refuses rather than passing vacuously.
+    // Under ratchet a count above the baseline refuses.
     let ratchet_cfg = CONFIG.replace(r#"enforce = "hard""#, r#"enforce = "ratchet""#);
     fs::write(rig.dir.path().join("nix-tops.toml"), ratchet_cfg).unwrap();
     fs::create_dir_all(rig.dir.path().join(".nix-tops")).unwrap();
-    fs::write(rig.dir.path().join(".nix-tops/baseline.json"), "{}\n").unwrap();
+    let baseline = r#"{"protocol":"0.2.0","acks":0,"laws":[],"lint":{"deadnix":{"version":"1.3.2","config_hash":"sha256-deadnix","files":{}}}}"#;
+    fs::write(rig.dir.path().join(".nix-tops/baseline.json"), baseline).unwrap();
     git(rig.dir.path(), &["add", "-A"]);
     git(rig.dir.path(), &["commit", "-q", "-m", "ratchet"]);
     let res_ratchet = gate::run(&rig.settings(), Some(rig.tools(&arms)), &Seams::default());
     assert_eq!(res_ratchet.exit, Exit::GateFailed);
     assert_eq!(
         res_ratchet.report.layers[1].reason.as_deref(),
-        Some("ratchet not built yet")
+        Some("deadnix: flake.nix: 1 finding(s), baseline 0")
     );
 
-    // Bootstrap with ratchet succeeds when writing_baseline = true.
+    // Bootstrap with ratchet succeeds when writing_baseline = true and no baseline exists yet.
+    fs::remove_file(rig.dir.path().join(".nix-tops/baseline.json")).unwrap();
+    git(rig.dir.path(), &["add", "-A"]);
+    git(rig.dir.path(), &["commit", "-q", "-m", "first"]);
     let boot = Settings {
         writing_baseline: true,
         ..rig.settings()

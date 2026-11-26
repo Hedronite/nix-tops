@@ -1,0 +1,10 @@
+{
+  "exit": 0,
+  "layers": {
+    "source": "pass",
+    "lint": "pass",
+    "eval": "pass"
+  },
+  "named": "",
+  "note": "The one deadnix finding that fails under hard passes under ratchet: the baseline records it."
+}

@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "layers": {
+    "source": "pass",
+    "lint": "Refuse",
+    "eval": "not-run"
+  },
+  "named": "deadnix: flake.nix: 2 finding(s), baseline 1",
+  "note": "A second finding in the same file fails."
+}

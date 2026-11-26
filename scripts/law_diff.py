@@ -13,10 +13,15 @@ nix-tops.toml   enforce lowered; a layer switched off, or a custom layer removed
                 mode lowered, a tolerance raised, an output dropped from the closure budget; a lint
                 key removed or deadnix.fail turned off; laws.enable narrowed; ack_ledger or
                 baseline moved; a facet or system dropped; a [[warnings.allow]] entry added, with
-                a changed match, or with a later until
+                a changed match, or with a later until; an [advisory] exemption added or with a
+                later until
 laws/*.toml     a law removed; severity lowered; judged turned off; reader changed; an artifact
                 dropped
 profiles/*.toml a profile removed; the same floor, layer, eval and budget rules as nix-tops.toml
+the baseline    (the path the base's nix-tops.toml names) removed or unreadable; a lint tool
+                dropped; a file's count risen, a new file included; acks risen; a judged law lost;
+                a tool configuration narrower, or changed in a way its inputs do not explain.
+                A first baseline and falling counts are not weakenings
 
 Any file under a protected path (see PROTECTED) that is added, removed or different: a change
 to the protocol, a schema, a law, a profile, a workflow or these two scripts is a protocol change
@@ -31,6 +36,8 @@ label clears. A change with no weakening prints nothing and exits 0.
 """
 
 import argparse
+import hashlib
+import json
 import os
 import sys
 import tomllib
@@ -185,8 +192,10 @@ def scope_findings(base, head):
     found += [("facets", name, "dropped") for name in base.get("facets", []) if name not in head.get("facets", [])]
     old, new = table(base, "toolchain").get("systems", []), table(head, "toolchain").get("systems", [])
     found += [("toolchain.systems", name, "dropped") for name in old if name not in new]
-    if "baseline" in base and base["baseline"] != head.get("baseline"):
-        found.append(("baseline", base["baseline"], head.get("baseline", "removed")))
+    # An absent key is the default path, so naming another one moves the baseline too.
+    old_path, new_path = base.get("baseline", BASELINE), head.get("baseline", BASELINE)
+    if old_path != new_path:
+        found.append(("baseline", old_path, new_path))
     return found
 
 
@@ -203,6 +212,18 @@ def ledger_findings(base, head):
     return found
 
 
+def advisory_findings(base, head):
+    """A new or later-dated [advisory] exemption switches enforcement off for longer."""
+    old, new = table(base, "advisory"), table(head, "advisory")
+    if not new:
+        return []
+    until = str(new.get("until", ""))
+    if old and str(old.get("until", "")) >= until:
+        return []
+    before = f"until {old.get('until')}" if old else "no exemption"
+    return [("advisory", before, f"until {until}")]
+
+
 def config_findings(base, head):
     return (
         enforce_findings(base, head)
@@ -211,6 +232,7 @@ def config_findings(base, head):
         + law_set_findings(base, head)
         + scope_findings(base, head)
         + ledger_findings(base, head)
+        + advisory_findings(base, head)
     )
 
 
@@ -300,12 +322,168 @@ def path_findings(base_dir, head_dir):
     return found
 
 
+BASELINE = ".nix-tops/baseline.json"
+# The lists of a lint config that switch checks off, by tool, as dotted keys.
+ALLOW_KEYS = {
+    "statix": ("disabled", "ignore"),
+    "nixfmt": ("excludes", "global.excludes", "formatter.*.excludes"),
+    "gitleaks": ("allowlist.paths", "allowlist.regexes", "allowlist.commits", "allowlist.stopwords"),
+}
+CONFIG_DEFAULTS = {
+    "nixfmt": {"formatter": {"nix": {"command": "nixfmt", "includes": ["*.nix"]}}},
+    "gitleaks": {"extend": {"useDefault": True}},
+}
+
+
+def preimage(tool, inputs):
+    """The text lib.mkChecks hashes for a tool with an empty exclude."""
+    config = inputs.get("config")
+    if tool == "nixfmt":
+        body = "default-nixfmt" if config is None else config
+    elif tool == "statix":
+        body = "default" if config is None else config
+    elif tool == "deadnix":
+        body = f"fail={inputs.get('fail')}"
+    elif tool == "gitleaks":
+        body = ("default" if config is None else config) + "|" + (inputs.get("ignore") or "")
+    else:
+        return None
+    return body + "\nexclude:"
+
+
+def explains(tool, entry):
+    """The kept inputs, only when they give the entry's config_hash."""
+    inputs = entry.get("inputs")
+    if not isinstance(inputs, dict):
+        return None
+    text = preimage(tool, inputs)
+    if text is None or hashlib.sha256(text.encode()).hexdigest() != entry.get("config_hash"):
+        return None
+    return inputs
+
+
+def take(node, parts, label, out):
+    """Remove the string list at a dotted key, recording its entries."""
+    head, rest = parts[0], parts[1:]
+    if not isinstance(node, dict):
+        return
+    if head == "*":
+        for name, child in node.items():
+            take(child, rest, f"{label}:{name}", out)
+    elif rest:
+        take(node.get(head), rest, label, out)
+    elif isinstance(node.get(head), list) and all(isinstance(item, str) for item in node[head]):
+        out.update(f"{label}:{item}" for item in node.pop(head))
+
+
+def shape(tool, inputs):
+    """(allow entries, everything else) of a tool's config, or None when it is not TOML."""
+    text = inputs.get("config")
+    try:
+        doc = tomllib.loads(text) if text is not None else json.loads(json.dumps(CONFIG_DEFAULTS.get(tool, {})))
+    except tomllib.TOMLDecodeError:
+        return None
+    allowed = set()
+    for key in ALLOW_KEYS.get(tool, ()):
+        label = "statix:" + key if tool == "statix" else key.replace(".*", "")
+        take(doc, key.split("."), label, allowed)
+    allowed.discard("statix:ignore:.direnv")
+    if tool == "nixfmt" and doc.get("global") == {}:
+        del doc["global"]
+    if tool == "gitleaks":
+        if isinstance(doc.get("allowlist"), dict):
+            doc["allowlist"].pop("description", None)
+        if doc.get("allowlist") == {}:
+            del doc["allowlist"]
+        lists = doc.pop("allowlists", [])
+        allowed.update("allowlists:" + json.dumps(item, sort_keys=True, default=str) for item in lists)
+    for line in (inputs.get("ignore") or "").splitlines():
+        if line.strip() and not line.strip().startswith("#"):
+            allowed.add("ignore:" + line.strip())
+    return allowed, doc
+
+
+def narrower(tool, old, new):
+    """Why a tool's configuration cannot be shown to be as strict as before, or None."""
+    if old.get("config_hash") == new.get("config_hash"):
+        return None
+    before, after = explains(tool, old), explains(tool, new)
+    if before is None or after is None:
+        return "changed and not explained"
+    if tool == "deadnix":
+        return "fail turned off" if before.get("fail") == "true" and after.get("fail") == "false" else None
+    old_shape, new_shape = shape(tool, before), shape(tool, after)
+    if old_shape is None or new_shape is None:
+        return "not valid TOML"
+    if old_shape[1] != new_shape[1]:
+        return "a setting changed"
+    added = sorted(new_shape[0] - old_shape[0])
+    return "added " + ", ".join(added) if added else None
+
+
+def read_baseline(path):
+    """The baseline as a dict of the expected shape, or None."""
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        tools = doc["lint"].items()
+        counts = [n for _, tool in tools for n in tool["files"].values()]
+        if not isinstance(doc["acks"], int) or not all(isinstance(n, int) for n in counts):
+            return None
+        set(doc["laws"])
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+    return doc
+
+
+def tool_findings(name, old, new):
+    found = []
+    why = narrower(name, old, new)
+    if why:
+        found.append((f"lint.{name}.config", "as recorded", why))
+    for file, count in sorted(new["files"].items()):
+        before = old["files"].get(file, 0)
+        if count > before:
+            found.append((f"lint.{name}.files.{file}", before, count))
+    return found
+
+
+def count_findings(base, head):
+    found = []
+    for name, old in sorted(base["lint"].items()):
+        if name not in head["lint"]:
+            found.append((f"lint.{name}", "present", "dropped"))
+        else:
+            found += tool_findings(name, old, head["lint"][name])
+    if head["acks"] > base["acks"]:
+        found.append(("acks", base["acks"], head["acks"]))
+    found += [("laws", name, "dropped") for name in sorted(set(base["laws"]) - set(head["laws"]))]
+    return found
+
+
+def baseline_findings(base_dir, head_dir):
+    """The committed ratchet may only tighten without the label."""
+    config = read_toml(base_dir / "nix-tops.toml") or {}
+    rel = config.get("baseline", BASELINE)
+    if not isinstance(rel, str) or not (base_dir / rel).is_file():
+        return []
+    head = head_dir / rel
+    if head.is_symlink() or behind_a_link(head_dir, Path(rel)):
+        return [(rel, "file", "present", "a link")]
+    if not head.is_file():
+        return [(rel, "file", "present", "removed")]
+    old, new = read_baseline(base_dir / rel), read_baseline(head)
+    if old is None or new is None:
+        return [(rel, "file", "a baseline", "unreadable")]
+    return [(rel, *item) for item in count_findings(old, new)]
+
+
 def weakenings(base_dir, head_dir):
     """Every weakening between two checkouts, as (file, key, old, new). Raises Unreadable."""
     base_dir, head_dir = Path(base_dir), Path(head_dir)
     found = compare_files(base_dir, head_dir, "nix-tops.toml", config_findings)
     found += compare_files(base_dir, head_dir, "laws/*.toml", law_findings)
     found += compare_files(base_dir, head_dir, "profiles/*.toml", settings_findings)
+    found += baseline_findings(base_dir, head_dir)
     found += path_findings(base_dir, head_dir)
     # A head file with no base twin is not compared, but it must still parse.
     for path in sorted(head_dir.glob("nix-tops.toml")) + sorted(head_dir.glob("laws/*.toml")) + sorted(

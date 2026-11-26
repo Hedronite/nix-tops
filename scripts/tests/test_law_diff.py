@@ -1,6 +1,8 @@
 """Tests for scripts/law_diff.py: one pair of trees per row of the comparison, with and without the label."""
 
 import contextlib
+import json
+import hashlib
 import io
 import os
 import shutil
@@ -319,6 +321,23 @@ class Config(Pair):
         self.edit(".nix-tops/baseline.json", "lenient.json")
         self.assertEqual(self.keys(), [("nix-tops.toml", "baseline")])
 
+    def test_the_default_baseline_path_is_a_path_too(self):
+        silent = CONFIG.replace('baseline = ".nix-tops/baseline.json"\n', "")
+        named = 'baseline = ".nix-tops/b2.json"\n' + silent
+        default = 'baseline = ".nix-tops/baseline.json"\n' + silent
+
+        def pair(base, head):
+            shutil.rmtree(self.base)
+            tree(self.base, config=base)
+            self.make_head(config=head)
+            return self.keys()
+
+        moved = [("nix-tops.toml", "baseline")]
+        self.assertEqual(pair(silent, named), moved)
+        self.assertEqual(pair(named, silent), moved)
+        self.assertEqual(pair(silent, default), [])
+        self.assertEqual(pair(default, silent), [])
+
     def test_the_config_file_removed(self):
         self.make_head(config=None)
         self.assertEqual(self.keys(), [("nix-tops.toml", "file")])
@@ -342,6 +361,112 @@ class Ledger(Pair):
         self.assertEqual(self.keys(), [])
         self.make_head(config=CONFIG.split("[[warnings.allow]]")[0])
         self.assertEqual(self.keys(), [])
+
+
+class Advisory(Pair):
+    TABLE = '\n[advisory]\nreason = "r"\nuntil = "{u}"\n'
+
+    def based_on(self, until):
+        shutil.rmtree(self.base)
+        tree(self.base, config=CONFIG + self.TABLE.format(u=until))
+
+    def test_a_new_exemption_is_a_weakening(self):
+        self.make_head(config=CONFIG + self.TABLE.format(u="2027-01-01"))
+        self.assertEqual(self.keys(), [("nix-tops.toml", "advisory")])
+
+    def test_a_later_until_is_a_weakening(self):
+        self.based_on("2027-01-01")
+        self.make_head(config=CONFIG + self.TABLE.format(u="2027-02-01"))
+        self.assertEqual(self.keys(), [("nix-tops.toml", "advisory")])
+
+    def test_an_earlier_until_or_a_removed_exemption_is_fine(self):
+        self.based_on("2027-01-01")
+        for head in (CONFIG + self.TABLE.format(u="2026-12-01"), CONFIG):
+            self.make_head(config=head)
+            self.assertEqual(self.keys(), [])
+
+
+class Baseline(Pair):
+    PATH = ".nix-tops/baseline.json"
+
+    @staticmethod
+    def tool(name, files=None, **inputs):
+        if name == "deadnix":
+            inputs.setdefault("fail", "true")
+        else:
+            inputs.setdefault("config", None)
+        if name == "gitleaks":
+            inputs.setdefault("ignore", None)
+        digest = hashlib.sha256(law_diff.preimage(name, inputs).encode()).hexdigest()
+        return {"version": "1", "config_hash": digest, "inputs": inputs, "files": files or {}}
+
+    def doc(self, acks=0, laws=(), **tools):
+        return {"protocol": "0.2.0", "lint": tools, "acks": acks, "laws": list(laws)}
+
+    def pair(self, old, new):
+        for root, doc in ((self.base, old), (self.head, new)):
+            if root == self.head:
+                self.make_head()
+            if doc is not None:
+                (root / ".nix-tops").mkdir(exist_ok=True)
+                text = doc if isinstance(doc, str) else json.dumps(doc)
+                (root / self.PATH).write_text(text)
+        return [(key, new_value) for file, key, _, new_value in law_diff.weakenings(self.base, self.head) if file == self.PATH]
+
+    def keys_of(self, old, new):
+        return [key for key, _ in self.pair(old, new)]
+
+    def test_a_first_baseline_and_falling_counts_are_not_weakenings(self):
+        old = self.doc(acks=2, laws=["N-01"], statix=self.tool("statix", {"a.nix": 3}))
+        self.assertEqual(self.keys_of(None, old), [])
+        new = self.doc(acks=1, laws=["N-01", "N-02"], statix=self.tool("statix", {"a.nix": 1}), nixfmt=self.tool("nixfmt"))
+        self.assertEqual(self.keys_of(old, new), [])
+
+    def test_removed_or_unreadable_is_a_weakening(self):
+        old = self.doc(statix=self.tool("statix"))
+        for broken in ("{", "{}", '{"lint": [], "acks": 0, "laws": []}'):
+            self.assertEqual(self.pair(old, broken), [("file", "unreadable")], broken)
+        self.assertEqual(self.pair(old, None), [("file", "removed")])
+
+    def test_a_risen_count_a_new_file_acks_a_lost_law_and_a_dropped_tool(self):
+        old = self.doc(laws=["N-01"], statix=self.tool("statix", {"a.nix": 1}), nixfmt=self.tool("nixfmt"))
+        new = self.doc(acks=1, statix=self.tool("statix", {"a.nix": 2, "b.nix": 1}))
+        self.assertEqual(
+            self.keys_of(old, new),
+            ["lint.nixfmt", "lint.statix.files.a.nix", "lint.statix.files.b.nix", "acks", "laws"],
+        )
+
+    def test_a_narrower_tool_config_is_a_weakening_and_a_wider_one_is_not(self):
+        cases = [
+            ("statix", {}, {"config": 'disabled = ["x"]'}),
+            ("statix", {}, {"config": 'ignore = ["g/*"]'}),
+            ("deadnix", {}, {"fail": "false"}),
+            ("gitleaks", {}, {"ignore": "abc:1"}),
+            ("gitleaks", {}, {"config": '[extend]\nuseDefault = true\n[allowlist]\npaths = ["p"]'}),
+            ("gitleaks", {}, {"config": '[extend]\nuseDefault = true\n[[allowlists]]\npaths = ["p"]'}),
+            ("nixfmt", {}, {"config": 'excludes = ["a"]\n[formatter.nix]\ncommand = "nixfmt"\nincludes = ["*.nix"]'}),
+        ]
+        for name, loose, strict in cases:
+            wide, narrow = self.tool(name, **loose), self.tool(name, **strict)
+            self.assertEqual(self.keys_of(self.doc(**{name: wide}), self.doc(**{name: narrow})), [f"lint.{name}.config"], strict)
+            self.assertEqual(self.keys_of(self.doc(**{name: narrow}), self.doc(**{name: wide})), [], strict)
+
+    def test_a_change_the_inputs_do_not_explain_is_a_weakening(self):
+        plain = self.tool("statix")
+        forged = dict(plain, config_hash="0" * 64)
+        absent = {"version": "1", "config_hash": "0" * 64, "files": {}}
+        broken = self.tool("statix", config="disabled = [")
+        other = self.tool("statix", config='nix_version = "2.4"')
+        for new in (forged, absent, broken, other):
+            self.assertEqual(self.keys_of(self.doc(statix=plain), self.doc(statix=new)), ["lint.statix.config"], new)
+
+    def test_the_path_the_config_names_is_the_one_compared(self):
+        config = 'baseline = "b.json"\n'
+        for root in (self.base, self.head):
+            shutil.rmtree(root, ignore_errors=True)
+            tree(root, config=config)
+        (self.base / "b.json").write_text(json.dumps(self.doc()))
+        self.assertIn(("b.json", "file"), self.keys())
 
 
 class LawsAndProfiles(Pair):

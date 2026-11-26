@@ -53,6 +53,16 @@
     },
     "enforce": { "$ref": "core/core.schema.json#/$defs/mode", "default": "ratchet" },
     "baseline": { "type": "string", "minLength": 1 },
+    "advisory": {
+      "description": "The dated exemption enforce = advisory needs (section 6.8). Dormant or expired, it fails.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "until"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 1 },
+        "until": { "$ref": "core/core.schema.json#/$defs/date" }
+      }
+    },
     "nixpkgs_input": {
       "description": "The flake input that is the adopter's main nixpkgs; N-06 and N-43 read it.",
       "type": "string", "minLength": 1, "default": "nixpkgs"

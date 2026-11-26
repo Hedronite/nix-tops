@@ -558,7 +558,7 @@ mod tests {
         assert_eq!(ratchet_refused.verdict, Verdict::Refuse);
         assert_eq!(
             ratchet_refused.reason.as_deref(),
-            Some("ratchet not built yet")
+            Some(".nix-tops/baseline.json does not exist")
         );
         let ratchet_boot = Input {
             writing_baseline: true,
