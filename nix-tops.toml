@@ -1,8 +1,8 @@
-# The kit gates itself (NIX_TOPS.md section 11). Gates 1 and 3 are built in M1; the other layers
-# are switched off with a reason until they are built, and law-diff stops a later change from
-# switching a built layer off without the protocol-change label.
+# The kit gates itself (NIX_TOPS.md section 11). Gates 1 to 4 run: source, lint, eval and
+# build-test. The other layers are switched off with a reason until they are built, and law-diff
+# stops a later change from switching a built layer off without the protocol-change label.
 protocol = "0.2.0"
-facets = ["package-set", "dev-flake"]
+facets = ["flake-lib", "package-set", "dev-flake"]
 enforce = "hard"
 
 [toolchain]
@@ -14,8 +14,6 @@ abort_on_warn = true
 allow_ifd = false
 
 [layers]
-lint = { enabled = false, reason = "not built in M1" }
-build-test = { enabled = false, reason = "not built in M1" }
-coverage = { enabled = false, reason = "not built in M1" }
-facet-layers = { enabled = false, reason = "not built in M1" }
-laws = { enabled = false, reason = "not built in M1" }
+coverage = { enabled = false, reason = "not built in M2" }
+facet-layers = { enabled = false, reason = "not built in M2" }
+laws = { enabled = false, reason = "not built in M2" }

@@ -31,14 +31,23 @@
       });
 
       # Frozen evidence, the verbatim quickstart example, and deliberate lint fixtures stay untouched.
-      checks = self.lib.mkChecks {
-        inherit self systems;
-        exclude = [
-          "docs/evidence"
-          "examples/quickstart"
-          "fixtures"
-        ];
-      };
+      # The lint checks live on one system; the runner is a check on every system, so gate 4 has
+      # something to build wherever it runs.
+      checks =
+        nixpkgs.lib.recursiveUpdate
+          (self.lib.mkChecks {
+            inherit self systems;
+            exclude = [
+              "docs/evidence"
+              "examples/quickstart"
+              "fixtures"
+            ];
+          })
+          (
+            nixpkgs.lib.genAttrs systems (system: {
+              inherit (self.packages.${system}) nixtops;
+            })
+          );
 
       devShells = forAllSystems (pkgs: {
         default = pkgs.callPackage ./nix/devshell.nix { };

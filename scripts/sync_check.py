@@ -39,7 +39,7 @@ RULES_END = "<!-- rules:end -->"
 
 # ------------------------------------------------- the section 11 additions to the template
 
-GATE_RUN = "        run: nix run .#nixtops --no-update-lock-file --no-accept-flake-config -- gate --max-tier 1"
+GATE_RUN = "        run: nix run .#nixtops --no-update-lock-file --no-accept-flake-config -- gate --max-tier 1 --system x86_64-linux"
 
 SETUP_PYTHON = """\
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
